@@ -12,22 +12,30 @@ Dialog {
     height: Math.min(parent.height * 0.8, 650)
 
     modal: true
-    title: "Edit Block"
     standardButtons: Dialog.Cancel
 
     property string blockId: ""
+    property bool isNew: blockId === ""
     property var blockData: ({})
     property var syncStatus: []
 
+    title: isNew ? "New Block" : "Edit Block"
+
     function openBlock(id) {
         blockId = id
-        blockData = AppController.blockStore.getBlock(id)
-        if (!blockData.id) return
-
-        nameField.text = blockData.name
-        tagsField.text = (blockData.tags || []).join(", ")
-        editorArea.text = blockData.content
-        refreshSyncStatus()
+        if (id === "") {
+            nameField.text = ""
+            tagsField.text = ""
+            editorArea.text = ""
+            syncStatus = []
+        } else {
+            blockData = AppController.blockStore.getBlock(id)
+            if (!blockData.id) return
+            nameField.text = blockData.name
+            tagsField.text = (blockData.tags || []).join(", ")
+            editorArea.text = blockData.content
+            refreshSyncStatus()
+        }
         dialog.open()
     }
 
@@ -39,19 +47,27 @@ Dialog {
 
     function saveAndPush() {
         let name = nameField.text.trim()
-        if (name !== blockData.name && name.length > 0)
-            AppController.blockStore.renameBlock(blockId, name)
+        if (name.length === 0) return
 
         let tags = tagsField.text.split(",").map(s => s.trim()).filter(s => s.length > 0)
+
+        if (isNew) {
+            blockId = AppController.blockStore.createBlock(name, editorArea.text, tags, "")
+            dialog.close()
+            return
+        }
+
+        if (name !== blockData.name)
+            AppController.blockStore.renameBlock(blockId, name)
+
         // Update tags: clear and re-add
         let oldTags = blockData.tags || []
         for (let t of oldTags) AppController.blockStore.removeTag(blockId, t)
         for (let t of tags) AppController.blockStore.addTag(blockId, t)
 
         AppController.blockStore.updateBlock(blockId, editorArea.text)
-        let count = AppController.syncEngine.pushBlock(blockId)
+        AppController.syncEngine.pushBlock(blockId)
 
-        // Reload current doc if it was affected
         AppController.currentDocument.reload()
         dialog.close()
     }
@@ -221,7 +237,7 @@ Dialog {
         }
 
         Label {
-            visible: dialog.syncStatus.length === 0
+            visible: !dialog.isNew && dialog.syncStatus.length === 0
             text: "Not used in any scanned files."
             font.pixelSize: 11
             color: "#666"
@@ -237,6 +253,7 @@ Dialog {
             Button {
                 text: "Delete Block"
                 flat: true
+                visible: !dialog.isNew
                 palette.buttonText: "#e06060"
                 onClicked: {
                     AppController.blockStore.removeBlock(dialog.blockId)
@@ -245,7 +262,7 @@ Dialog {
             }
 
             Button {
-                text: "Save && Push to All Files"
+                text: dialog.isNew ? "Create Block" : "Save && Push to All Files"
                 highlighted: true
                 onClicked: dialog.saveAndPush()
             }

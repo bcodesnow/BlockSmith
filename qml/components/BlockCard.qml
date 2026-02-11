@@ -9,6 +9,7 @@ Rectangle {
     property string blockName: ""
     property string blockContent: ""
     property var blockTags: []
+    property int usageCount: 0
 
     signal clicked()
     signal editRequested()
@@ -108,28 +109,40 @@ Rectangle {
             Layout.fillWidth: true
         }
 
-        // Tags
-        Flow {
+        // Tags + usage
+        RowLayout {
             Layout.fillWidth: true
             spacing: 4
-            visible: card.blockTags.length > 0
 
-            Repeater {
-                model: card.blockTags
-                Rectangle {
-                    width: tagLabel.implicitWidth + 10
-                    height: 18
-                    radius: 9
-                    color: "#3d5a80"
+            Flow {
+                Layout.fillWidth: true
+                spacing: 4
+                visible: card.blockTags.length > 0
 
-                    Label {
-                        id: tagLabel
-                        anchors.centerIn: parent
-                        text: modelData
-                        font.pixelSize: 10
-                        color: "#ccc"
+                Repeater {
+                    model: card.blockTags
+                    Rectangle {
+                        width: tagLabel.implicitWidth + 10
+                        height: 18
+                        radius: 9
+                        color: "#3d5a80"
+
+                        Label {
+                            id: tagLabel
+                            anchors.centerIn: parent
+                            text: modelData
+                            font.pixelSize: 10
+                            color: "#ccc"
+                        }
                     }
                 }
+            }
+
+            Label {
+                visible: card.usageCount > 0
+                text: card.usageCount + (card.usageCount === 1 ? " file" : " files")
+                font.pixelSize: 10
+                color: "#4caf50"
             }
         }
     }

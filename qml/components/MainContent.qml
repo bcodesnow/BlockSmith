@@ -347,9 +347,16 @@ Rectangle {
                 Item { Layout.fillWidth: true }
 
                 Label {
-                    text: "Ctrl+S Save | Ctrl+E Toggle | Ctrl+F Find | F5 Scan"
+                    text: {
+                        let c = AppController.currentDocument.rawContent
+                        if (!c || c.length === 0) return ""
+                        let chars = c.length
+                        let words = c.trim().length === 0 ? 0 : c.trim().split(/\s+/).length
+                        let lines = c.split("\n").length
+                        return words + " words, " + chars + " chars, " + lines + " lines"
+                    }
                     font.pixelSize: 10
-                    color: "#555"
+                    color: "#777"
                 }
             }
         }

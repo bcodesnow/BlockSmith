@@ -20,24 +20,49 @@ Rectangle {
             Layout.preferredHeight: 36
             color: "#333333"
 
-            Label {
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.left: parent.left
+            RowLayout {
+                anchors.fill: parent
                 anchors.leftMargin: 10
-                text: "BLOCKS"
-                font.pixelSize: 11
-                font.bold: true
-                font.letterSpacing: 1.2
-                color: "#999"
-            }
-
-            Label {
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.right: parent.right
                 anchors.rightMargin: 10
-                text: AppController.blockStore.count
-                font.pixelSize: 11
-                color: "#666"
+
+                Label {
+                    text: "BLOCKS"
+                    font.pixelSize: 11
+                    font.bold: true
+                    font.letterSpacing: 1.2
+                    color: "#999"
+                }
+
+                Item { Layout.fillWidth: true }
+
+                Label {
+                    text: AppController.blockStore.count
+                    font.pixelSize: 11
+                    color: "#666"
+                }
+
+                // Add block button
+                Rectangle {
+                    width: 22
+                    height: 22
+                    radius: 3
+                    color: addBlockMa.containsMouse ? "#555" : "transparent"
+
+                    Label {
+                        anchors.centerIn: parent
+                        text: "+"
+                        font.pixelSize: 16
+                        font.bold: true
+                        color: "#999"
+                    }
+
+                    MouseArea {
+                        id: addBlockMa
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onClicked: blockPanel.blockEditRequested("")
+                    }
+                }
             }
         }
 
@@ -125,6 +150,7 @@ Rectangle {
                 blockName: model.name
                 blockContent: model.content
                 blockTags: model.tags
+                usageCount: AppController.syncEngine.filesContainingBlock(model.blockId).length
                 onClicked: AppController.highlightBlock(model.blockId)
                 onEditRequested: blockPanel.blockEditRequested(model.blockId)
                 onInsertRequested: blockPanel.blockInsertRequested(model.blockId)
@@ -135,7 +161,7 @@ Rectangle {
                 anchors.centerIn: parent
                 visible: parent.count === 0
                 text: AppController.blockStore.count === 0
-                      ? "No blocks yet.\nSelect text in the editor\nand right-click to create one."
+                      ? "No blocks yet.\nClick + or select text\nin the editor to create one."
                       : "No blocks match filter."
                 horizontalAlignment: Text.AlignHCenter
                 font.pixelSize: 11

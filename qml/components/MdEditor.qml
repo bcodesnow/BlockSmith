@@ -25,8 +25,40 @@ Item {
         font: textArea.font
     }
 
+    // Precompute per-line heights to account for word-wrap
+    property var lineHeights: {
+        void(textArea.contentHeight)
+        void(textArea.width)
+        let t = textArea.text || ""
+        if (t.length === 0) return [fm.lineSpacing]
+        let offsets = [0]
+        for (let i = 0; i < t.length; i++) {
+            if (t[i] === '\n') offsets.push(i + 1)
+        }
+        let heights = []
+        for (let i = 0; i < offsets.length; i++) {
+            if (i + 1 < offsets.length) {
+                let y1 = textArea.positionToRectangle(offsets[i]).y
+                let y2 = textArea.positionToRectangle(offsets[i + 1]).y
+                heights.push(Math.max(y2 - y1, fm.lineSpacing))
+            } else {
+                heights.push(fm.lineSpacing)
+            }
+        }
+        return heights
+    }
+
+    // Revision counter — bumped when block store changes, forces blockRanges re-eval
+    property int blockStoreRevision: 0
+    Connections {
+        target: AppController.blockStore
+        function onBlockUpdated() { editorRoot.blockStoreRevision++ }
+        function onCountChanged() { editorRoot.blockStoreRevision++ }
+    }
+
     // Block line ranges computed by scanning the text directly (no position conversion)
     property var blockRanges: {
+        void(editorRoot.blockStoreRevision)
         let t = textArea.text || ""
         if (t.length === 0) return []
 
@@ -107,7 +139,7 @@ Item {
 
                 delegate: Item {
                     width: gutter.width - 4
-                    height: fm.lineSpacing
+                    height: editorRoot.lineHeights[index] || fm.lineSpacing
 
                     // Block region indicator strip (left edge)
                     Rectangle {

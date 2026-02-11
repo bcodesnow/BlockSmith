@@ -13,7 +13,8 @@ A Qt6/QML desktop application for managing reusable content blocks across CLAUDE
 - Do not decide for me about features - do not assume - ask if unsure!
 - Less is more. We are embedded developers with passion. KISS DRY but keep it readable and maintainable do not overabstract.
 - Do not write bloated code
-
+- Do not overpollute CLAUDE.md - this should just focus on orientation and guidelines
+- **After context compaction:** Do not act on assumptions from the summary. Read the summary to understand context, then ask the user what they want to do next. Present what you learned and ask for direction.
 <!-- /block:1d67c7 -->
 
 ## Build Environment
