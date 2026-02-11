@@ -1,0 +1,10 @@
+build/
+.cache/
+.qtcreator/
+CMakeUserPresets.json
+nul
+*.exe
+*.dll
+*.obj
+*.o
+*.a
