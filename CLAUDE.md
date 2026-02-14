@@ -61,17 +61,7 @@ third_party/md4c/       Markdown parser library
 resources/              App icon and Windows .rc file
 ```
 
-## Features
+## Docs
 
-- Project scanning with configurable search paths, ignore patterns, and trigger files
-- Tree view navigation with expand/collapse all
-- Markdown editor with line numbers, block gutter markers, syntax highlighting
-- Markdown preview via md4c
-- Block store (create, edit, sync, push/pull blocks across files)
-- Prompt store with clipboard support
-- Find & Replace (Ctrl+F / Ctrl+H)
-- Global search across all MD files (Ctrl+Shift+F)
-- Block diff view for diverged blocks
-- Auto-scan on startup (configurable)
-- Syntax highlighting (configurable)
-- Toast notifications
+- See [docs/architecture.md](docs/architecture.md) for full architecture, project structure, features
+- See [docs/user-manual.md](docs/user-manual.md) for shortcuts, data storage, workflows
