@@ -1,0 +1,93 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [master]
+    tags: ['v*']
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.10.1'
+          arch: 'win64_msvc2022_64'
+          cache: true
+          cache-key-prefix: 'qt-6.10.1-msvc2022'
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Configure
+        run: >
+          cmake -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_C_COMPILER=cl
+          -DCMAKE_CXX_COMPILER=cl
+          -Wno-dev
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Prepare deploy directory
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path deploy
+          Copy-Item build/BlockSmith.exe deploy/
+
+      - name: Run windeployqt
+        shell: pwsh
+        run: |
+          windeployqt --release --qmldir qml deploy/BlockSmith.exe
+
+      - name: Determine version
+        id: version
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          else
+            SHORT_SHA=$(git rev-parse --short HEAD)
+            echo "version=dev-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+            echo "tag=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create zip archive
+        shell: pwsh
+        run: |
+          Compress-Archive -Path deploy/* -DestinationPath "BlockSmith-${{ steps.version.outputs.version }}-win64.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BlockSmith-${{ steps.version.outputs.version }}-win64
+          path: BlockSmith-${{ steps.version.outputs.version }}-win64.zip
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: BlockSmith ${{ steps.version.outputs.tag }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: BlockSmith-${{ steps.version.outputs.version }}-win64.zip
