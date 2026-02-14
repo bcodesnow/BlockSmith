@@ -104,6 +104,16 @@ void ConfigManager::setSyntaxHighlightEnabled(bool enabled)
     }
 }
 
+int ConfigManager::scanDepth() const { return m_scanDepth; }
+
+void ConfigManager::setScanDepth(int depth)
+{
+    if (m_scanDepth != depth) {
+        m_scanDepth = depth;
+        emit scanDepthChanged();
+    }
+}
+
 void ConfigManager::load()
 {
     QFile file(configFilePath());
@@ -156,6 +166,9 @@ void ConfigManager::load()
 
     if (root.contains("syntaxHighlightEnabled"))
         m_syntaxHighlightEnabled = root["syntaxHighlightEnabled"].toBool(true);
+
+    if (root.contains("scanDepth"))
+        m_scanDepth = root["scanDepth"].toInt(0);
 }
 
 void ConfigManager::save()
@@ -190,6 +203,7 @@ void ConfigManager::save()
 
     root["autoScanOnStartup"] = m_autoScanOnStartup;
     root["syntaxHighlightEnabled"] = m_syntaxHighlightEnabled;
+    root["scanDepth"] = m_scanDepth;
 
     QFile file(configFilePath());
     if (!file.open(QIODevice::WriteOnly)) {

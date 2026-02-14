@@ -18,6 +18,7 @@ class ConfigManager : public QObject
     Q_PROPERTY(QList<int> splitterSizes READ splitterSizes WRITE setSplitterSizes NOTIFY splitterSizesChanged)
     Q_PROPERTY(bool autoScanOnStartup READ autoScanOnStartup WRITE setAutoScanOnStartup NOTIFY autoScanOnStartupChanged)
     Q_PROPERTY(bool syntaxHighlightEnabled READ syntaxHighlightEnabled WRITE setSyntaxHighlightEnabled NOTIFY syntaxHighlightEnabledChanged)
+    Q_PROPERTY(int scanDepth READ scanDepth WRITE setScanDepth NOTIFY scanDepthChanged)
 
 public:
     explicit ConfigManager(QObject *parent = nullptr);
@@ -43,6 +44,9 @@ public:
     bool syntaxHighlightEnabled() const;
     void setSyntaxHighlightEnabled(bool enabled);
 
+    int scanDepth() const;
+    void setScanDepth(int depth);
+
     Q_INVOKABLE void load();
     Q_INVOKABLE void save();
 
@@ -54,6 +58,7 @@ signals:
     void splitterSizesChanged();
     void autoScanOnStartupChanged();
     void syntaxHighlightEnabledChanged();
+    void scanDepthChanged();
 
 private:
     QString configDir() const;
@@ -66,4 +71,5 @@ private:
     QList<int> m_splitterSizes;
     bool m_autoScanOnStartup = true;
     bool m_syntaxHighlightEnabled = true;
+    int m_scanDepth = 0; // 0 = unlimited
 };

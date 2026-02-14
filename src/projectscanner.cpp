@@ -20,7 +20,9 @@ void ProjectScanner::scan()
 
     m_model->clear();
 
+    int maxDepth = m_config->scanDepth(); // 0 = unlimited
     int projectCount = 0;
+
     for (const QString &searchPath : m_config->searchPaths()) {
         QDir dir(searchPath);
         if (!dir.exists()) {
@@ -29,27 +31,7 @@ void ProjectScanner::scan()
             continue;
         }
 
-        // Iterate immediate subdirectories of each search path
-        const auto entries = dir.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot);
-        for (const QFileInfo &entry : entries) {
-            if (isIgnored(entry.fileName()))
-                continue;
-
-            if (containsTriggerFile(entry.absoluteFilePath())) {
-                auto *projectNode = new TreeNode(
-                    entry.fileName(),
-                    entry.absoluteFilePath(),
-                    TreeNode::ProjectRoot,
-                    false,
-                    m_model->rootNode());
-
-                collectMdFiles(entry.absoluteFilePath(), projectNode);
-                m_model->addProjectRoot(projectNode);
-                projectCount++;
-            }
-        }
-
-        // Also check if the search path itself is a project root
+        // Check if the search path itself is a project root
         if (containsTriggerFile(searchPath)) {
             QFileInfo pathInfo(searchPath);
             auto *projectNode = new TreeNode(
@@ -63,9 +45,46 @@ void ProjectScanner::scan()
             m_model->addProjectRoot(projectNode);
             projectCount++;
         }
+
+        // Recurse into subdirectories looking for projects
+        scanRecursive(searchPath, 1, maxDepth, projectCount);
     }
 
     emit scanComplete(projectCount);
+}
+
+void ProjectScanner::scanRecursive(const QString &dirPath, int depth,
+                                    int maxDepth, int &projectCount)
+{
+    if (maxDepth > 0 && depth > maxDepth)
+        return;
+
+    QDir dir(dirPath);
+    const auto entries = dir.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot);
+
+    for (const QFileInfo &entry : entries) {
+        if (isIgnored(entry.fileName()))
+            continue;
+
+        const QString entryPath = entry.absoluteFilePath();
+
+        if (containsTriggerFile(entryPath)) {
+            auto *projectNode = new TreeNode(
+                entry.fileName(),
+                entryPath,
+                TreeNode::ProjectRoot,
+                false,
+                m_model->rootNode());
+
+            collectMdFiles(entryPath, projectNode);
+            m_model->addProjectRoot(projectNode);
+            projectCount++;
+            // Don't recurse into project roots — they're leaf projects
+        } else {
+            // Not a project, keep searching deeper
+            scanRecursive(entryPath, depth + 1, maxDepth, projectCount);
+        }
+    }
 }
 
 bool ProjectScanner::isIgnored(const QString &dirName) const

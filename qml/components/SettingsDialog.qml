@@ -24,6 +24,7 @@ Dialog {
         triggerFilesArea.text = [].concat(AppController.configManager.triggerFiles).join("\n")
         autoScanCheck.checked = AppController.configManager.autoScanOnStartup
         syntaxHighlightCheck.checked = AppController.configManager.syntaxHighlightEnabled
+        scanDepthSpin.value = AppController.configManager.scanDepth
     }
 
     onAccepted: {
@@ -35,6 +36,7 @@ Dialog {
         AppController.configManager.triggerFiles = triggers
         AppController.configManager.autoScanOnStartup = autoScanCheck.checked
         AppController.configManager.syntaxHighlightEnabled = syntaxHighlightCheck.checked
+        AppController.configManager.scanDepth = scanDepthSpin.value
         AppController.configManager.save()
     }
 
@@ -139,6 +141,36 @@ Dialog {
             id: syntaxHighlightCheck
             text: "Syntax highlighting in editor"
             checked: true
+        }
+
+        RowLayout {
+            spacing: 8
+
+            Label {
+                text: "Scan depth:"
+            }
+
+            SpinBox {
+                id: scanDepthSpin
+                from: 0
+                to: 50
+                value: 0
+                editable: true
+
+                textFromValue: function(value) {
+                    return value === 0 ? "Unlimited" : value.toString()
+                }
+
+                valueFromText: function(text) {
+                    if (text.toLowerCase() === "unlimited") return 0
+                    return parseInt(text) || 0
+                }
+            }
+
+            Label {
+                text: "0 = unlimited"
+                color: "#666"
+            }
         }
     }
 }
