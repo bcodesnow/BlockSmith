@@ -58,6 +58,43 @@ ApplicationWindow {
         id: newProjectDialog
     }
 
+    FileOperationDialog {
+        id: fileOpDialog
+    }
+
+    // Unsaved changes dialog
+    Dialog {
+        id: unsavedDialog
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: 400
+        modal: true
+        title: "Unsaved Changes"
+
+        property string pendingPath: ""
+
+        Label {
+            text: "Current file has unsaved changes.\nSave before switching?"
+            wrapMode: Text.Wrap
+            width: parent.width
+            color: Theme.textPrimary
+        }
+
+        footer: DialogButtonBox {
+            Button { text: "Save"; DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole }
+            Button { text: "Discard"; DialogButtonBox.buttonRole: DialogButtonBox.DestructiveRole }
+            Button { text: "Cancel"; DialogButtonBox.buttonRole: DialogButtonBox.RejectRole }
+        }
+
+        onAccepted: {
+            AppController.currentDocument.save()
+            AppController.forceOpenFile(pendingPath)
+        }
+        onDiscarded: {
+            AppController.forceOpenFile(pendingPath)
+        }
+    }
+
     Connections {
         target: AppController.promptStore
         function onCopied(name) {
@@ -70,12 +107,22 @@ ApplicationWindow {
         function onScanComplete(count) {
             toast.show("Scan complete — " + count + " project" + (count !== 1 ? "s" : "") + " found")
         }
+        function onUnsavedChangesWarning(pendingPath) {
+            unsavedDialog.pendingPath = pendingPath
+            unsavedDialog.open()
+        }
     }
 
     Connections {
         target: AppController.currentDocument
         function onSaved() {
             toast.show("Saved")
+        }
+        function onLoadFailed(error) {
+            toast.show(error)
+        }
+        function onSaveFailed(error) {
+            toast.show(error)
         }
     }
 
@@ -155,6 +202,9 @@ ApplicationWindow {
             SplitView.minimumWidth: 180
             onSettingsRequested: settingsDialog.open()
             onNewProjectRequested: newProjectDialog.openDialog()
+            onFileNewRequested: function(dirPath) { fileOpDialog.openNewFile(dirPath) }
+            onFolderNewRequested: function(dirPath) { fileOpDialog.openNewFolder(dirPath) }
+            onFileRenameRequested: function(itemPath) { fileOpDialog.openRename(itemPath) }
         }
 
         // Center content area

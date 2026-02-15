@@ -5,7 +5,7 @@ import BlockSmith
 
 Rectangle {
     id: promptPanel
-    color: "#2b2b2b"
+    color: Theme.bgPanel
 
     signal promptEditRequested(string promptId)
 
@@ -16,8 +16,8 @@ Rectangle {
         // Header
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: 36
-            color: "#333333"
+            Layout.preferredHeight: Theme.headerHeight
+            color: Theme.bgHeader
 
             RowLayout {
                 anchors.fill: parent
@@ -26,39 +26,40 @@ Rectangle {
 
                 Label {
                     text: "PROMPTS"
-                    font.pixelSize: 11
+                    font.pixelSize: Theme.fontSizeXS
                     font.bold: true
                     font.letterSpacing: 1.2
-                    color: "#999"
+                    color: Theme.textSecondary
                 }
 
                 Item { Layout.fillWidth: true }
 
                 Label {
                     text: AppController.promptStore.count
-                    font.pixelSize: 11
-                    color: "#666"
+                    font.pixelSize: Theme.fontSizeXS
+                    color: Theme.textMuted
                 }
 
                 // Add prompt button
                 Rectangle {
                     width: 22
                     height: 22
-                    radius: 3
-                    color: addMa.containsMouse ? "#555" : "transparent"
+                    radius: Theme.radius
+                    color: addMa.containsMouse ? Theme.borderHover : "transparent"
 
                     Label {
                         anchors.centerIn: parent
                         text: "+"
                         font.pixelSize: 16
                         font.bold: true
-                        color: "#999"
+                        color: Theme.textSecondary
                     }
 
                     MouseArea {
                         id: addMa
                         anchors.fill: parent
                         hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
                         onClicked: promptPanel.promptEditRequested("")
                     }
                 }
@@ -70,9 +71,9 @@ Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 32
             Layout.margins: 6
-            color: "#1e1e1e"
-            radius: 3
-            border.color: promptSearchField.activeFocus ? "#6c9bd2" : "#444"
+            color: Theme.bg
+            radius: Theme.radius
+            border.color: promptSearchField.activeFocus ? Theme.borderFocus : Theme.border
             border.width: 1
 
             TextField {
@@ -80,9 +81,9 @@ Rectangle {
                 anchors.fill: parent
                 anchors.margins: 1
                 placeholderText: "Search prompts..."
-                placeholderTextColor: "#666"
-                font.pixelSize: 12
-                color: "#ddd"
+                placeholderTextColor: Theme.textPlaceholder
+                font.pixelSize: Theme.fontSizeM
+                color: Theme.textPrimary
                 background: null
                 onTextChanged: AppController.promptStore.searchFilter = text
             }
@@ -104,20 +105,24 @@ Rectangle {
                     height: 20
                     radius: 10
                     color: AppController.promptStore.categoryFilter === modelData
-                           ? "#3d6a99" : "#3a3a3a"
-                    border.color: "#555"
+                           ? Theme.bgActive
+                           : (catPillMa.containsMouse ? Theme.bgButtonHov : Theme.bgButton)
+                    border.color: Theme.borderHover
                     border.width: AppController.promptStore.categoryFilter === modelData ? 0 : 1
 
                     Label {
                         id: catTag
                         anchors.centerIn: parent
                         text: modelData === "" ? "All" : modelData
-                        font.pixelSize: 10
-                        color: "#ccc"
+                        font.pixelSize: Theme.fontSizeS
+                        color: Theme.textPrimary
                     }
 
                     MouseArea {
+                        id: catPillMa
                         anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             AppController.promptStore.categoryFilter =
                                 (AppController.promptStore.categoryFilter === modelData) ? "" : modelData
@@ -131,7 +136,7 @@ Rectangle {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 1
-            color: "#444"
+            color: Theme.border
         }
 
         // Prompt list
@@ -161,8 +166,8 @@ Rectangle {
                       ? "No prompts yet.\nClick + to create one."
                       : "No prompts match filter."
                 horizontalAlignment: Text.AlignHCenter
-                font.pixelSize: 11
-                color: "#666"
+                font.pixelSize: Theme.fontSizeXS
+                color: Theme.textMuted
             }
         }
     }

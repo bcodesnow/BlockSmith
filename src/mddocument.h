@@ -43,11 +43,15 @@ public:
     Q_INVOKABLE void insertBlock(int position, const QString &blockId,
                                   const QString &blockName, const QString &content);
 
+    Q_INVOKABLE void clear();
+
 signals:
     void filePathChanged();
     void rawContentChanged();
     void modifiedChanged();
     void saved();
+    void loadFailed(const QString &error);
+    void saveFailed(const QString &error);
 
 private:
     void parseBlocks();

@@ -4,8 +4,8 @@ import QtQuick.Layouts
 
 Rectangle {
     id: findBar
-    color: "#2d2d2d"
-    border.color: "#444"
+    color: Theme.bgPanel
+    border.color: Theme.border
     border.width: 1
     visible: false
     height: replaceMode ? 68 : 36
@@ -56,13 +56,13 @@ Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 26
                 placeholderText: "Find..."
-                font.pixelSize: 12
-                color: "#ddd"
-                placeholderTextColor: "#666"
+                font.pixelSize: Theme.fontSizeM
+                color: Theme.textPrimary
+                placeholderTextColor: Theme.textPlaceholder
                 background: Rectangle {
-                    color: "#1e1e1e"
-                    radius: 3
-                    border.color: findField.activeFocus ? "#6c9bd2" : "#555"
+                    color: Theme.bg
+                    radius: Theme.radius
+                    border.color: findField.activeFocus ? Theme.borderFocus : Theme.borderHover
                     border.width: 1
                 }
 
@@ -76,7 +76,12 @@ Rectangle {
                 }
 
                 Keys.onEscapePressed: findBar.close()
-                Keys.onReturnPressed: findBar.findNext(text, caseSensitiveBtn.checked)
+                Keys.onReturnPressed: function(event) {
+                    if (event.modifiers & Qt.ShiftModifier)
+                        findBar.findPrev(text, caseSensitiveBtn.checked)
+                    else
+                        findBar.findNext(text, caseSensitiveBtn.checked)
+                }
             }
 
             // Match counter
@@ -84,8 +89,8 @@ Rectangle {
                 text: findField.text.length > 0
                     ? (findBar.matchCount > 0 ? findBar.currentMatch + "/" + findBar.matchCount : "No results")
                     : ""
-                font.pixelSize: 10
-                color: findBar.matchCount > 0 ? "#999" : "#e06c75"
+                font.pixelSize: Theme.fontSizeS
+                color: findBar.matchCount > 0 ? Theme.textSecondary : Theme.accentRed
                 Layout.preferredWidth: 60
                 horizontalAlignment: Text.AlignHCenter
             }
@@ -95,8 +100,8 @@ Rectangle {
                 id: caseSensitiveBtn
                 width: 26
                 height: 26
-                radius: 3
-                color: checked ? "#3d6a99" : (caseMa.containsMouse ? "#444" : "transparent")
+                radius: Theme.radius
+                color: checked ? Theme.bgActive : (caseMa.containsMouse ? Theme.border : "transparent")
                 property bool checked: false
                 ToolTip.text: "Case sensitive"
                 ToolTip.visible: caseMa.containsMouse
@@ -105,14 +110,15 @@ Rectangle {
                 Label {
                     anchors.centerIn: parent
                     text: "Aa"
-                    font.pixelSize: 11
+                    font.pixelSize: Theme.fontSizeXS
                     font.bold: true
-                    color: parent.checked ? "#fff" : "#999"
+                    color: parent.checked ? Theme.textWhite : Theme.textSecondary
                 }
                 MouseArea {
                     id: caseMa
                     anchors.fill: parent
                     hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
                     onClicked: {
                         parent.checked = !parent.checked
                         if (findField.text.length > 0)
@@ -123,54 +129,57 @@ Rectangle {
 
             // Previous
             Rectangle {
-                width: 26; height: 26; radius: 3
-                color: prevMa.containsMouse ? "#444" : "transparent"
+                width: 26; height: 26; radius: Theme.radius
+                color: prevMa.containsMouse ? Theme.border : "transparent"
                 Label {
                     anchors.centerIn: parent
                     text: "\u25B2"
-                    font.pixelSize: 10
-                    color: "#ccc"
+                    font.pixelSize: Theme.fontSizeS
+                    color: Theme.textPrimary
                 }
                 MouseArea {
                     id: prevMa
                     anchors.fill: parent
                     hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
                     onClicked: findBar.findPrev(findField.text, caseSensitiveBtn.checked)
                 }
             }
 
             // Next
             Rectangle {
-                width: 26; height: 26; radius: 3
-                color: nextMa.containsMouse ? "#444" : "transparent"
+                width: 26; height: 26; radius: Theme.radius
+                color: nextMa.containsMouse ? Theme.border : "transparent"
                 Label {
                     anchors.centerIn: parent
                     text: "\u25BC"
-                    font.pixelSize: 10
-                    color: "#ccc"
+                    font.pixelSize: Theme.fontSizeS
+                    color: Theme.textPrimary
                 }
                 MouseArea {
                     id: nextMa
                     anchors.fill: parent
                     hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
                     onClicked: findBar.findNext(findField.text, caseSensitiveBtn.checked)
                 }
             }
 
             // Close
             Rectangle {
-                width: 26; height: 26; radius: 3
-                color: closeMa.containsMouse ? "#555" : "transparent"
+                width: 26; height: 26; radius: Theme.radius
+                color: closeMa.containsMouse ? Theme.bgButtonHov : "transparent"
                 Label {
                     anchors.centerIn: parent
                     text: "\u2715"
-                    font.pixelSize: 12
-                    color: "#999"
+                    font.pixelSize: Theme.fontSizeM
+                    color: Theme.textSecondary
                 }
                 MouseArea {
                     id: closeMa
                     anchors.fill: parent
                     hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
                     onClicked: findBar.close()
                 }
             }
@@ -187,13 +196,13 @@ Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 26
                 placeholderText: "Replace..."
-                font.pixelSize: 12
-                color: "#ddd"
-                placeholderTextColor: "#666"
+                font.pixelSize: Theme.fontSizeM
+                color: Theme.textPrimary
+                placeholderTextColor: Theme.textPlaceholder
                 background: Rectangle {
-                    color: "#1e1e1e"
-                    radius: 3
-                    border.color: replaceField.activeFocus ? "#6c9bd2" : "#555"
+                    color: Theme.bg
+                    radius: Theme.radius
+                    border.color: replaceField.activeFocus ? Theme.borderFocus : Theme.borderHover
                     border.width: 1
                 }
                 Keys.onEscapePressed: findBar.close()
@@ -202,20 +211,21 @@ Rectangle {
             // Replace one
             Rectangle {
                 width: replaceOneLabel.implicitWidth + 12
-                height: 26; radius: 3
-                color: replaceOneMa.containsMouse ? "#444" : "#333"
-                border.color: "#555"; border.width: 1
+                height: 26; radius: Theme.radius
+                color: replaceOneMa.containsMouse ? Theme.border : Theme.bgHeader
+                border.color: Theme.borderHover; border.width: 1
                 Label {
                     id: replaceOneLabel
                     anchors.centerIn: parent
                     text: "Replace"
-                    font.pixelSize: 11
-                    color: "#ccc"
+                    font.pixelSize: Theme.fontSizeXS
+                    color: Theme.textPrimary
                 }
                 MouseArea {
                     id: replaceOneMa
                     anchors.fill: parent
                     hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
                     onClicked: findBar.replaceOne(findField.text, replaceField.text, caseSensitiveBtn.checked)
                 }
             }
@@ -223,20 +233,21 @@ Rectangle {
             // Replace all
             Rectangle {
                 width: replaceAllLabel.implicitWidth + 12
-                height: 26; radius: 3
-                color: replaceAllMa.containsMouse ? "#444" : "#333"
-                border.color: "#555"; border.width: 1
+                height: 26; radius: Theme.radius
+                color: replaceAllMa.containsMouse ? Theme.border : Theme.bgHeader
+                border.color: Theme.borderHover; border.width: 1
                 Label {
                     id: replaceAllLabel
                     anchors.centerIn: parent
                     text: "All"
-                    font.pixelSize: 11
-                    color: "#ccc"
+                    font.pixelSize: Theme.fontSizeXS
+                    color: Theme.textPrimary
                 }
                 MouseArea {
                     id: replaceAllMa
                     anchors.fill: parent
                     hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
                     onClicked: findBar.replaceAll(findField.text, replaceField.text, caseSensitiveBtn.checked)
                 }
             }

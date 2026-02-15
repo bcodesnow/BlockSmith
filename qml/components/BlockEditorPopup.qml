@@ -36,7 +36,9 @@ Dialog {
             editorArea.text = blockData.content
             refreshSyncStatus()
         }
+        deleteBtn.confirming = false
         dialog.open()
+        nameField.forceActiveFocus()
     }
 
     function refreshSyncStatus() {
@@ -83,25 +85,25 @@ Dialog {
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: 8
+        spacing: Theme.sp8
 
         // Name + Tags row
         RowLayout {
             Layout.fillWidth: true
-            spacing: 8
+            spacing: Theme.sp8
 
-            Label { text: "Name:"; color: "#999"; font.pixelSize: 12 }
+            Label { text: "Name:"; color: Theme.textSecondary; font.pixelSize: Theme.fontSizeM }
             TextField {
                 id: nameField
                 Layout.fillWidth: true
-                font.pixelSize: 13
+                font.pixelSize: Theme.fontSizeL
             }
 
-            Label { text: "Tags:"; color: "#999"; font.pixelSize: 12 }
+            Label { text: "Tags:"; color: Theme.textSecondary; font.pixelSize: Theme.fontSizeM }
             TextField {
                 id: tagsField
                 Layout.preferredWidth: 200
-                font.pixelSize: 13
+                font.pixelSize: Theme.fontSizeL
                 placeholderText: "comma-separated"
             }
         }
@@ -118,13 +120,13 @@ Dialog {
 
                 TextArea {
                     id: editorArea
-                    font.family: "Consolas"
-                    font.pixelSize: 13
+                    font.family: Theme.fontMono
+                    font.pixelSize: Theme.fontSizeL
                     wrapMode: TextArea.Wrap
-                    color: "#d4d4d4"
-                    selectionColor: "#264f78"
-                    selectedTextColor: "#fff"
-                    background: Rectangle { color: "#1e1e1e" }
+                    color: Theme.textEditor
+                    selectionColor: Theme.bgSelection
+                    selectedTextColor: Theme.textWhite
+                    background: Rectangle { color: Theme.bg }
                 }
             }
 
@@ -132,18 +134,15 @@ Dialog {
                 SplitView.preferredWidth: parent.width * 0.45
                 SplitView.minimumWidth: 200
 
-                background: Rectangle { color: "#1e1e1e" }
+                background: Rectangle { color: Theme.bg }
 
                 TextEdit {
-                    padding: 12
+                    padding: Theme.sp12
                     readOnly: true
                     textFormat: TextEdit.RichText
                     wrapMode: TextEdit.Wrap
-                    color: "#d4d4d4"
-                    text: {
-                        let html = AppController.md4cRenderer.render(editorArea.text)
-                        return "<style>h1,h2,h3{color:#e0e0e0;}code{background:#333;font-family:Consolas;}a{color:#6c9bd2;}</style>" + html
-                    }
+                    color: Theme.textEditor
+                    text: Theme.previewCss + AppController.md4cRenderer.render(editorArea.text)
                 }
             }
         }
@@ -152,8 +151,8 @@ Dialog {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: Math.min(syncList.contentHeight + syncHeader.height + 8, 100)
-            color: "#252525"
-            radius: 3
+            color: Theme.bgFooter
+            radius: Theme.radius
             visible: dialog.syncStatus.length > 0
 
             ColumnLayout {
@@ -164,9 +163,9 @@ Dialog {
                 Label {
                     id: syncHeader
                     text: "Used in " + dialog.syncStatus.length + " file" + (dialog.syncStatus.length !== 1 ? "s" : "") + ":"
-                    font.pixelSize: 11
+                    font.pixelSize: Theme.fontSizeXS
                     font.bold: true
-                    color: "#888"
+                    color: Theme.textMuted
                 }
 
                 ListView {
@@ -185,43 +184,44 @@ Dialog {
                         Label {
                             text: "\u25CF"
                             font.pixelSize: 8
-                            color: modelData.status === "synced" ? "#4caf50" : "#ff9800"
+                            color: modelData.status === "synced" ? Theme.accentGreen : Theme.accentOrange
                         }
 
                         Label {
                             text: modelData.filePath
-                            font.pixelSize: 10
-                            color: "#aaa"
+                            font.pixelSize: Theme.fontSizeS
+                            color: Theme.textSecondary
                             elide: Text.ElideMiddle
                             Layout.fillWidth: true
                         }
 
                         Label {
                             text: modelData.status === "synced" ? "synced" : "diverged"
-                            font.pixelSize: 10
-                            color: modelData.status === "synced" ? "#4caf50" : "#ff9800"
+                            font.pixelSize: Theme.fontSizeS
+                            color: modelData.status === "synced" ? Theme.accentGreen : Theme.accentOrange
                         }
 
                         // Diff button for diverged files
                         Rectangle {
                             width: diffLabel.implicitWidth + 10
                             height: 18
-                            radius: 3
-                            color: diffMa.containsMouse ? "#555" : "#3a3a3a"
+                            radius: Theme.radius
+                            color: diffMa.containsMouse ? Theme.bgButtonHov : Theme.bgButton
                             visible: modelData.status === "diverged"
 
                             Label {
                                 id: diffLabel
                                 anchors.centerIn: parent
                                 text: "Diff & Pull"
-                                font.pixelSize: 10
-                                color: "#6c9bd2"
+                                font.pixelSize: Theme.fontSizeS
+                                color: Theme.accent
                             }
 
                             MouseArea {
                                 id: diffMa
                                 anchors.fill: parent
                                 hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
                                 onClicked: {
                                     diffPopup.openDiff(
                                         dialog.blockId,
@@ -239,25 +239,37 @@ Dialog {
         Label {
             visible: !dialog.isNew && dialog.syncStatus.length === 0
             text: "Not used in any scanned files."
-            font.pixelSize: 11
-            color: "#666"
+            font.pixelSize: Theme.fontSizeXS
+            color: Theme.textMuted
         }
 
         // Action buttons
         RowLayout {
             Layout.fillWidth: true
-            spacing: 8
+            spacing: Theme.sp8
 
             Item { Layout.fillWidth: true }
 
             Button {
-                text: "Delete Block"
+                id: deleteBtn
+                property bool confirming: false
+                text: confirming ? "Confirm Delete?" : "Delete Block"
                 flat: true
                 visible: !dialog.isNew
-                palette.buttonText: "#e06060"
+                palette.buttonText: Theme.accentRed
                 onClicked: {
-                    AppController.blockStore.removeBlock(dialog.blockId)
-                    dialog.close()
+                    if (!confirming) {
+                        confirming = true
+                        deleteResetTimer.restart()
+                    } else {
+                        AppController.blockStore.removeBlock(dialog.blockId)
+                        dialog.close()
+                    }
+                }
+                Timer {
+                    id: deleteResetTimer
+                    interval: 3000
+                    onTriggered: deleteBtn.confirming = false
                 }
             }
 

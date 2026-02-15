@@ -14,15 +14,16 @@ Rectangle {
     signal editRequested()
 
     implicitHeight: cardLayout.implicitHeight + 16
-    color: cardMa.containsMouse ? "#383838" : "#2f2f2f"
+    color: cardMa.containsMouse ? Theme.bgCardHov : Theme.bgCard
     radius: 4
-    border.color: "#444"
+    border.color: Theme.border
     border.width: 1
 
     MouseArea {
         id: cardMa
         anchors.fill: parent
         hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
         onClicked: card.copyRequested()
         onDoubleClicked: card.editRequested()
     }
@@ -38,9 +39,9 @@ Rectangle {
 
             Label {
                 text: card.promptName
-                font.pixelSize: 12
+                font.pixelSize: Theme.fontSizeM
                 font.bold: true
-                color: "#ddd"
+                color: Theme.textPrimary
                 elide: Text.ElideRight
                 Layout.fillWidth: true
             }
@@ -49,20 +50,21 @@ Rectangle {
             Rectangle {
                 width: 22
                 height: 22
-                radius: 3
-                color: copyMa.containsMouse ? "#555" : "transparent"
+                radius: Theme.radius
+                color: copyMa.containsMouse ? Theme.borderHover : "transparent"
 
                 Label {
                     anchors.centerIn: parent
                     text: "\u2398"  // clipboard symbol
                     font.pixelSize: 14
-                    color: "#999"
+                    color: Theme.textSecondary
                 }
 
                 MouseArea {
                     id: copyMa
                     anchors.fill: parent
                     hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
                     onClicked: card.copyRequested()
                 }
             }
@@ -71,8 +73,8 @@ Rectangle {
         // Content preview
         Label {
             text: card.promptContent.substring(0, 120).replace(/\n/g, " ")
-            font.pixelSize: 11
-            color: "#999"
+            font.pixelSize: Theme.fontSizeXS
+            color: Theme.textSecondary
             wrapMode: Text.Wrap
             maximumLineCount: 2
             elide: Text.ElideRight
@@ -99,8 +101,8 @@ Rectangle {
                 id: catLabel
                 anchors.centerIn: parent
                 text: card.promptCategory
-                font.pixelSize: 10
-                color: "#ccc"
+                font.pixelSize: Theme.fontSizeS
+                color: Theme.textPrimary
             }
         }
     }

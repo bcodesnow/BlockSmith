@@ -14,6 +14,7 @@ void MdDocument::load(const QString &filePath)
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         qWarning("MdDocument: could not open %s", qPrintable(filePath));
+        emit loadFailed(tr("Cannot open file: %1").arg(filePath));
         return;
     }
 
@@ -41,6 +42,7 @@ void MdDocument::save()
     QFile file(m_filePath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         qWarning("MdDocument: could not write %s", qPrintable(m_filePath));
+        emit saveFailed(tr("Cannot write file: %1").arg(m_filePath));
         return;
     }
 
@@ -52,6 +54,19 @@ void MdDocument::save()
     m_modified = false;
     emit modifiedChanged();
     emit saved();
+}
+
+void MdDocument::clear()
+{
+    m_filePath.clear();
+    m_rawContent.clear();
+    m_savedContent.clear();
+    m_modified = false;
+    m_blocks.clear();
+
+    emit filePathChanged();
+    emit rawContentChanged();
+    emit modifiedChanged();
 }
 
 void MdDocument::reload()

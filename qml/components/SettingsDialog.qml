@@ -15,9 +15,6 @@ Dialog {
     title: "Settings"
     standardButtons: Dialog.Save | Dialog.Cancel
 
-    property var editSearchPaths: []
-    property var editIgnorePatterns: []
-
     onOpened: {
         searchPathsArea.text = [].concat(AppController.configManager.searchPaths).join("\n")
         ignorePatternsArea.text = [].concat(AppController.configManager.ignorePatterns).join("\n")
@@ -42,16 +39,17 @@ Dialog {
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: 12
+        spacing: Theme.sp12
 
         Label {
             text: "Search Paths"
             font.bold: true
+            color: Theme.textPrimary
         }
 
         Label {
             text: "One directory per line. These will be scanned for projects."
-            color: "#666"
+            color: Theme.textMuted
             wrapMode: Text.Wrap
             Layout.fillWidth: true
         }
@@ -64,19 +62,28 @@ Dialog {
             TextArea {
                 id: searchPathsArea
                 placeholderText: "C:/Users/you/projects\nC:/Users/you/work"
-                font.family: "Consolas"
+                placeholderTextColor: Theme.textPlaceholder
+                font.family: Theme.fontMono
                 wrapMode: TextArea.NoWrap
+                color: Theme.textEditor
+                background: Rectangle {
+                    color: Theme.bg
+                    radius: Theme.radius
+                    border.color: Theme.border
+                    border.width: 1
+                }
             }
         }
 
         Label {
             text: "Ignore Patterns"
             font.bold: true
+            color: Theme.textPrimary
         }
 
         Label {
             text: "Directory names to skip during scanning. One per line."
-            color: "#666"
+            color: Theme.textMuted
             wrapMode: Text.Wrap
             Layout.fillWidth: true
         }
@@ -89,19 +96,28 @@ Dialog {
             TextArea {
                 id: ignorePatternsArea
                 placeholderText: "node_modules\n.git\nbuild"
-                font.family: "Consolas"
+                placeholderTextColor: Theme.textPlaceholder
+                font.family: Theme.fontMono
                 wrapMode: TextArea.NoWrap
+                color: Theme.textEditor
+                background: Rectangle {
+                    color: Theme.bg
+                    radius: Theme.radius
+                    border.color: Theme.border
+                    border.width: 1
+                }
             }
         }
 
         Label {
             text: "Project Markers"
             font.bold: true
+            color: Theme.textPrimary
         }
 
         Label {
             text: "File or directory names that mark a project root (e.g. CLAUDE.md, .git)."
-            color: "#666"
+            color: Theme.textMuted
             wrapMode: Text.Wrap
             Layout.fillWidth: true
         }
@@ -114,8 +130,16 @@ Dialog {
             TextArea {
                 id: triggerFilesArea
                 placeholderText: "CLAUDE.md\nAGENTS.md\n.git"
-                font.family: "Consolas"
+                placeholderTextColor: Theme.textPlaceholder
+                font.family: Theme.fontMono
                 wrapMode: TextArea.NoWrap
+                color: Theme.textEditor
+                background: Rectangle {
+                    color: Theme.bg
+                    radius: Theme.radius
+                    border.color: Theme.border
+                    border.width: 1
+                }
             }
         }
 
@@ -123,12 +147,13 @@ Dialog {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 1
-            color: "#444"
+            color: Theme.border
         }
 
         Label {
             text: "Options"
             font.bold: true
+            color: Theme.textPrimary
         }
 
         CheckBox {
@@ -144,7 +169,7 @@ Dialog {
         }
 
         RowLayout {
-            spacing: 8
+            spacing: Theme.sp8
 
             Label {
                 text: "Scan depth:"
@@ -169,7 +194,7 @@ Dialog {
 
             Label {
                 text: "0 = unlimited"
-                color: "#666"
+                color: Theme.textMuted
             }
         }
     }

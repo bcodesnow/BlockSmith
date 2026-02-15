@@ -44,8 +44,7 @@ public:
         NameRole = Qt::UserRole + 1,
         PathRole,
         NodeTypeRole,
-        IsTriggerFileRole,
-        HasBlocksRole
+        IsTriggerFileRole
     };
     Q_ENUM(Roles)
 

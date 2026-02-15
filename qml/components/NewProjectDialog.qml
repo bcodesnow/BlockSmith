@@ -47,20 +47,20 @@ Dialog {
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: 10
+        spacing: Theme.sp8
 
         // Folder row
         RowLayout {
             Layout.fillWidth: true
-            spacing: 8
+            spacing: Theme.sp8
 
-            Label { text: "Folder:"; color: "#999"; font.pixelSize: 12 }
+            Label { text: "Folder:"; color: Theme.textSecondary; font.pixelSize: Theme.fontSizeM }
 
             Label {
                 id: folderLabel
                 Layout.fillWidth: true
-                font.pixelSize: 12
-                color: "#ccc"
+                font.pixelSize: Theme.fontSizeM
+                color: Theme.textPrimary
                 elide: Text.ElideMiddle
                 text: ""
             }
@@ -68,11 +68,11 @@ Dialog {
             Button {
                 text: "Browse..."
                 flat: true
-                palette.buttonText: "#ccc"
+                palette.buttonText: Theme.textPrimary
                 background: Rectangle {
-                    color: parent.hovered ? "#555" : "#3a3a3a"
-                    radius: 3
-                    border.color: "#555"
+                    color: parent.hovered ? Theme.bgButtonHov : Theme.bgButton
+                    radius: Theme.radius
+                    border.color: Theme.borderHover
                     border.width: 1
                 }
                 onClicked: folderDialog.open()
@@ -82,9 +82,9 @@ Dialog {
         // Trigger file row
         RowLayout {
             Layout.fillWidth: true
-            spacing: 8
+            spacing: Theme.sp8
 
-            Label { text: "Create:"; color: "#999"; font.pixelSize: 12 }
+            Label { text: "Create:"; color: Theme.textSecondary; font.pixelSize: Theme.fontSizeM }
 
             ComboBox {
                 id: triggerCombo
@@ -97,15 +97,15 @@ Dialog {
         Label {
             id: errorLabel
             Layout.fillWidth: true
-            color: "#e06060"
-            font.pixelSize: 11
+            color: Theme.accentRed
+            font.pixelSize: Theme.fontSizeXS
             visible: text.length > 0
         }
 
         // Buttons
         RowLayout {
             Layout.fillWidth: true
-            spacing: 8
+            spacing: Theme.sp8
 
             Item { Layout.fillWidth: true }
 

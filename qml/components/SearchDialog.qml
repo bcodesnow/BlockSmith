@@ -26,15 +26,15 @@ Dialog {
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: 8
+        spacing: Theme.sp8
 
         // Search input
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 34
-            color: "#1e1e1e"
-            radius: 3
-            border.color: searchInput.activeFocus ? "#6c9bd2" : "#444"
+            color: Theme.bg
+            radius: Theme.radius
+            border.color: searchInput.activeFocus ? Theme.borderFocus : Theme.border
             border.width: 1
 
             RowLayout {
@@ -45,16 +45,16 @@ Dialog {
                 Label {
                     text: "\uD83D\uDD0D"
                     font.pixelSize: 14
-                    color: "#888"
+                    color: Theme.textMuted
                 }
 
                 TextField {
                     id: searchInput
                     Layout.fillWidth: true
                     placeholderText: "Search across all project files..."
-                    placeholderTextColor: "#666"
-                    font.pixelSize: 13
-                    color: "#ddd"
+                    placeholderTextColor: Theme.textPlaceholder
+                    font.pixelSize: Theme.fontSizeL
+                    color: Theme.textPrimary
                     background: null
 
                     onTextChanged: {
@@ -64,8 +64,8 @@ Dialog {
 
                 Label {
                     text: searchDialog.results.length + " result" + (searchDialog.results.length !== 1 ? "s" : "")
-                    font.pixelSize: 11
-                    color: "#666"
+                    font.pixelSize: Theme.fontSizeXS
+                    color: Theme.textMuted
                     visible: searchInput.text.length >= 2
                 }
             }
@@ -94,13 +94,14 @@ Dialog {
             delegate: Rectangle {
                 width: ListView.view.width
                 height: resultLayout.implicitHeight + 8
-                color: resultMa.containsMouse ? "#383838" : "#2b2b2b"
+                color: resultMa.containsMouse ? Theme.bgCardHov : Theme.bgPanel
                 radius: 2
 
                 MouseArea {
                     id: resultMa
                     anchors.fill: parent
                     hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
                     onClicked: {
                         AppController.openFile(modelData.filePath)
                         searchDialog.close()
@@ -111,7 +112,7 @@ Dialog {
                     id: resultLayout
                     anchors.fill: parent
                     anchors.margins: 4
-                    spacing: 8
+                    spacing: Theme.sp8
 
                     ColumnLayout {
                         Layout.fillWidth: true
@@ -119,17 +120,17 @@ Dialog {
 
                         Label {
                             text: modelData.text
-                            font.family: "Consolas"
-                            font.pixelSize: 12
-                            color: "#ddd"
+                            font.family: Theme.fontMono
+                            font.pixelSize: Theme.fontSizeM
+                            color: Theme.textPrimary
                             elide: Text.ElideRight
                             Layout.fillWidth: true
                         }
 
                         Label {
                             text: modelData.filePath
-                            font.pixelSize: 10
-                            color: "#888"
+                            font.pixelSize: Theme.fontSizeS
+                            color: Theme.textMuted
                             elide: Text.ElideMiddle
                             Layout.fillWidth: true
                         }
@@ -137,9 +138,9 @@ Dialog {
 
                     Label {
                         text: ":" + modelData.line
-                        font.family: "Consolas"
-                        font.pixelSize: 11
-                        color: "#6c9bd2"
+                        font.family: Theme.fontMono
+                        font.pixelSize: Theme.fontSizeXS
+                        color: Theme.accent
                     }
                 }
             }
@@ -149,16 +150,16 @@ Dialog {
                 anchors.centerIn: parent
                 visible: parent.count === 0 && searchInput.text.length >= 2
                 text: "No results found."
-                font.pixelSize: 13
-                color: "#666"
+                font.pixelSize: Theme.fontSizeL
+                color: Theme.textMuted
             }
 
             Label {
                 anchors.centerIn: parent
                 visible: searchInput.text.length < 2
                 text: "Type at least 2 characters to search."
-                font.pixelSize: 13
-                color: "#666"
+                font.pixelSize: Theme.fontSizeL
+                color: Theme.textMuted
             }
         }
     }

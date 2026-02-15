@@ -5,7 +5,7 @@ import BlockSmith
 
 Rectangle {
     id: rightPane
-    color: "#2b2b2b"
+    color: Theme.bgPanel
 
     signal blockEditRequested(string blockId)
     signal blockInsertRequested(string blockId)
@@ -19,9 +19,9 @@ Rectangle {
         TabBar {
             id: tabBar
             Layout.fillWidth: true
-            Layout.preferredHeight: 32
+            Layout.preferredHeight: Theme.headerHeight
 
-            background: Rectangle { color: "#333333" }
+            background: Rectangle { color: Theme.bgHeader }
             onCurrentIndexChanged: {
                 if (currentIndex !== 0)
                     AppController.highlightBlock("")
@@ -30,16 +30,16 @@ Rectangle {
             TabButton {
                 text: "Blocks"
                 width: implicitWidth
-                font.pixelSize: 11
+                font.pixelSize: Theme.fontSizeXS
                 font.bold: true
-                palette.buttonText: tabBar.currentIndex === 0 ? "#ddd" : "#888"
+                palette.buttonText: tabBar.currentIndex === 0 ? Theme.textPrimary : Theme.textMuted
 
                 background: Rectangle {
-                    color: tabBar.currentIndex === 0 ? "#2b2b2b" : "#333333"
+                    color: tabBar.currentIndex === 0 ? Theme.bgPanel : Theme.bgHeader
                     Rectangle {
                         width: parent.width
                         height: 2
-                        color: "#6c9bd2"
+                        color: Theme.accent
                         visible: tabBar.currentIndex === 0
                         anchors.bottom: parent.bottom
                     }
@@ -49,16 +49,16 @@ Rectangle {
             TabButton {
                 text: "Prompts"
                 width: implicitWidth
-                font.pixelSize: 11
+                font.pixelSize: Theme.fontSizeXS
                 font.bold: true
-                palette.buttonText: tabBar.currentIndex === 1 ? "#ddd" : "#888"
+                palette.buttonText: tabBar.currentIndex === 1 ? Theme.textPrimary : Theme.textMuted
 
                 background: Rectangle {
-                    color: tabBar.currentIndex === 1 ? "#2b2b2b" : "#333333"
+                    color: tabBar.currentIndex === 1 ? Theme.bgPanel : Theme.bgHeader
                     Rectangle {
                         width: parent.width
                         height: 2
-                        color: "#6c9bd2"
+                        color: Theme.accent
                         visible: tabBar.currentIndex === 1
                         anchors.bottom: parent.bottom
                     }

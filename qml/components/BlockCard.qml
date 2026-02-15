@@ -16,9 +16,9 @@ Rectangle {
     signal insertRequested()
 
     implicitHeight: cardLayout.implicitHeight + 16
-    color: hovered ? "#383838" : "#2f2f2f"
+    color: hovered ? Theme.bgCardHov : Theme.bgCard
     radius: 4
-    border.color: "#444"
+    border.color: Theme.border
     border.width: 1
 
     property bool hovered: cardMa.containsMouse || insertMa.containsMouse
@@ -27,6 +27,7 @@ Rectangle {
         id: cardMa
         anchors.fill: parent
         hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
         onClicked: card.clicked()
         onDoubleClicked: card.editRequested()
     }
@@ -43,27 +44,27 @@ Rectangle {
 
             Label {
                 text: card.blockName
-                font.pixelSize: 12
+                font.pixelSize: Theme.fontSizeM
                 font.bold: true
-                color: "#ddd"
+                color: Theme.textPrimary
                 elide: Text.ElideRight
                 Layout.fillWidth: true
             }
 
             Label {
                 text: card.blockId
-                font.pixelSize: 9
-                font.family: "Consolas"
-                color: "#666"
+                font.pixelSize: Theme.fontSizeS
+                font.family: Theme.fontMono
+                color: Theme.textMuted
             }
 
             // Insert into file button — always present, styled on hover
             Rectangle {
                 width: insertRow.implicitWidth + 12
                 height: 22
-                radius: 3
-                color: insertMa.containsMouse ? "#4a6a9a" : (card.hovered ? "#3a3a3a" : "transparent")
-                border.color: card.hovered ? "#6c9bd2" : "transparent"
+                radius: Theme.radius
+                color: insertMa.containsMouse ? "#4a6a9a" : (card.hovered ? Theme.bgButton : "transparent")
+                border.color: card.hovered ? Theme.accent : "transparent"
                 border.width: 1
                 opacity: card.hovered ? 1.0 : 0.0
                 ToolTip.text: "Insert into current file"
@@ -77,14 +78,14 @@ Rectangle {
 
                     Label {
                         text: "\u2913"
-                        font.pixelSize: 13
-                        color: "#6c9bd2"
+                        font.pixelSize: Theme.fontSizeL
+                        color: Theme.accent
                         anchors.verticalCenter: parent.verticalCenter
                     }
                     Label {
                         text: "Insert"
-                        font.pixelSize: 10
-                        color: "#ccc"
+                        font.pixelSize: Theme.fontSizeS
+                        color: Theme.textPrimary
                         anchors.verticalCenter: parent.verticalCenter
                     }
                 }
@@ -93,6 +94,7 @@ Rectangle {
                     id: insertMa
                     anchors.fill: parent
                     hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
                     onClicked: card.insertRequested()
                 }
             }
@@ -101,8 +103,8 @@ Rectangle {
         // Content preview
         Label {
             text: card.blockContent.substring(0, 120).replace(/\n/g, " ")
-            font.pixelSize: 11
-            color: "#999"
+            font.pixelSize: Theme.fontSizeXS
+            color: Theme.textSecondary
             wrapMode: Text.Wrap
             maximumLineCount: 2
             elide: Text.ElideRight
@@ -131,8 +133,8 @@ Rectangle {
                             id: tagLabel
                             anchors.centerIn: parent
                             text: modelData
-                            font.pixelSize: 10
-                            color: "#ccc"
+                            font.pixelSize: Theme.fontSizeS
+                            color: Theme.textPrimary
                         }
                     }
                 }
@@ -141,8 +143,8 @@ Rectangle {
             Label {
                 visible: card.usageCount > 0
                 text: card.usageCount + (card.usageCount === 1 ? " file" : " files")
-                font.pixelSize: 10
-                color: "#4caf50"
+                font.pixelSize: Theme.fontSizeS
+                color: Theme.accentGreen
             }
         }
     }

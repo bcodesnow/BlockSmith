@@ -44,7 +44,7 @@ Dialog {
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: 10
+        spacing: Theme.sp8
 
         Label {
             text: "Block Name"
@@ -56,7 +56,8 @@ Dialog {
             id: nameField
             Layout.fillWidth: true
             placeholderText: "e.g. code-style, testing-rules"
-            font.pixelSize: 13
+            font.pixelSize: Theme.fontSizeL
+            Keys.onReturnPressed: dialog.accept()
         }
 
         Label {
@@ -69,13 +70,13 @@ Dialog {
             id: tagsField
             Layout.fillWidth: true
             placeholderText: "e.g. ts, style, testing"
-            font.pixelSize: 13
+            font.pixelSize: Theme.fontSizeL
         }
 
         Label {
-            text: "Selected: " + dialog.selectedText.substring(0, 80).replace(/\n/g, " ") + "..."
-            font.pixelSize: 11
-            color: "#888"
+            text: "Selected: " + dialog.selectedText.substring(0, 80).replace(/\n/g, " ") + (dialog.selectedText.length > 80 ? "..." : "")
+            font.pixelSize: Theme.fontSizeXS
+            color: Theme.textMuted
             wrapMode: Text.Wrap
             Layout.fillWidth: true
         }

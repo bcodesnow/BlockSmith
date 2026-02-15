@@ -110,8 +110,6 @@ QVariant ProjectTreeModel::data(const QModelIndex &index, int role) const
         return static_cast<int>(node->nodeType());
     case IsTriggerFileRole:
         return node->isTriggerFile();
-    case HasBlocksRole:
-        return false; // Phase 4
     default:
         return {};
     }
@@ -124,7 +122,6 @@ QHash<int, QByteArray> ProjectTreeModel::roleNames() const
         {PathRole, "filePath"},
         {NodeTypeRole, "nodeType"},
         {IsTriggerFileRole, "isTriggerFile"},
-        {HasBlocksRole, "hasBlocks"},
         {Qt::DisplayRole, "display"}
     };
 }

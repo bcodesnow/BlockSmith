@@ -41,7 +41,9 @@ Dialog {
             categoryField.text = promptData.category || ""
             promptEditorArea.text = promptData.content
         }
+        deleteBtn.confirming = false
         dialog.open()
+        nameField.forceActiveFocus()
     }
 
     function savePrompt() {
@@ -62,25 +64,25 @@ Dialog {
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: 8
+        spacing: Theme.sp8
 
         // Name + Category row
         RowLayout {
             Layout.fillWidth: true
-            spacing: 8
+            spacing: Theme.sp8
 
-            Label { text: "Name:"; color: "#999"; font.pixelSize: 12 }
+            Label { text: "Name:"; color: Theme.textSecondary; font.pixelSize: Theme.fontSizeM }
             TextField {
                 id: nameField
                 Layout.fillWidth: true
-                font.pixelSize: 13
+                font.pixelSize: Theme.fontSizeL
             }
 
-            Label { text: "Category:"; color: "#999"; font.pixelSize: 12 }
+            Label { text: "Category:"; color: Theme.textSecondary; font.pixelSize: Theme.fontSizeM }
             TextField {
                 id: categoryField
                 Layout.preferredWidth: 160
-                font.pixelSize: 13
+                font.pixelSize: Theme.fontSizeL
                 placeholderText: "e.g. audit, review"
             }
         }
@@ -97,15 +99,15 @@ Dialog {
 
                 TextArea {
                     id: promptEditorArea
-                    font.family: "Consolas"
-                    font.pixelSize: 13
+                    font.family: Theme.fontMono
+                    font.pixelSize: Theme.fontSizeL
                     wrapMode: TextArea.Wrap
-                    color: "#d4d4d4"
-                    selectionColor: "#264f78"
-                    selectedTextColor: "#fff"
+                    color: Theme.textEditor
+                    selectionColor: Theme.bgSelection
+                    selectedTextColor: Theme.textWhite
                     placeholderText: "Enter prompt content..."
-                    placeholderTextColor: "#666"
-                    background: Rectangle { color: "#1e1e1e" }
+                    placeholderTextColor: Theme.textPlaceholder
+                    background: Rectangle { color: Theme.bg }
                 }
             }
 
@@ -113,18 +115,15 @@ Dialog {
                 SplitView.preferredWidth: parent.width * 0.45
                 SplitView.minimumWidth: 200
 
-                background: Rectangle { color: "#1e1e1e" }
+                background: Rectangle { color: Theme.bg }
 
                 TextEdit {
-                    padding: 12
+                    padding: Theme.sp12
                     readOnly: true
                     textFormat: TextEdit.RichText
                     wrapMode: TextEdit.Wrap
-                    color: "#d4d4d4"
-                    text: {
-                        let html = AppController.md4cRenderer.render(promptEditorArea.text)
-                        return "<style>h1,h2,h3{color:#e0e0e0;}code{background:#333;font-family:Consolas;}a{color:#6c9bd2;}</style>" + html
-                    }
+                    color: Theme.textEditor
+                    text: Theme.previewCss + AppController.md4cRenderer.render(promptEditorArea.text)
                 }
             }
         }
@@ -132,18 +131,30 @@ Dialog {
         // Action buttons
         RowLayout {
             Layout.fillWidth: true
-            spacing: 8
+            spacing: Theme.sp8
 
             Item { Layout.fillWidth: true }
 
             Button {
-                text: "Delete Prompt"
+                id: deleteBtn
+                property bool confirming: false
+                text: confirming ? "Confirm Delete?" : "Delete Prompt"
                 flat: true
                 visible: !dialog.isNew
-                palette.buttonText: "#e06060"
+                palette.buttonText: Theme.accentRed
                 onClicked: {
-                    AppController.promptStore.removePrompt(dialog.promptId)
-                    dialog.close()
+                    if (!confirming) {
+                        confirming = true
+                        deleteResetTimer.restart()
+                    } else {
+                        AppController.promptStore.removePrompt(dialog.promptId)
+                        dialog.close()
+                    }
+                }
+                Timer {
+                    id: deleteResetTimer
+                    interval: 3000
+                    onTriggered: deleteBtn.confirming = false
                 }
             }
 

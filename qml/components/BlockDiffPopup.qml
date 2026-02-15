@@ -32,13 +32,13 @@ Dialog {
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: 8
+        spacing: Theme.sp8
 
         // Side-by-side diff with headers
         RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: 8
+            spacing: Theme.sp8
 
             // Registry side
             ColumnLayout {
@@ -48,9 +48,9 @@ Dialog {
 
                 Label {
                     text: "Registry (BlockStore)"
-                    font.pixelSize: 12
+                    font.pixelSize: Theme.fontSizeM
                     font.bold: true
-                    color: "#6c9bd2"
+                    color: Theme.accent
                     Layout.alignment: Qt.AlignHCenter
                 }
 
@@ -69,9 +69,9 @@ Dialog {
                         TextArea {
                             readOnly: true
                             text: diffDialog.registryContent
-                            font.family: "Consolas"
-                            font.pixelSize: 12
-                            color: "#d4d4d4"
+                            font.family: Theme.fontMono
+                            font.pixelSize: Theme.fontSizeM
+                            color: Theme.textEditor
                             wrapMode: TextArea.Wrap
                             background: null
                         }
@@ -87,9 +87,9 @@ Dialog {
 
                 Label {
                     text: "File Content"
-                    font.pixelSize: 12
+                    font.pixelSize: Theme.fontSizeM
                     font.bold: true
-                    color: "#ff9800"
+                    color: Theme.accentOrange
                     Layout.alignment: Qt.AlignHCenter
                 }
 
@@ -108,9 +108,9 @@ Dialog {
                         TextArea {
                             readOnly: true
                             text: diffDialog.fileContent
-                            font.family: "Consolas"
-                            font.pixelSize: 12
-                            color: "#d4d4d4"
+                            font.family: Theme.fontMono
+                            font.pixelSize: Theme.fontSizeM
+                            color: Theme.textEditor
                             wrapMode: TextArea.Wrap
                             background: null
                         }
@@ -122,20 +122,13 @@ Dialog {
         // Action buttons
         RowLayout {
             Layout.fillWidth: true
-            spacing: 8
+            spacing: Theme.sp8
 
             Label {
                 text: "Pull will overwrite the registry block with the file's version."
-                font.pixelSize: 11
-                color: "#888"
+                font.pixelSize: Theme.fontSizeXS
+                color: Theme.textMuted
                 Layout.fillWidth: true
-            }
-
-            Button {
-                text: "Close"
-                flat: true
-                palette.buttonText: "#ccc"
-                onClicked: diffDialog.close()
             }
 
             Button {
