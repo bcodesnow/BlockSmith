@@ -12,6 +12,7 @@
 #include "blockstore.h"
 #include "promptstore.h"
 #include "syncengine.h"
+#include "filemanager.h"
 
 class AppController : public QObject
 {
@@ -27,6 +28,7 @@ class AppController : public QObject
     Q_PROPERTY(BlockStore* blockStore READ blockStore CONSTANT)
     Q_PROPERTY(PromptStore* promptStore READ promptStore CONSTANT)
     Q_PROPERTY(SyncEngine* syncEngine READ syncEngine CONSTANT)
+    Q_PROPERTY(FileManager* fileManager READ fileManager CONSTANT)
     Q_PROPERTY(QStringList highlightedFiles READ highlightedFiles NOTIFY highlightedFilesChanged)
 
 public:
@@ -42,6 +44,7 @@ public:
     BlockStore *blockStore() const;
     PromptStore *promptStore() const;
     SyncEngine *syncEngine() const;
+    FileManager *fileManager() const;
     QStringList highlightedFiles() const;
 
     Q_INVOKABLE QVariantList searchFiles(const QString &query) const;
@@ -50,9 +53,12 @@ public:
     Q_INVOKABLE QStringList fileTriggerFiles() const;
     Q_INVOKABLE QString createProject(const QString &folderPath, const QString &triggerFileName);
 
+    Q_INVOKABLE void forceOpenFile(const QString &path);
+
 signals:
     void scanComplete(int projectCount);
     void highlightedFilesChanged();
+    void unsavedChangesWarning(const QString &pendingPath);
 
 public slots:
     void scan();
@@ -68,5 +74,6 @@ private:
     BlockStore *m_blockStore = nullptr;
     PromptStore *m_promptStore = nullptr;
     SyncEngine *m_syncEngine = nullptr;
+    FileManager *m_fileManager = nullptr;
     QStringList m_highlightedFiles;
 };

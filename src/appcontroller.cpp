@@ -23,9 +23,12 @@ AppController::AppController(QObject *parent)
     , m_promptStore(new PromptStore(
         QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + "/prompts.db.json", this))
     , m_syncEngine(new SyncEngine(m_blockStore, m_projectTreeModel, this))
+    , m_fileManager(new FileManager(m_currentDocument, m_configManager, this))
 {
     connect(m_projectScanner, &ProjectScanner::scanComplete,
             this, &AppController::scanComplete);
+    connect(m_fileManager, &FileManager::fileOperationComplete,
+            this, &AppController::scan);
 }
 
 AppController *AppController::create(QQmlEngine *engine, QJSEngine *scriptEngine)
@@ -46,6 +49,7 @@ MdDocument *AppController::currentDocument() const { return m_currentDocument; }
 BlockStore *AppController::blockStore() const { return m_blockStore; }
 PromptStore *AppController::promptStore() const { return m_promptStore; }
 SyncEngine *AppController::syncEngine() const { return m_syncEngine; }
+FileManager *AppController::fileManager() const { return m_fileManager; }
 QStringList AppController::highlightedFiles() const { return m_highlightedFiles; }
 
 void AppController::highlightBlock(const QString &blockId)
@@ -70,6 +74,16 @@ void AppController::openFile(const QString &path)
     if (path == m_currentDocument->filePath())
         return;
 
+    if (m_currentDocument->modified()) {
+        emit unsavedChangesWarning(path);
+        return;
+    }
+
+    m_currentDocument->load(path);
+}
+
+void AppController::forceOpenFile(const QString &path)
+{
     m_currentDocument->load(path);
 }
 
