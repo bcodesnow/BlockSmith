@@ -10,6 +10,7 @@ Item {
     property alias textArea: textArea
     property alias cursorPosition: textArea.cursorPosition
     property bool toolbarVisible: true
+    readonly property Flickable scrollFlickable: scrollView.contentItem
 
     signal addBlockRequested(string selectedText, int selStart, int selEnd)
     signal createPromptRequested(string selectedText)

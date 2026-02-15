@@ -2,9 +2,11 @@
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
 #include <QIcon>
+#include <QtWebEngineQuick/qtwebenginequickglobal.h>
 
 int main(int argc, char *argv[])
 {
+    QtWebEngineQuick::initialize();
     QGuiApplication app(argc, argv);
     app.setApplicationName("BlockSmith");
     app.setOrganizationName("BlockSmith");

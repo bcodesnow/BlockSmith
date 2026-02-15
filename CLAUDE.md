@@ -19,17 +19,22 @@ A Qt6/QML desktop application for managing reusable content blocks across CLAUDE
 
 ## Build Environment
 
-- Qt 6.10.1 with MinGW 13.1.0 on Windows
+- Qt 6.10.1 with MSVC 2022 on Windows (+ WebEngine, WebChannel, Positioning)
 - CMake + Ninja build system
-- PATH setup for builds:
+- Requires: Visual Studio Build Tools 2022 ("Desktop development with C++")
+- Build via `build_msvc.bat` or Developer Command Prompt:
   ```
-  export PATH="/c/Qt/Tools/mingw1310_64/bin:/c/Qt/Tools/CMake_64/bin:/c/Qt/Tools/Ninja:/c/Qt/6.10.1/mingw_64/bin:$PATH"
+  export PATH="/c/Qt/Tools/CMake_64/bin:/c/Qt/Tools/Ninja:/c/Qt/6.10.1/msvc2022_64/bin:$PATH"
   ```
 
 ## Build Commands
 
 ```bash
-cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH="C:/Qt/6.10.1/mingw_64" -DCMAKE_C_COMPILER="C:/Qt/Tools/mingw1310_64/bin/gcc.exe" -DCMAKE_CXX_COMPILER="C:/Qt/Tools/mingw1310_64/bin/g++.exe" -Wno-dev
+# Use the batch file (sets up vcvarsall + builds):
+cmd.exe //c "C:\Projects\BlockSmith\build_msvc.bat"
+
+# Or manually from Developer Command Prompt for VS 2022:
+cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH="C:/Qt/6.10.1/msvc2022_64" -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -Wno-dev
 cmake --build build
 ```
 

@@ -135,10 +135,10 @@ ApplicationWindow {
         let block = AppController.blockStore.getBlock(blockId)
         if (!block.id) return
 
-        let pos = mainContentArea.editMode ? mainContentArea.editorCursorPosition : -1
+        let pos = mainContentArea.editorVisible ? mainContentArea.editorCursorPosition : -1
         AppController.currentDocument.insertBlock(pos, block.id, block.name, block.content)
         AppController.currentDocument.save()
-        mainContentArea.editMode = true
+        mainContentArea.viewMode = MainContent.ViewMode.Edit
         toast.show("Inserted '" + block.name + "'")
     }
 
@@ -158,7 +158,7 @@ ApplicationWindow {
         sequence: "Ctrl+E"
         onActivated: {
             if (AppController.currentDocument.filePath !== "")
-                mainContentArea.editMode = !mainContentArea.editMode
+                mainContentArea.viewMode = (mainContentArea.viewMode + 1) % 3
         }
     }
     Shortcut {

@@ -7,19 +7,23 @@ Rectangle {
     id: mainContent
     color: Theme.bg
 
-    property bool editMode: true
+    enum ViewMode { Edit, Preview, Split }
+    property int viewMode: MainContent.ViewMode.Edit
     property int editorCursorPosition: mdEditor.cursorPosition
+
+    // Convenience: editor is visible in Edit or Split mode
+    readonly property bool editorVisible: viewMode !== MainContent.ViewMode.Preview
 
     signal createPromptRequested(string content)
 
     function openFind() {
-        if (mainContent.editMode && AppController.currentDocument.filePath !== "") {
+        if (mainContent.editorVisible && AppController.currentDocument.filePath !== "") {
             findReplaceBar.openFind()
         }
     }
 
     function openReplace() {
-        if (mainContent.editMode && AppController.currentDocument.filePath !== "") {
+        if (mainContent.editorVisible && AppController.currentDocument.filePath !== "") {
             findReplaceBar.openReplace()
         }
     }
@@ -183,44 +187,34 @@ Rectangle {
                     }
                 }
 
-                // Edit / Preview toggle
+                // Edit / Split / Preview toggle
                 Rectangle {
-                    Layout.preferredWidth: editBtn.implicitWidth + previewBtn.implicitWidth + 2
+                    Layout.preferredWidth: modeRow.implicitWidth + 4
                     Layout.preferredHeight: 24
                     color: Theme.bgPanel
                     radius: Theme.radius
 
                     RowLayout {
+                        id: modeRow
                         anchors.fill: parent
                         spacing: 0
 
-                        Button {
-                            id: editBtn
-                            text: "Edit"
+                        component ModeBtn: Button {
+                            required property int mode
                             flat: true
                             font.pixelSize: Theme.fontSizeXS
                             Layout.preferredHeight: 24
-                            palette.buttonText: mainContent.editMode ? Theme.textWhite : Theme.textSecondary
+                            palette.buttonText: mainContent.viewMode === mode ? Theme.textWhite : Theme.textSecondary
                             background: Rectangle {
-                                color: mainContent.editMode ? Theme.bgActive : "transparent"
+                                color: mainContent.viewMode === mode ? Theme.bgActive : "transparent"
                                 radius: Theme.radius
                             }
-                            onClicked: mainContent.editMode = true
+                            onClicked: mainContent.viewMode = mode
                         }
 
-                        Button {
-                            id: previewBtn
-                            text: "Preview"
-                            flat: true
-                            font.pixelSize: Theme.fontSizeXS
-                            Layout.preferredHeight: 24
-                            palette.buttonText: !mainContent.editMode ? Theme.textWhite : Theme.textSecondary
-                            background: Rectangle {
-                                color: !mainContent.editMode ? Theme.bgActive : "transparent"
-                                radius: Theme.radius
-                            }
-                            onClicked: mainContent.editMode = false
-                        }
+                        ModeBtn { text: "Edit"; mode: MainContent.ViewMode.Edit }
+                        ModeBtn { text: "Split"; mode: MainContent.ViewMode.Split }
+                        ModeBtn { text: "Preview"; mode: MainContent.ViewMode.Preview }
                     }
                 }
 
@@ -228,7 +222,7 @@ Rectangle {
                 Rectangle {
                     width: 26; height: 24; radius: Theme.radius
                     color: toolbarToggleMa.containsMouse ? Theme.bgButtonHov : "transparent"
-                    visible: mainContent.editMode
+                    visible: mainContent.editorVisible
                     ToolTip.text: AppController.configManager.markdownToolbarVisible ? "Hide toolbar" : "Show toolbar"
                     ToolTip.visible: toolbarToggleMa.containsMouse
                     ToolTip.delay: 400
@@ -319,33 +313,70 @@ Rectangle {
                 color: Theme.textMuted
             }
 
-            MdEditor {
-                id: mdEditor
+            SplitView {
+                id: editorSplitView
                 anchors.fill: parent
-                visible: mainContent.editMode && AppController.currentDocument.filePath !== ""
-                text: AppController.currentDocument.rawContent
-                readOnly: false
-                toolbarVisible: AppController.configManager.markdownToolbarVisible
-                textArea.onTextChanged: {
-                    if (textArea.text !== AppController.currentDocument.rawContent) {
-                        AppController.currentDocument.rawContent = textArea.text
+                orientation: Qt.Horizontal
+                visible: AppController.currentDocument.filePath !== ""
+
+                handle: Rectangle {
+                    implicitWidth: 3
+                    implicitHeight: 3
+                    color: SplitHandle.pressed ? Theme.accent
+                         : SplitHandle.hovered ? Theme.borderHover
+                         : Theme.border
+                    containmentMask: Item {
+                        x: (parent.width - width) / 2
+                        width: 12
+                        height: parent.height
                     }
                 }
-                onAddBlockRequested: function(selectedText, selStart, selEnd) {
-                    addBlockDialog.selectedText = selectedText
-                    addBlockDialog.selectionStart = selStart
-                    addBlockDialog.selectionEnd = selEnd
-                    addBlockDialog.open()
+
+                MdEditor {
+                    id: mdEditor
+                    visible: mainContent.viewMode !== MainContent.ViewMode.Preview
+                    SplitView.fillWidth: mainContent.viewMode === MainContent.ViewMode.Edit
+                    SplitView.preferredWidth: editorSplitView.width / 2
+                    SplitView.minimumWidth: 200
+                    text: AppController.currentDocument.rawContent
+                    readOnly: false
+                    toolbarVisible: mainContent.editorVisible && AppController.configManager.markdownToolbarVisible
+                    textArea.onTextChanged: {
+                        if (textArea.text !== AppController.currentDocument.rawContent) {
+                            AppController.currentDocument.rawContent = textArea.text
+                        }
+                    }
+                    onAddBlockRequested: function(selectedText, selStart, selEnd) {
+                        addBlockDialog.selectedText = selectedText
+                        addBlockDialog.selectionStart = selStart
+                        addBlockDialog.selectionEnd = selEnd
+                        addBlockDialog.open()
+                    }
+                    onCreatePromptRequested: function(selectedText) {
+                        mainContent.createPromptRequested(selectedText)
+                    }
                 }
-                onCreatePromptRequested: function(selectedText) {
-                    mainContent.createPromptRequested(selectedText)
+
+                MdPreviewWeb {
+                    id: mdPreview
+                    visible: mainContent.viewMode !== MainContent.ViewMode.Edit
+                    SplitView.fillWidth: true
+                    SplitView.minimumWidth: 200
+                    markdown: AppController.currentDocument.rawContent
                 }
             }
 
-            MdPreview {
-                anchors.fill: parent
-                visible: !mainContent.editMode && AppController.currentDocument.filePath !== ""
-                markdown: AppController.currentDocument.rawContent
+            // Scroll sync: editor → preview (split mode only)
+            Connections {
+                target: mdEditor.scrollFlickable
+                enabled: mainContent.viewMode === MainContent.ViewMode.Split
+                function onContentYChanged() {
+                    let ef = mdEditor.scrollFlickable
+                    if (!ef) return
+                    let maxY = Math.max(1, ef.contentHeight - ef.height)
+                    let pct = ef.contentY / maxY
+                    mdPreview.scrollToPercent(pct)
+                }
             }
         }
 
@@ -364,7 +395,7 @@ Rectangle {
 
                 Label {
                     text: {
-                        if (!mainContent.editMode) return "Preview mode"
+                        if (mainContent.viewMode === MainContent.ViewMode.Preview) return "Preview mode"
                         let pos = mdEditor.cursorPosition
                         let content = AppController.currentDocument.rawContent
                         let line = content.substring(0, pos).split("\n").length

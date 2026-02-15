@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 6.10 REQUIRED COMPONENTS Quick QuickControls2 Core)
+find_package(Qt6 6.10 REQUIRED COMPONENTS Quick QuickControls2 Core WebEngineQuick WebChannel)
 qt_policy(SET QTP0001 NEW)
 qt_policy(SET QTP0004 NEW)
 
@@ -44,6 +44,7 @@ qt_add_qml_module(BlockSmith
         qml/components/NewProjectDialog.qml
         qml/components/FileOperationDialog.qml
         qml/components/MdToolbar.qml
+        qml/components/MdPreviewWeb.qml
     SOURCES
         src/configmanager.h src/configmanager.cpp
         src/md4crenderer.h src/md4crenderer.cpp
@@ -64,12 +65,26 @@ qt_add_resources(BlockSmith "icons"
         resources/icons/blocksmith.ico
 )
 
+qt_add_resources(BlockSmith "preview"
+    PREFIX "/preview"
+    BASE "resources/preview"
+    FILES
+        resources/preview/index.html
+        resources/preview/mermaid.min.js
+)
+
 target_include_directories(BlockSmith PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_compile_options(BlockSmith PRIVATE -Wall -Wextra -Wpedantic)
+if(MSVC)
+    target_compile_options(BlockSmith PRIVATE /W4)
+else()
+    target_compile_options(BlockSmith PRIVATE -Wall -Wextra -Wpedantic)
+endif()
 
 target_link_libraries(BlockSmith PRIVATE
     Qt6::Quick
     Qt6::QuickControls2
     Qt6::Core
+    Qt6::WebEngineQuick
+    Qt6::WebChannel
     md4c
 )

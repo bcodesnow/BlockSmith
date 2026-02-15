@@ -6,12 +6,14 @@ ScrollView {
     id: previewRoot
 
     property string markdown: ""
+    readonly property Flickable scrollFlickable: previewFlickable
 
     background: Rectangle {
         color: Theme.bg
     }
 
     Flickable {
+        id: previewFlickable
         contentWidth: previewRoot.availableWidth
         contentHeight: previewText.implicitHeight + 32
 

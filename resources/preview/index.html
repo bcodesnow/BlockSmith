@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    font-family: Segoe UI, sans-serif;
+    font-size: 13px;
+    padding: 16px;
+    margin: 0;
+  }
+  h1, h2, h3, h4 { color: #e0e0e0; margin-top: 12px; }
+  code {
+    background: #333;
+    padding: 2px 4px;
+    font-family: Consolas, monospace;
+    border-radius: 3px;
+    font-size: 12px;
+  }
+  pre {
+    background: #2a2a2a;
+    padding: 10px;
+    border-radius: 4px;
+    margin: 8px 0;
+    overflow-x: auto;
+  }
+  pre code { background: transparent; padding: 0; }
+  a { color: #6c9bd2; }
+  blockquote {
+    border-left: 3px solid #555;
+    padding-left: 8px;
+    color: #aaa;
+    margin: 8px 0;
+  }
+  table { border-collapse: collapse; margin: 8px 0; width: 100%; }
+  th, td { border: 1px solid #555; padding: 6px 10px; text-align: left; }
+  th { background: #333; color: #e0e0e0; font-weight: bold; }
+  tr:nth-child(even) { background: #2a2a2a; }
+  hr { border: none; border-top: 1px solid #555; margin: 16px 0; }
+  img { max-width: 100%; height: auto; border-radius: 4px; }
+  ul, ol { padding-left: 24px; margin: 6px 0; }
+  li { margin: 3px 0; }
+  .mermaid-container { margin: 8px 0; }
+  .mermaid-container svg { max-width: 100%; }
+  .mermaid-error {
+    color: #e06060;
+    font-family: Consolas, monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
+    background: #2a2a2a;
+    padding: 10px;
+    border-radius: 4px;
+    border-left: 3px solid #e06060;
+  }
+  /* Checkbox styling */
+  input[type="checkbox"] { margin-right: 4px; }
+</style>
+<script src="mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+  var renderCounter = 0;
+
+  function updateContent(html) {
+    document.getElementById('content').innerHTML = html;
+    renderMermaidBlocks();
+  }
+
+  function renderMermaidBlocks() {
+    var blocks = document.querySelectorAll('pre code.language-mermaid');
+    blocks.forEach(function(block) {
+      var pre = block.parentElement;
+      var source = block.textContent;
+      renderCounter++;
+      try {
+        mermaid.render('mermaid-' + renderCounter, source).then(function(result) {
+          var div = document.createElement('div');
+          div.className = 'mermaid-container';
+          div.innerHTML = result.svg;
+          pre.replaceWith(div);
+        }).catch(function(e) {
+          var div = document.createElement('div');
+          div.className = 'mermaid-error';
+          div.textContent = 'Mermaid error: ' + e.message;
+          pre.replaceWith(div);
+        });
+      } catch (e) {
+        var div = document.createElement('div');
+        div.className = 'mermaid-error';
+        div.textContent = 'Mermaid error: ' + e.message;
+        pre.replaceWith(div);
+      }
+    });
+  }
+
+  function scrollToPercent(pct) {
+    var maxY = document.documentElement.scrollHeight - window.innerHeight;
+    window.scrollTo(0, Math.max(0, pct * maxY));
+  }
+</script>
+</head>
+<body>
+<div id="content"></div>
+</body>
+</html>

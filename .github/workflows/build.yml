@@ -27,8 +27,9 @@ jobs:
         with:
           version: '6.10.1'
           arch: 'win64_msvc2022_64'
+          modules: 'qtwebengine qtpositioning qtwebchannel'
           cache: true
-          cache-key-prefix: 'qt-6.10.1-msvc2022'
+          cache-key-prefix: 'qt-6.10.1-msvc2022-webengine'
 
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
