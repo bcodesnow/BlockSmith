@@ -373,12 +373,16 @@ Item {
         Rectangle {
             id: currentLineHighlight
             width: scrollView.width
-            height: fm.lineSpacing
+            height: {
+                // Use wrap-aware line height when available
+                let lineIdx = gutter.currentLine - 1
+                return editorRoot.lineHeights[lineIdx] || fm.lineSpacing
+            }
             y: {
                 let rect = textArea.positionToRectangle(textArea.cursorPosition)
                 return rect.y + textArea.topPadding
             }
-            color: "#ffffff08"
+            color: Qt.rgba(1, 1, 1, 0.04)
             z: -1
         }
 

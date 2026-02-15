@@ -41,6 +41,7 @@
 - [ ] Auto-save timer
 - [ ] Block auto-discovery
 - [ ] Git-aware status indicators
+- [ ] Split view mode (edit left, preview right — third mode alongside edit/preview)
 
 ## Ideas — Future Vision
 
