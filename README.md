@@ -31,7 +31,11 @@ Your reusable content here...
 <!-- /block:a3f8b2 -->
 ```
 
-## Build
+## Download
+
+Grab the latest release from [GitHub Releases](https://github.com/bcodesnow/BlockSmith/releases).
+
+## Build from Source
 
 Requires Qt 6.10+, CMake 3.21+, C++17 compiler.
 
