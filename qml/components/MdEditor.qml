@@ -9,9 +9,140 @@ Item {
     property alias readOnly: textArea.readOnly
     property alias textArea: textArea
     property alias cursorPosition: textArea.cursorPosition
+    property bool toolbarVisible: true
 
     signal addBlockRequested(string selectedText, int selStart, int selEnd)
     signal createPromptRequested(string selectedText)
+
+    // --- Editing helpers ---
+
+    // Get the line start offset for a given cursor position
+    function lineStartOf(pos) {
+        let t = textArea.text
+        let i = pos - 1
+        while (i >= 0 && t[i] !== '\n') i--
+        return i + 1
+    }
+
+    // Get the line end offset for a given cursor position
+    function lineEndOf(pos) {
+        let t = textArea.text
+        let i = pos
+        while (i < t.length && t[i] !== '\n') i++
+        return i
+    }
+
+    // Handle Tab indent / Shift+Tab outdent
+    function handleTab(shift) {
+        let selStart = textArea.selectionStart
+        let selEnd = textArea.selectionEnd
+        let hasSelection = selStart !== selEnd
+
+        if (!hasSelection && !shift) {
+            // Simple tab: insert 4 spaces
+            textArea.insert(textArea.cursorPosition, "    ")
+            return
+        }
+
+        // Multi-line indent/outdent
+        let lineStart = lineStartOf(selStart)
+        let lineEnd = lineEndOf(selEnd > selStart ? selEnd - 1 : selEnd)
+        let block = textArea.text.substring(lineStart, lineEnd)
+        let lines = block.split("\n")
+        let newLines = []
+
+        if (shift) {
+            // Outdent: remove up to 4 leading spaces
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i]
+                let remove = 0
+                while (remove < 4 && remove < line.length && line[remove] === ' ') remove++
+                newLines.push(line.substring(remove))
+            }
+        } else {
+            // Indent: add 4 spaces
+            for (let i = 0; i < lines.length; i++) {
+                newLines.push("    " + lines[i])
+            }
+        }
+
+        let result = newLines.join("\n")
+        textArea.remove(lineStart, lineEnd)
+        textArea.insert(lineStart, result)
+        // Re-select the modified region
+        textArea.select(lineStart, lineStart + result.length)
+    }
+
+    // Handle Enter: auto-continue lists
+    function handleEnter() {
+        let pos = textArea.cursorPosition
+        let lineStart = lineStartOf(pos)
+        let lineText = textArea.text.substring(lineStart, pos)
+
+        // Match list prefixes: "- ", "* ", "+ ", "1. ", "- [ ] ", "- [x] "
+        let listMatch = lineText.match(/^(\s*)([-*+])\s(\[[ x]\]\s)?/)
+        let orderedMatch = lineText.match(/^(\s*)(\d+)\.\s/)
+
+        if (listMatch) {
+            let indent = listMatch[1]
+            let bullet = listMatch[2]
+            let checkbox = listMatch[3] || ""
+            let content = lineText.substring(listMatch[0].length)
+
+            if (content.trim().length === 0) {
+                // Empty list item — remove it
+                textArea.remove(lineStart, pos)
+                return
+            }
+
+            // Continue list with same prefix
+            let prefix = indent + bullet + " " + (checkbox ? "[ ] " : "")
+            textArea.insert(pos, "\n" + prefix)
+            textArea.cursorPosition = pos + 1 + prefix.length
+            return
+        }
+
+        if (orderedMatch) {
+            let indent = orderedMatch[1]
+            let num = parseInt(orderedMatch[2])
+            let content = lineText.substring(orderedMatch[0].length)
+
+            if (content.trim().length === 0) {
+                // Empty list item — remove it
+                textArea.remove(lineStart, pos)
+                return
+            }
+
+            let prefix = indent + (num + 1) + ". "
+            textArea.insert(pos, "\n" + prefix)
+            textArea.cursorPosition = pos + 1 + prefix.length
+            return
+        }
+
+        // Default: just insert newline
+        textArea.insert(pos, "\n")
+        textArea.cursorPosition = pos + 1
+    }
+
+    // Duplicate current line (Ctrl+D)
+    function duplicateLine() {
+        let pos = textArea.cursorPosition
+        let start = lineStartOf(pos)
+        let end = lineEndOf(pos)
+        let line = textArea.text.substring(start, end)
+        textArea.insert(end, "\n" + line)
+        textArea.cursorPosition = pos + line.length + 1
+    }
+
+    function ensureVisible(yPos) {
+        let flickable = scrollView.contentItem
+        let viewH = scrollView.height
+        if (yPos < flickable.contentY + 40) {
+            flickable.contentY = Math.max(0, yPos - 40)
+        } else if (yPos > flickable.contentY + viewH - 40) {
+            flickable.contentY = yPos - viewH + 40
+        }
+    }
 
     // Syntax highlighter
     MdSyntaxHighlighter {
@@ -25,10 +156,23 @@ Item {
         font: textArea.font
     }
 
-    // Precompute per-line heights to account for word-wrap
-    property var lineHeights: {
-        void(textArea.contentHeight)
-        void(textArea.width)
+    // Precompute per-line heights to account for word-wrap (debounced)
+    property var lineHeights: [fm.lineSpacing]
+
+    Timer {
+        id: lineHeightTimer
+        interval: 100
+        onTriggered: editorRoot.lineHeights = editorRoot.computeLineHeights()
+    }
+
+    Connections {
+        target: textArea
+        function onTextChanged() { lineHeightTimer.restart() }
+        function onContentHeightChanged() { lineHeightTimer.restart() }
+        function onWidthChanged() { lineHeightTimer.restart() }
+    }
+
+    function computeLineHeights() {
         let t = textArea.text || ""
         if (t.length === 0) return [fm.lineSpacing]
         let offsets = [0]
@@ -56,9 +200,24 @@ Item {
         function onCountChanged() { editorRoot.blockStoreRevision++ }
     }
 
-    // Block line ranges computed by scanning the text directly (no position conversion)
-    property var blockRanges: {
-        void(editorRoot.blockStoreRevision)
+    // Block line ranges computed by scanning the text directly (debounced)
+    property var blockRanges: []
+
+    Timer {
+        id: blockRangesTimer
+        interval: 100
+        onTriggered: editorRoot.blockRanges = editorRoot.computeBlockRanges()
+    }
+
+    onBlockStoreRevisionChanged: blockRangesTimer.restart()
+
+    Connections {
+        id: blockRangesConn
+        target: textArea
+        function onTextChanged() { blockRangesTimer.restart() }
+    }
+
+    function computeBlockRanges() {
         let t = textArea.text || ""
         if (t.length === 0) return []
 
@@ -111,14 +270,28 @@ Item {
         return null
     }
 
+    // Markdown formatting toolbar
+    MdToolbar {
+        id: mdToolbar
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        visible: editorRoot.toolbarVisible
+        targetArea: textArea
+    }
+
     // Line number gutter
     Rectangle {
         id: gutter
         anchors.left: parent.left
-        anchors.top: parent.top
+        anchors.top: mdToolbar.visible ? mdToolbar.bottom : parent.top
         anchors.bottom: parent.bottom
-        width: 48
-        color: "#1a1a1a"
+        width: {
+            let lineCount = Math.max(1, (textArea.text || "").split("\n").length)
+            let digits = Math.max(3, lineCount.toString().length)
+            return digits * 9 + 20 // ~9px per digit + padding for block strip
+        }
+        color: Theme.bgGutter
         clip: true
         z: 2
 
@@ -127,7 +300,7 @@ Item {
             anchors.right: parent.right
             width: 1
             height: parent.height
-            color: "#333"
+            color: Theme.bgHeader
         }
 
         Column {
@@ -152,9 +325,9 @@ Item {
 
                         color: {
                             if (!blockInfo) return "transparent"
-                            if (blockInfo.status === "synced") return "#4caf50"
-                            if (blockInfo.status === "diverged") return "#ff9800"
-                            return "#6c9bd2" // local
+                            if (blockInfo.status === "synced") return Theme.accentGreen
+                            if (blockInfo.status === "diverged") return Theme.accentOrange
+                            return Theme.accent // local
                         }
 
                         ToolTip.text: blockInfo
@@ -175,7 +348,7 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         text: index + 1
                         font: textArea.font
-                        color: (index + 1) === gutter.currentLine ? "#eee" : "#aaa"
+                        color: (index + 1) === gutter.currentLine ? "#eee" : Theme.textSecondary
                     }
                 }
             }
@@ -193,26 +366,87 @@ Item {
         id: scrollView
         anchors.left: gutter.right
         anchors.right: parent.right
-        anchors.top: parent.top
+        anchors.top: mdToolbar.visible ? mdToolbar.bottom : parent.top
         anchors.bottom: parent.bottom
+
+        // Current line highlight
+        Rectangle {
+            id: currentLineHighlight
+            width: scrollView.width
+            height: fm.lineSpacing
+            y: {
+                let rect = textArea.positionToRectangle(textArea.cursorPosition)
+                return rect.y + textArea.topPadding
+            }
+            color: "#ffffff08"
+            z: -1
+        }
 
         TextArea {
             id: textArea
-            font.family: "Consolas"
-            font.pixelSize: 13
+            font.family: Theme.fontMono
+            font.pixelSize: Theme.fontSizeL
             wrapMode: TextArea.Wrap
             tabStopDistance: 28
             selectByMouse: true
             placeholderText: "Select a file to begin editing."
 
             background: Rectangle {
-                color: "#1e1e1e"
+                color: Theme.bg
             }
 
-            color: "#d4d4d4"
-            selectionColor: "#264f78"
-            selectedTextColor: "#ffffff"
-            placeholderTextColor: "#666"
+            color: Theme.textEditor
+            selectionColor: Theme.bgSelection
+            selectedTextColor: Theme.textWhite
+            placeholderTextColor: Theme.textPlaceholder
+
+            Keys.onPressed: function(event) {
+                if (event.key === Qt.Key_Tab) {
+                    editorRoot.handleTab(event.modifiers & Qt.ShiftModifier)
+                    event.accepted = true
+                } else if (event.key === Qt.Key_Backtab) {
+                    editorRoot.handleTab(true)
+                    event.accepted = true
+                } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                    if (!(event.modifiers & Qt.ShiftModifier)
+                        && !(event.modifiers & Qt.ControlModifier)) {
+                        editorRoot.handleEnter()
+                        event.accepted = true
+                    }
+                } else if (event.key === Qt.Key_B && (event.modifiers & Qt.ControlModifier)) {
+                    mdToolbar.wrapSelection("**", "**")
+                    event.accepted = true
+                } else if (event.key === Qt.Key_I && (event.modifiers & Qt.ControlModifier)) {
+                    mdToolbar.wrapSelection("*", "*")
+                    event.accepted = true
+                } else if (event.key === Qt.Key_K && (event.modifiers & Qt.ControlModifier)
+                           && (event.modifiers & Qt.ShiftModifier)) {
+                    mdToolbar.wrapSelection("`", "`")
+                    event.accepted = true
+                } else if (event.key === Qt.Key_D && (event.modifiers & Qt.ControlModifier)) {
+                    editorRoot.duplicateLine()
+                    event.accepted = true
+                } else if (!(event.modifiers & Qt.ControlModifier)) {
+                    // Auto-close brackets and backticks
+                    let pairs = { '(': ')', '[': ']', '{': '}', '`': '`' }
+                    let ch = event.text
+                    if (ch in pairs) {
+                        let pos = textArea.cursorPosition
+                        let sel = textArea.selectedText
+                        if (sel.length > 0) {
+                            let start = textArea.selectionStart
+                            let end = textArea.selectionEnd
+                            textArea.remove(start, end)
+                            textArea.insert(start, ch + sel + pairs[ch])
+                            textArea.select(start + 1, start + 1 + sel.length)
+                        } else {
+                            textArea.insert(pos, ch + pairs[ch])
+                            textArea.cursorPosition = pos + 1
+                        }
+                        event.accepted = true
+                    }
+                }
+            }
 
             TapHandler {
                 acceptedButtons: Qt.RightButton

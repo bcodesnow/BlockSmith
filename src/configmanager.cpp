@@ -114,6 +114,16 @@ void ConfigManager::setScanDepth(int depth)
     }
 }
 
+bool ConfigManager::markdownToolbarVisible() const { return m_markdownToolbarVisible; }
+
+void ConfigManager::setMarkdownToolbarVisible(bool visible)
+{
+    if (m_markdownToolbarVisible != visible) {
+        m_markdownToolbarVisible = visible;
+        emit markdownToolbarVisibleChanged();
+    }
+}
+
 void ConfigManager::load()
 {
     QFile file(configFilePath());
@@ -169,6 +179,9 @@ void ConfigManager::load()
 
     if (root.contains("scanDepth"))
         m_scanDepth = root["scanDepth"].toInt(0);
+
+    if (root.contains("markdownToolbarVisible"))
+        m_markdownToolbarVisible = root["markdownToolbarVisible"].toBool(true);
 }
 
 void ConfigManager::save()
@@ -204,6 +217,7 @@ void ConfigManager::save()
     root["autoScanOnStartup"] = m_autoScanOnStartup;
     root["syntaxHighlightEnabled"] = m_syntaxHighlightEnabled;
     root["scanDepth"] = m_scanDepth;
+    root["markdownToolbarVisible"] = m_markdownToolbarVisible;
 
     QFile file(configFilePath());
     if (!file.open(QIODevice::WriteOnly)) {

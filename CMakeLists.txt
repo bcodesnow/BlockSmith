@@ -16,11 +16,14 @@ qt_add_executable(BlockSmith
     resources/blocksmith.rc
 )
 
+set_source_files_properties(qml/components/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+
 qt_add_qml_module(BlockSmith
     URI BlockSmith
     VERSION 1.0
     QML_FILES
         qml/Main.qml
+        qml/components/Theme.qml
         qml/components/SettingsDialog.qml
         qml/components/NavPanel.qml
         qml/components/MainContent.qml
@@ -39,6 +42,8 @@ qt_add_qml_module(BlockSmith
         qml/components/SearchDialog.qml
         qml/components/FindReplaceBar.qml
         qml/components/NewProjectDialog.qml
+        qml/components/FileOperationDialog.qml
+        qml/components/MdToolbar.qml
     SOURCES
         src/configmanager.h src/configmanager.cpp
         src/md4crenderer.h src/md4crenderer.cpp
@@ -50,6 +55,7 @@ qt_add_qml_module(BlockSmith
         src/promptstore.h src/promptstore.cpp
         src/syncengine.h src/syncengine.cpp
         src/mdsyntaxhighlighter.h src/mdsyntaxhighlighter.cpp
+        src/filemanager.h src/filemanager.cpp
 )
 
 qt_add_resources(BlockSmith "icons"
@@ -59,6 +65,7 @@ qt_add_resources(BlockSmith "icons"
 )
 
 target_include_directories(BlockSmith PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_compile_options(BlockSmith PRIVATE -Wall -Wextra -Wpedantic)
 
 target_link_libraries(BlockSmith PRIVATE
     Qt6::Quick

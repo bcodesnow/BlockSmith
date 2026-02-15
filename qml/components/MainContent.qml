@@ -5,7 +5,7 @@ import BlockSmith
 
 Rectangle {
     id: mainContent
-    color: "#1e1e1e"
+    color: Theme.bg
 
     property bool editMode: true
     property int editorCursorPosition: mdEditor.cursorPosition
@@ -91,6 +91,9 @@ Rectangle {
         let match = findMatches[idx]
         mdEditor.textArea.select(match.start, match.end)
         mdEditor.textArea.forceActiveFocus()
+        // Scroll to match
+        let rect = mdEditor.textArea.positionToRectangle(match.start)
+        mdEditor.ensureVisible(rect.y)
     }
 
     function findNext(text, caseSensitive) {
@@ -116,19 +119,21 @@ Rectangle {
     function replaceOne(findText, replaceText, caseSensitive) {
         if (findMatchIndex < 0 || findMatchIndex >= findMatches.length) return
         let match = findMatches[findMatchIndex]
-        let content = mdEditor.textArea.text
-        let before = content.substring(0, match.start)
-        let after = content.substring(match.end)
-        mdEditor.textArea.text = before + replaceText + after
+        mdEditor.textArea.remove(match.start, match.end)
+        mdEditor.textArea.insert(match.start, replaceText)
         // Re-search
         performFind(findText, caseSensitive, "next")
     }
 
     function replaceAll(findText, replaceText, caseSensitive) {
         if (findText.length === 0) return
-        let escaped = findText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-        let rx = new RegExp(escaped, caseSensitive ? "g" : "gi")
-        mdEditor.textArea.text = mdEditor.textArea.text.replace(rx, replaceText)
+        if (findMatches.length === 0) return
+        // Replace in reverse order to preserve positions
+        for (let i = findMatches.length - 1; i >= 0; i--) {
+            let match = findMatches[i]
+            mdEditor.textArea.remove(match.start, match.end)
+            mdEditor.textArea.insert(match.start, replaceText)
+        }
         performFind(findText, caseSensitive, "next")
     }
 
@@ -143,8 +148,8 @@ Rectangle {
         // Toolbar
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: 36
-            color: "#333333"
+            Layout.preferredHeight: Theme.headerHeight
+            color: Theme.bgHeader
 
             RowLayout {
                 anchors.fill: parent
@@ -157,8 +162,8 @@ Rectangle {
                     text: AppController.currentDocument.filePath
                           ? AppController.currentDocument.filePath
                           : "No file open"
-                    font.pixelSize: 12
-                    color: "#999"
+                    font.pixelSize: Theme.fontSizeM
+                    color: Theme.textSecondary
                     elide: Text.ElideMiddle
                     Layout.fillWidth: true
                 }
@@ -167,8 +172,8 @@ Rectangle {
                 Label {
                     visible: AppController.currentDocument.modified
                     text: "\u25CF"
-                    font.pixelSize: 10
-                    color: "#e0c060"
+                    font.pixelSize: Theme.fontSizeS
+                    color: Theme.accentGold
                     ToolTip.text: "Unsaved changes"
                     ToolTip.visible: modifiedMa.containsMouse
                     MouseArea {
@@ -182,8 +187,8 @@ Rectangle {
                 Rectangle {
                     Layout.preferredWidth: editBtn.implicitWidth + previewBtn.implicitWidth + 2
                     Layout.preferredHeight: 24
-                    color: "#2b2b2b"
-                    radius: 3
+                    color: Theme.bgPanel
+                    radius: Theme.radius
 
                     RowLayout {
                         anchors.fill: parent
@@ -193,12 +198,12 @@ Rectangle {
                             id: editBtn
                             text: "Edit"
                             flat: true
-                            font.pixelSize: 11
+                            font.pixelSize: Theme.fontSizeXS
                             Layout.preferredHeight: 24
-                            palette.buttonText: mainContent.editMode ? "#fff" : "#999"
+                            palette.buttonText: mainContent.editMode ? Theme.textWhite : Theme.textSecondary
                             background: Rectangle {
-                                color: mainContent.editMode ? "#3d6a99" : "transparent"
-                                radius: 3
+                                color: mainContent.editMode ? Theme.bgActive : "transparent"
+                                radius: Theme.radius
                             }
                             onClicked: mainContent.editMode = true
                         }
@@ -207,14 +212,40 @@ Rectangle {
                             id: previewBtn
                             text: "Preview"
                             flat: true
-                            font.pixelSize: 11
+                            font.pixelSize: Theme.fontSizeXS
                             Layout.preferredHeight: 24
-                            palette.buttonText: !mainContent.editMode ? "#fff" : "#999"
+                            palette.buttonText: !mainContent.editMode ? Theme.textWhite : Theme.textSecondary
                             background: Rectangle {
-                                color: !mainContent.editMode ? "#3d6a99" : "transparent"
-                                radius: 3
+                                color: !mainContent.editMode ? Theme.bgActive : "transparent"
+                                radius: Theme.radius
                             }
                             onClicked: mainContent.editMode = false
+                        }
+                    }
+                }
+
+                // Toolbar toggle
+                Rectangle {
+                    width: 26; height: 24; radius: Theme.radius
+                    color: toolbarToggleMa.containsMouse ? Theme.bgButtonHov : "transparent"
+                    visible: mainContent.editMode
+                    ToolTip.text: AppController.configManager.markdownToolbarVisible ? "Hide toolbar" : "Show toolbar"
+                    ToolTip.visible: toolbarToggleMa.containsMouse
+                    ToolTip.delay: 400
+
+                    Label {
+                        anchors.centerIn: parent
+                        text: "\u2261"
+                        font.pixelSize: 16
+                        color: AppController.configManager.markdownToolbarVisible ? Theme.textPrimary : Theme.textMuted
+                    }
+                    MouseArea {
+                        id: toolbarToggleMa
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            AppController.configManager.markdownToolbarVisible = !AppController.configManager.markdownToolbarVisible
                         }
                     }
                 }
@@ -223,14 +254,14 @@ Rectangle {
                 Button {
                     text: "Save"
                     flat: true
-                    font.pixelSize: 11
+                    font.pixelSize: Theme.fontSizeXS
                     enabled: AppController.currentDocument.modified
                     Layout.preferredHeight: 24
-                    palette.buttonText: enabled ? "#ccc" : "#666"
+                    palette.buttonText: enabled ? Theme.textPrimary : Theme.textMuted
                     background: Rectangle {
-                        color: parent.hovered && parent.enabled ? "#555" : "#3a3a3a"
-                        radius: 3
-                        border.color: "#555"
+                        color: parent.hovered && parent.enabled ? Theme.bgButtonHov : Theme.bgButton
+                        radius: Theme.radius
+                        border.color: Theme.borderHover
                         border.width: 1
                     }
                     onClicked: AppController.currentDocument.save()
@@ -242,7 +273,7 @@ Rectangle {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 1
-            color: "#444"
+            color: Theme.border
         }
 
         // Find/Replace bar
@@ -285,7 +316,7 @@ Rectangle {
                 visible: AppController.currentDocument.filePath === ""
                 text: "Select a file from the project tree"
                 font.pixelSize: 14
-                color: "#666"
+                color: Theme.textMuted
             }
 
             MdEditor {
@@ -294,6 +325,7 @@ Rectangle {
                 visible: mainContent.editMode && AppController.currentDocument.filePath !== ""
                 text: AppController.currentDocument.rawContent
                 readOnly: false
+                toolbarVisible: AppController.configManager.markdownToolbarVisible
                 textArea.onTextChanged: {
                     if (textArea.text !== AppController.currentDocument.rawContent) {
                         AppController.currentDocument.rawContent = textArea.text
@@ -321,7 +353,7 @@ Rectangle {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 22
-            color: "#252525"
+            color: Theme.bgFooter
             visible: AppController.currentDocument.filePath !== ""
 
             RowLayout {
@@ -340,8 +372,8 @@ Rectangle {
                         let col = pos - (lastNl >= 0 ? lastNl : 0)
                         return "Ln " + line + ", Col " + col
                     }
-                    font.pixelSize: 10
-                    color: "#888"
+                    font.pixelSize: Theme.fontSizeS
+                    color: Theme.textMuted
                 }
 
                 Item { Layout.fillWidth: true }
@@ -355,8 +387,8 @@ Rectangle {
                         let lines = c.split("\n").length
                         return words + " words, " + chars + " chars, " + lines + " lines"
                     }
-                    font.pixelSize: 10
-                    color: "#777"
+                    font.pixelSize: Theme.fontSizeS
+                    color: Theme.textMuted
                 }
             }
         }

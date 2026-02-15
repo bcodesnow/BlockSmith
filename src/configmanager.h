@@ -19,6 +19,7 @@ class ConfigManager : public QObject
     Q_PROPERTY(bool autoScanOnStartup READ autoScanOnStartup WRITE setAutoScanOnStartup NOTIFY autoScanOnStartupChanged)
     Q_PROPERTY(bool syntaxHighlightEnabled READ syntaxHighlightEnabled WRITE setSyntaxHighlightEnabled NOTIFY syntaxHighlightEnabledChanged)
     Q_PROPERTY(int scanDepth READ scanDepth WRITE setScanDepth NOTIFY scanDepthChanged)
+    Q_PROPERTY(bool markdownToolbarVisible READ markdownToolbarVisible WRITE setMarkdownToolbarVisible NOTIFY markdownToolbarVisibleChanged)
 
 public:
     explicit ConfigManager(QObject *parent = nullptr);
@@ -47,6 +48,9 @@ public:
     int scanDepth() const;
     void setScanDepth(int depth);
 
+    bool markdownToolbarVisible() const;
+    void setMarkdownToolbarVisible(bool visible);
+
     Q_INVOKABLE void load();
     Q_INVOKABLE void save();
 
@@ -59,6 +63,7 @@ signals:
     void autoScanOnStartupChanged();
     void syntaxHighlightEnabledChanged();
     void scanDepthChanged();
+    void markdownToolbarVisibleChanged();
 
 private:
     QString configDir() const;
@@ -72,4 +77,5 @@ private:
     bool m_autoScanOnStartup = true;
     bool m_syntaxHighlightEnabled = true;
     int m_scanDepth = 0; // 0 = unlimited
+    bool m_markdownToolbarVisible = true;
 };
