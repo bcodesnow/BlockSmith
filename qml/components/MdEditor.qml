@@ -380,8 +380,9 @@ Item {
                 return editorRoot.lineHeights[lineIdx] || fm.lineSpacing
             }
             y: {
+                void(scrollView.contentItem.contentY)  // re-eval on scroll
                 let rect = textArea.positionToRectangle(textArea.cursorPosition)
-                return rect.y + textArea.topPadding
+                return textArea.mapToItem(scrollView, 0, rect.y).y
             }
             color: Qt.rgba(1, 1, 1, 0.04)
             z: -1
