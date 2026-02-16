@@ -27,7 +27,8 @@ ApplicationWindow {
         onTriggered: {
             splashOverlay.showTime = Date.now()
             if (AppController.configManager.autoScanOnStartup
-                && AppController.configManager.searchPaths.length > 0) {
+                && (AppController.configManager.searchPaths.length > 0
+                    || AppController.configManager.includeClaudeCodeFolder)) {
                 splashOverlay.scanning = true
                 AppController.scan()
             } else {
@@ -46,6 +47,7 @@ ApplicationWindow {
 
     SettingsDialog {
         id: settingsDialog
+        onScanRequested: AppController.scan()
     }
 
     BlockEditorPopup {
@@ -109,6 +111,16 @@ ApplicationWindow {
         target: AppController.promptStore
         function onCopied(name) {
             toast.show("Copied '" + name + "'")
+        }
+    }
+
+    Connections {
+        target: AppController.jsonlStore
+        function onCopied(preview) {
+            toast.show("Copied " + preview)
+        }
+        function onLoadFailed(error) {
+            toast.show(error)
         }
     }
 

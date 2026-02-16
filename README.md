@@ -18,6 +18,8 @@ Agent instruction files (CLAUDE.md, AGENTS.md) live in every project. Common sec
 - **Live preview** — rendered HTML via md4c
 - **Block system** — create blocks from editor selection, bidirectional push/pull sync, diff view for conflicts, tag-based filtering
 - **Prompt library** — categorized prompts, one-click clipboard copy, create from editor selection
+- **JSONL transcript viewer** — browse Claude Code conversation logs with role-based filtering, content previews for all API block types (text, tool_use, tool_result, thinking, images, web search, etc.), expand-to-raw-JSON, copy entries
+- **Claude Code integration** — optional `~/.claude` folder in project tree, .jsonl file detection
 - **Global search** — search across all project files (Ctrl+Shift+F)
 - **Find & Replace** — in-editor search with replace (Ctrl+F / Ctrl+H)
 - **New project scaffolding** — create projects with folder picker and trigger file selection

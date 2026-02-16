@@ -94,6 +94,15 @@ Every serious markdown editor has these. Without them, users will bounce.
 - [ ] **Recent files list** — Show recently opened files at top of switcher
 - [ ] **File preview on hover** — Show first few lines of file in switcher popup
 
+#### JSONL Viewer
+- [ ] **Read-only JSONL viewer** — Opens when clicking .jsonl in tree, replaces editor area with dedicated viewer
+- [ ] **Async loading** — Background thread with chunked parsing, progress indicator (first threaded feature)
+- [ ] **Role-based filtering** — Pill toggles for user/assistant/system roles (Claude transcript aware)
+- [ ] **Text search + tool_use filter** — Search across JSON content, toggle to show only tool-use entries
+- [ ] **Expandable entries** — Collapsed cards with preview, click to expand full pretty-printed JSON
+- [ ] **Copy entry** — Per-entry clipboard button with toast notification
+- See [PLAN_JSONL_VIEWER.md](../PLAN_JSONL_VIEWER.md) for full spec
+
 ---
 
 ### Tier 2 — Differentiating Features
@@ -237,6 +246,17 @@ Carried over from previous roadmap:
 - [ ] Support .cursorrules, .github/copilot-instructions.md, .windsurfrules, .clinerules, AGENTS.md
 - [ ] Same block deployed to Claude, Cursor, Copilot, Windsurf simultaneously
 - [ ] Format-aware export (adapt block content per agent format)
+
+### Well-Known Tool Locations
+- [ ] "Known Tools" section in Settings with toggleable entries (Claude Code, Cursor, Windsurf, etc.)
+- [ ] Each resolves its data folder path automatically
+- [ ] Extensible — new tools can be added without code changes
+
+### Auto-Detect Tool Folders
+- [ ] On first launch or scan, detect known tool folders (~/.claude, ~/.cursor, etc.)
+- [ ] Show one-time dialog: "BlockSmith detected Claude Code data. Include it?"
+- [ ] Store decision, don't re-prompt
+- [ ] Nice onboarding experience for new users
 
 ### Claude Skills Integration
 - [ ] Export prompts as Claude Code custom slash commands

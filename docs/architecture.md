@@ -32,6 +32,7 @@ Project tree     |  Markdown editor/preview|  Blocks / Prompts tabs
 | MdSyntaxHighlighter | QSyntaxHighlighter for markdown editing |
 | FileManager | File operations (create, rename, delete, duplicate, move) |
 | ImageHandler | Clipboard image paste, drag-drop copy, image path utilities |
+| JsonlStore | JSONL transcript viewer — threaded parser, filtered list model |
 
 ## Project Structure
 
@@ -51,6 +52,7 @@ src/
   mdsyntaxhighlighter.h / .cpp # QSyntaxHighlighter for markdown
   filemanager.h / .cpp         # File create/rename/delete/duplicate/move
   imagehandler.h / .cpp        # Clipboard/file image operations
+  jsonlstore.h / .cpp          # JSONL transcript viewer (threaded parser + list model)
 third_party/
   md4c/                        # md4c library (MIT license)
 qml/
@@ -79,6 +81,8 @@ qml/
     FileOperationDialog.qml    # New file/folder, rename dialog
     Toast.qml                  # Notification overlay
     SplashOverlay.qml          # Startup splash with logo + spinner
+    JsonlViewer.qml            # JSONL transcript viewer panel
+    JsonlEntryCard.qml         # Entry card with role badge + preview
 resources/
   icons/                       # Multi-size app icons (16-1024px)
   preview/
@@ -161,6 +165,31 @@ Content here...
 - One-click copy to clipboard
 - Split editor/preview for prompt editing (two-stage delete confirmation)
 - Create prompts from editor selection
+
+### JSONL Transcript Viewer
+- Opens .jsonl files automatically when clicked in the project tree
+- Background-threaded parsing with chunked loading (handles large transcripts)
+- Role-based filtering (user, assistant, tool, system, progress)
+- Text search across entry previews
+- Tool-use-only filter toggle
+- Expand entries to view formatted raw JSON
+- Copy individual entries to clipboard
+- Content block type detection per the [Claude Messages API](https://docs.anthropic.com/en/api/messages):
+  - `text` — plain text content
+  - `tool_use` — tool invocations with name + argument preview
+  - `tool_result` — tool output (distinguishes errors via `is_error`)
+  - `thinking` / `redacted_thinking` — extended thinking blocks
+  - `image` — image attachments with media type
+  - `document` — document attachments with title
+  - `server_tool_use` — server-side tool calls
+  - `web_search_tool_result` — web search queries + results
+- Claude Code transcript format support (nested `message` object with `uuid`, `parentUuid`, `sessionId`)
+- If Anthropic adds new content block types, update the parser in `src/jsonlstore.cpp` (the `Build preview from content` section) — reference: https://docs.anthropic.com/en/api/messages
+
+### Claude Code Integration
+- Optional `~/.claude` folder added to project tree via Settings > Integrations toggle
+- Recursively indexes .md, .jsonl, .json files from the Claude internal folder
+- Auto-rescan when integration setting changes
 
 ### Search
 - Global search across all project files (Ctrl+Shift+F)

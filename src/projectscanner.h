@@ -29,6 +29,7 @@ private:
     bool containsTriggerFile(const QString &dirPath) const;
     void scanRecursive(const QString &dirPath, int depth, int maxDepth, int &projectCount);
     void collectMdFiles(const QString &dirPath, TreeNode *parentNode);
+    void collectAllFiles(const QString &dirPath, TreeNode *parentNode);
 
     ConfigManager *m_config;
     ProjectTreeModel *m_model;

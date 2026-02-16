@@ -11,8 +11,11 @@ Rectangle {
     property int viewMode: MainContent.ViewMode.Edit
     property int editorCursorPosition: mdEditor.cursorPosition
 
-    // Convenience: editor is visible in Edit or Split mode
-    readonly property bool editorVisible: viewMode !== MainContent.ViewMode.Preview
+    // Is a JSONL file currently loaded?
+    readonly property bool isJsonlActive: AppController.jsonlStore.filePath !== ""
+
+    // Convenience: editor is visible in Edit or Split mode (and not JSONL)
+    readonly property bool editorVisible: viewMode !== MainContent.ViewMode.Preview && !isJsonlActive
 
     signal createPromptRequested(string content)
 
@@ -163,9 +166,13 @@ Rectangle {
 
                 // File path
                 Label {
-                    text: AppController.currentDocument.filePath
-                          ? AppController.currentDocument.filePath
-                          : "No file open"
+                    text: {
+                        if (mainContent.isJsonlActive)
+                            return AppController.jsonlStore.filePath
+                        return AppController.currentDocument.filePath
+                               ? AppController.currentDocument.filePath
+                               : "No file open"
+                    }
                     font.pixelSize: Theme.fontSizeM
                     color: Theme.textSecondary
                     elide: Text.ElideMiddle
@@ -174,7 +181,7 @@ Rectangle {
 
                 // Modified indicator
                 Label {
-                    visible: AppController.currentDocument.modified
+                    visible: AppController.currentDocument.modified && !mainContent.isJsonlActive
                     text: "\u25CF"
                     font.pixelSize: Theme.fontSizeS
                     color: Theme.accentGold
@@ -189,6 +196,7 @@ Rectangle {
 
                 // Edit / Split / Preview toggle
                 Rectangle {
+                    visible: !mainContent.isJsonlActive
                     Layout.preferredWidth: modeRow.implicitWidth + 4
                     Layout.preferredHeight: 24
                     color: Theme.bgPanel
@@ -246,6 +254,7 @@ Rectangle {
 
                 // Save button
                 Button {
+                    visible: !mainContent.isJsonlActive
                     text: "Save"
                     flat: true
                     font.pixelSize: Theme.fontSizeXS
@@ -307,17 +316,23 @@ Rectangle {
             // Empty state
             Label {
                 anchors.centerIn: parent
-                visible: AppController.currentDocument.filePath === ""
+                visible: AppController.currentDocument.filePath === "" && !mainContent.isJsonlActive
                 text: "Select a file from the project tree"
                 font.pixelSize: 14
                 color: Theme.textMuted
+            }
+
+            // JSONL viewer (replaces editor when .jsonl is open)
+            JsonlViewer {
+                anchors.fill: parent
+                visible: mainContent.isJsonlActive
             }
 
             SplitView {
                 id: editorSplitView
                 anchors.fill: parent
                 orientation: Qt.Horizontal
-                visible: AppController.currentDocument.filePath !== ""
+                visible: AppController.currentDocument.filePath !== "" && !mainContent.isJsonlActive
 
                 handle: Rectangle {
                     implicitWidth: 3
@@ -380,12 +395,12 @@ Rectangle {
             }
         }
 
-        // Status bar
+        // Status bar (markdown files only)
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 22
             color: Theme.bgFooter
-            visible: AppController.currentDocument.filePath !== ""
+            visible: AppController.currentDocument.filePath !== "" && !mainContent.isJsonlActive
 
             RowLayout {
                 anchors.fill: parent

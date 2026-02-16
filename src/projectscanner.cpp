@@ -50,6 +50,28 @@ void ProjectScanner::scan()
         scanRecursive(searchPath, 1, maxDepth, projectCount);
     }
 
+    // Claude Code folder (pinned root, no trigger-file check)
+    if (m_config->includeClaudeCodeFolder()) {
+        const QString claudePath = m_config->claudeCodeFolderPath();
+        QDir claudeDir(claudePath);
+        if (claudeDir.exists()) {
+            auto *claudeNode = new TreeNode(
+                QStringLiteral(".claude"),
+                claudePath,
+                TreeNode::ProjectRoot,
+                false,
+                m_model->rootNode());
+
+            collectAllFiles(claudePath, claudeNode);
+            if (claudeNode->childCount() > 0) {
+                m_model->addProjectRoot(claudeNode);
+                projectCount++;
+            } else {
+                delete claudeNode;
+            }
+        }
+    }
+
     emit scanComplete(projectCount);
 }
 
@@ -123,6 +145,46 @@ bool ProjectScanner::containsTriggerFile(const QString &dirPath) const
     return false;
 }
 
+void ProjectScanner::collectAllFiles(const QString &dirPath, TreeNode *parentNode)
+{
+    QDir dir(dirPath);
+
+    // Directories first
+    const auto subdirs = dir.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::Hidden,
+                                            QDir::Name);
+    for (const QFileInfo &subdir : subdirs) {
+        if (isIgnored(subdir.fileName()))
+            continue;
+
+        auto *dirNode = new TreeNode(
+            subdir.fileName(),
+            subdir.absoluteFilePath(),
+            TreeNode::Directory,
+            false,
+            parentNode);
+
+        collectAllFiles(subdir.absoluteFilePath(), dirNode);
+
+        if (dirNode->childCount() > 0) {
+            parentNode->appendChild(dirNode);
+        } else {
+            delete dirNode;
+        }
+    }
+
+    // Files: .md, .jsonl, .json
+    const auto files = dir.entryInfoList({"*.md", "*.jsonl", "*.json"}, QDir::Files, QDir::Name);
+    for (const QFileInfo &file : files) {
+        auto *fileNode = new TreeNode(
+            file.fileName(),
+            file.absoluteFilePath(),
+            TreeNode::MdFile,
+            false,
+            parentNode);
+        parentNode->appendChild(fileNode);
+    }
+}
+
 void ProjectScanner::collectMdFiles(const QString &dirPath, TreeNode *parentNode)
 {
     QDir dir(dirPath);
@@ -153,8 +215,8 @@ void ProjectScanner::collectMdFiles(const QString &dirPath, TreeNode *parentNode
         }
     }
 
-    // Then files
-    const auto files = dir.entryInfoList({"*.md"}, QDir::Files, QDir::Name);
+    // Then files (.md and .jsonl)
+    const auto files = dir.entryInfoList({"*.md", "*.jsonl"}, QDir::Files, QDir::Name);
     for (const QFileInfo &file : files) {
         bool isTrigger = false;
         for (const QString &trigger : triggers) {

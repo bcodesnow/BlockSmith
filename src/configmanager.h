@@ -25,6 +25,7 @@ class ConfigManager : public QObject
     Q_PROPERTY(bool statusBarCharCount READ statusBarCharCount WRITE setStatusBarCharCount NOTIFY statusBarCharCountChanged)
     Q_PROPERTY(bool statusBarLineCount READ statusBarLineCount WRITE setStatusBarLineCount NOTIFY statusBarLineCountChanged)
     Q_PROPERTY(bool statusBarReadingTime READ statusBarReadingTime WRITE setStatusBarReadingTime NOTIFY statusBarReadingTimeChanged)
+    Q_PROPERTY(bool includeClaudeCodeFolder READ includeClaudeCodeFolder WRITE setIncludeClaudeCodeFolder NOTIFY includeClaudeCodeFolderChanged)
 
 public:
     explicit ConfigManager(QObject *parent = nullptr);
@@ -68,6 +69,10 @@ public:
     bool statusBarReadingTime() const;
     void setStatusBarReadingTime(bool enabled);
 
+    bool includeClaudeCodeFolder() const;
+    void setIncludeClaudeCodeFolder(bool enabled);
+    Q_INVOKABLE QString claudeCodeFolderPath() const;
+
     Q_INVOKABLE void load();
     Q_INVOKABLE void save();
 
@@ -86,6 +91,7 @@ signals:
     void statusBarCharCountChanged();
     void statusBarLineCountChanged();
     void statusBarReadingTimeChanged();
+    void includeClaudeCodeFolderChanged();
 
 private:
     QString configDir() const;
@@ -105,4 +111,5 @@ private:
     bool m_statusBarCharCount = true;
     bool m_statusBarLineCount = true;
     bool m_statusBarReadingTime = true;
+    bool m_includeClaudeCodeFolder = false;
 };

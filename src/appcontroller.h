@@ -14,6 +14,7 @@
 #include "syncengine.h"
 #include "filemanager.h"
 #include "imagehandler.h"
+#include "jsonlstore.h"
 
 class AppController : public QObject
 {
@@ -31,6 +32,7 @@ class AppController : public QObject
     Q_PROPERTY(SyncEngine* syncEngine READ syncEngine CONSTANT)
     Q_PROPERTY(FileManager* fileManager READ fileManager CONSTANT)
     Q_PROPERTY(ImageHandler* imageHandler READ imageHandler CONSTANT)
+    Q_PROPERTY(JsonlStore* jsonlStore READ jsonlStore CONSTANT)
     Q_PROPERTY(QStringList highlightedFiles READ highlightedFiles NOTIFY highlightedFilesChanged)
 
 public:
@@ -48,6 +50,7 @@ public:
     SyncEngine *syncEngine() const;
     FileManager *fileManager() const;
     ImageHandler *imageHandler() const;
+    JsonlStore *jsonlStore() const;
     QStringList highlightedFiles() const;
 
     Q_INVOKABLE QVariantList searchFiles(const QString &query) const;
@@ -79,5 +82,6 @@ private:
     SyncEngine *m_syncEngine = nullptr;
     FileManager *m_fileManager = nullptr;
     ImageHandler *m_imageHandler = nullptr;
+    JsonlStore *m_jsonlStore = nullptr;
     QStringList m_highlightedFiles;
 };

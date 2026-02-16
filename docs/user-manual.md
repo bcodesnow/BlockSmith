@@ -55,6 +55,7 @@ All application data is stored at the OS config location:
 | Status bar: char count | Enabled |
 | Status bar: line count | Enabled |
 | Status bar: reading time | Enabled |
+| Include Claude Code folder | Disabled |
 | Ignore patterns | `node_modules`, `.git`, `dist`, `build`, `__pycache__`, `.venv`, `venv`, `target`, `.build` |
 | Trigger files | `CLAUDE.md`, `claude.md`, `.claude.md`, `AGENTS.md`, `agents.md`, `.agents.md`, `.git` |
 
@@ -166,6 +167,32 @@ Block cards in the right pane show an **orange left border** when the block cont
 3. **Edit** — click a prompt card to open the editor popup
 4. **Categories** — organize prompts by category, filter by category in the panel
 5. **Delete** — click Delete in the editor popup, then confirm (two-stage confirmation)
+
+## JSONL Transcript Viewer
+
+BlockSmith includes a built-in viewer for `.jsonl` transcript files — the format used by Claude Code to log conversations. Click any `.jsonl` file in the project tree to open it.
+
+### Features
+
+- **Role badges** — color-coded by message role: user (blue), assistant (green), system (gold), tool (purple), progress (muted), error (red)
+- **Content previews** — each entry shows a 2-line preview extracted from the message content, with emoji indicators for block types:
+  - Text content shown directly
+  - `tool_use` — tool name + first argument
+  - `tool_result` — result content (errors marked with red indicator)
+  - `thinking` — extended thinking preview
+  - `redacted_thinking` — marked as redacted
+  - `image`, `document` — media type / title
+  - `server_tool_use`, `web_search_tool_result` — server tools and search queries
+- **Filters** — role dropdown, text search, tool-use-only toggle
+- **Expand** — click any entry to expand and view the full formatted JSON
+- **Copy** — hover to reveal a copy button for the raw JSON of any entry
+- **Stats** — total and filtered entry counts displayed in the header
+
+### Claude Code Integration
+
+Enable **Settings > Integrations > Include Claude Code folder** to add your `~/.claude` directory to the project tree. This gives you direct access to Claude Code's conversation transcripts, project configs, and other internal files.
+
+The viewer's content block parsing follows the [Claude Messages API spec](https://docs.anthropic.com/en/api/messages). If Anthropic adds new content block types in the future, the parser in `src/jsonlstore.cpp` can be updated accordingly.
 
 ## Context Menus
 

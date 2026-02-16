@@ -6,6 +6,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QStandardPaths>
+#include <QGuiApplication>
 
 ConfigManager::ConfigManager(QObject *parent)
     : QObject(parent)
@@ -158,6 +159,17 @@ void ConfigManager::setStatusBarReadingTime(bool enabled)
     if (m_statusBarReadingTime != enabled) { m_statusBarReadingTime = enabled; emit statusBarReadingTimeChanged(); }
 }
 
+bool ConfigManager::includeClaudeCodeFolder() const { return m_includeClaudeCodeFolder; }
+void ConfigManager::setIncludeClaudeCodeFolder(bool enabled)
+{
+    if (m_includeClaudeCodeFolder != enabled) { m_includeClaudeCodeFolder = enabled; emit includeClaudeCodeFolderChanged(); }
+}
+
+QString ConfigManager::claudeCodeFolderPath() const
+{
+    return QDir::homePath() + QStringLiteral("/.claude");
+}
+
 void ConfigManager::load()
 {
     QFile file(configFilePath());
@@ -228,6 +240,9 @@ void ConfigManager::load()
         m_statusBarLineCount = root["statusBarLineCount"].toBool(true);
     if (root.contains("statusBarReadingTime"))
         m_statusBarReadingTime = root["statusBarReadingTime"].toBool(true);
+
+    if (root.contains("includeClaudeCodeFolder"))
+        m_includeClaudeCodeFolder = root["includeClaudeCodeFolder"].toBool(false);
 }
 
 void ConfigManager::save()
@@ -269,6 +284,7 @@ void ConfigManager::save()
     root["statusBarCharCount"] = m_statusBarCharCount;
     root["statusBarLineCount"] = m_statusBarLineCount;
     root["statusBarReadingTime"] = m_statusBarReadingTime;
+    root["includeClaudeCodeFolder"] = m_includeClaudeCodeFolder;
 
     QFile file(configFilePath());
     if (!file.open(QIODevice::WriteOnly)) {

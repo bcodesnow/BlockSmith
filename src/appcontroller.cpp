@@ -25,6 +25,7 @@ AppController::AppController(QObject *parent)
     , m_syncEngine(new SyncEngine(m_blockStore, m_projectTreeModel, this))
     , m_fileManager(new FileManager(m_currentDocument, m_configManager, this))
     , m_imageHandler(new ImageHandler(this))
+    , m_jsonlStore(new JsonlStore(this))
 {
     connect(m_projectScanner, &ProjectScanner::scanComplete,
             this, &AppController::scanComplete);
@@ -52,6 +53,7 @@ PromptStore *AppController::promptStore() const { return m_promptStore; }
 SyncEngine *AppController::syncEngine() const { return m_syncEngine; }
 FileManager *AppController::fileManager() const { return m_fileManager; }
 ImageHandler *AppController::imageHandler() const { return m_imageHandler; }
+JsonlStore *AppController::jsonlStore() const { return m_jsonlStore; }
 QStringList AppController::highlightedFiles() const { return m_highlightedFiles; }
 
 void AppController::highlightBlock(const QString &blockId)
@@ -75,6 +77,21 @@ void AppController::openFile(const QString &path)
 {
     if (path == m_currentDocument->filePath())
         return;
+
+    // Route .jsonl files to the JSONL viewer
+    if (path.endsWith(QStringLiteral(".jsonl"), Qt::CaseInsensitive)) {
+        if (m_currentDocument->modified()) {
+            emit unsavedChangesWarning(path);
+            return;
+        }
+        m_currentDocument->clear();
+        m_jsonlStore->load(path);
+        return;
+    }
+
+    // Clear JSONL state when switching to a regular file
+    if (!m_jsonlStore->filePath().isEmpty())
+        m_jsonlStore->clear();
 
     if (m_currentDocument->modified()) {
         emit unsavedChangesWarning(path);
