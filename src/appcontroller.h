@@ -13,6 +13,7 @@
 #include "promptstore.h"
 #include "syncengine.h"
 #include "filemanager.h"
+#include "imagehandler.h"
 
 class AppController : public QObject
 {
@@ -29,6 +30,7 @@ class AppController : public QObject
     Q_PROPERTY(PromptStore* promptStore READ promptStore CONSTANT)
     Q_PROPERTY(SyncEngine* syncEngine READ syncEngine CONSTANT)
     Q_PROPERTY(FileManager* fileManager READ fileManager CONSTANT)
+    Q_PROPERTY(ImageHandler* imageHandler READ imageHandler CONSTANT)
     Q_PROPERTY(QStringList highlightedFiles READ highlightedFiles NOTIFY highlightedFilesChanged)
 
 public:
@@ -45,6 +47,7 @@ public:
     PromptStore *promptStore() const;
     SyncEngine *syncEngine() const;
     FileManager *fileManager() const;
+    ImageHandler *imageHandler() const;
     QStringList highlightedFiles() const;
 
     Q_INVOKABLE QVariantList searchFiles(const QString &query) const;
@@ -75,5 +78,6 @@ private:
     PromptStore *m_promptStore = nullptr;
     SyncEngine *m_syncEngine = nullptr;
     FileManager *m_fileManager = nullptr;
+    ImageHandler *m_imageHandler = nullptr;
     QStringList m_highlightedFiles;
 };

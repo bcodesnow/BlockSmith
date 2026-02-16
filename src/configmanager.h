@@ -20,6 +20,11 @@ class ConfigManager : public QObject
     Q_PROPERTY(bool syntaxHighlightEnabled READ syntaxHighlightEnabled WRITE setSyntaxHighlightEnabled NOTIFY syntaxHighlightEnabledChanged)
     Q_PROPERTY(int scanDepth READ scanDepth WRITE setScanDepth NOTIFY scanDepthChanged)
     Q_PROPERTY(bool markdownToolbarVisible READ markdownToolbarVisible WRITE setMarkdownToolbarVisible NOTIFY markdownToolbarVisibleChanged)
+    Q_PROPERTY(QString imageSubfolder READ imageSubfolder WRITE setImageSubfolder NOTIFY imageSubfolderChanged)
+    Q_PROPERTY(bool statusBarWordCount READ statusBarWordCount WRITE setStatusBarWordCount NOTIFY statusBarWordCountChanged)
+    Q_PROPERTY(bool statusBarCharCount READ statusBarCharCount WRITE setStatusBarCharCount NOTIFY statusBarCharCountChanged)
+    Q_PROPERTY(bool statusBarLineCount READ statusBarLineCount WRITE setStatusBarLineCount NOTIFY statusBarLineCountChanged)
+    Q_PROPERTY(bool statusBarReadingTime READ statusBarReadingTime WRITE setStatusBarReadingTime NOTIFY statusBarReadingTimeChanged)
 
 public:
     explicit ConfigManager(QObject *parent = nullptr);
@@ -51,6 +56,18 @@ public:
     bool markdownToolbarVisible() const;
     void setMarkdownToolbarVisible(bool visible);
 
+    QString imageSubfolder() const;
+    void setImageSubfolder(const QString &subfolder);
+
+    bool statusBarWordCount() const;
+    void setStatusBarWordCount(bool enabled);
+    bool statusBarCharCount() const;
+    void setStatusBarCharCount(bool enabled);
+    bool statusBarLineCount() const;
+    void setStatusBarLineCount(bool enabled);
+    bool statusBarReadingTime() const;
+    void setStatusBarReadingTime(bool enabled);
+
     Q_INVOKABLE void load();
     Q_INVOKABLE void save();
 
@@ -64,6 +81,11 @@ signals:
     void syntaxHighlightEnabledChanged();
     void scanDepthChanged();
     void markdownToolbarVisibleChanged();
+    void imageSubfolderChanged();
+    void statusBarWordCountChanged();
+    void statusBarCharCountChanged();
+    void statusBarLineCountChanged();
+    void statusBarReadingTimeChanged();
 
 private:
     QString configDir() const;
@@ -78,4 +100,9 @@ private:
     bool m_syntaxHighlightEnabled = true;
     int m_scanDepth = 0; // 0 = unlimited
     bool m_markdownToolbarVisible = true;
+    QString m_imageSubfolder = QStringLiteral("images");
+    bool m_statusBarWordCount = true;
+    bool m_statusBarCharCount = true;
+    bool m_statusBarLineCount = true;
+    bool m_statusBarReadingTime = true;
 };

@@ -45,6 +45,17 @@ WebEngineView {
     function pushContent() {
         if (!_pageReady) return
         let html = AppController.md4cRenderer.render(markdown)
+
+        // Resolve relative image paths to absolute file:// URLs
+        let docPath = AppController.currentDocument.filePath
+        if (docPath) {
+            let dir = AppController.imageHandler.getDocumentDir(docPath)
+            let fileUrl = "file:///" + dir.replace(/\\/g, "/") + "/"
+            // Match src="..." that aren't already absolute (http, file, data)
+            html = html.replace(/src="(?!https?:\/\/|file:\/\/|data:)([^"]+)"/g,
+                               'src="' + fileUrl + '$1"')
+        }
+
         // Escape for JS template literal
         html = html.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$')
         runJavaScript("updateContent(`" + html + "`)")

@@ -391,8 +391,36 @@ Rectangle {
                 anchors.fill: parent
                 anchors.leftMargin: 10
                 anchors.rightMargin: 10
-                spacing: 16
+                spacing: 12
 
+                // Save-state indicator dot
+                Rectangle {
+                    id: saveDot
+                    width: 8; height: 8; radius: 4
+                    color: AppController.currentDocument.modified ? Theme.accentGold : Theme.accentGreen
+                    opacity: AppController.currentDocument.modified ? 1.0 : 0.6
+                    ToolTip.text: AppController.currentDocument.modified ? "Unsaved changes" : "Saved"
+                    ToolTip.visible: saveDotMa.containsMouse
+                    ToolTip.delay: 400
+                    MouseArea {
+                        id: saveDotMa
+                        anchors.fill: parent
+                        hoverEnabled: true
+                    }
+                    SequentialAnimation on opacity {
+                        id: saveFlash
+                        running: false
+                        NumberAnimation { to: 1.0; duration: 0 }
+                        PauseAnimation { duration: 800 }
+                        NumberAnimation { to: 0.6; duration: 300 }
+                    }
+                    Connections {
+                        target: AppController.currentDocument
+                        function onSaved() { saveFlash.restart() }
+                    }
+                }
+
+                // Cursor position
                 Label {
                     text: {
                         if (mainContent.viewMode === MainContent.ViewMode.Preview) return "Preview mode"
@@ -409,14 +437,26 @@ Rectangle {
 
                 Item { Layout.fillWidth: true }
 
+                // Encoding
+                Label {
+                    text: AppController.currentDocument.encoding
+                    font.pixelSize: Theme.fontSizeS
+                    color: Theme.textMuted
+                }
+
+                // Configurable stats
                 Label {
                     text: {
                         let c = AppController.currentDocument.rawContent
                         if (!c || c.length === 0) return ""
-                        let chars = c.length
+                        let cfg = AppController.configManager
+                        let parts = []
                         let words = c.trim().length === 0 ? 0 : c.trim().split(/\s+/).length
-                        let lines = c.split("\n").length
-                        return words + " words, " + chars + " chars, " + lines + " lines"
+                        if (cfg.statusBarWordCount) parts.push(words + " words")
+                        if (cfg.statusBarCharCount) parts.push(c.length + " chars")
+                        if (cfg.statusBarLineCount) parts.push(c.split("\n").length + " lines")
+                        if (cfg.statusBarReadingTime) parts.push(Math.max(1, Math.ceil(words / 225)) + " min read")
+                        return parts.join("  |  ")
                     }
                     font.pixelSize: Theme.fontSizeS
                     color: Theme.textMuted

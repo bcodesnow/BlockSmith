@@ -22,6 +22,11 @@ Dialog {
         autoScanCheck.checked = AppController.configManager.autoScanOnStartup
         syntaxHighlightCheck.checked = AppController.configManager.syntaxHighlightEnabled
         scanDepthSpin.value = AppController.configManager.scanDepth
+        imageSubfolderField.text = AppController.configManager.imageSubfolder
+        sbWordCountCheck.checked = AppController.configManager.statusBarWordCount
+        sbCharCountCheck.checked = AppController.configManager.statusBarCharCount
+        sbLineCountCheck.checked = AppController.configManager.statusBarLineCount
+        sbReadingTimeCheck.checked = AppController.configManager.statusBarReadingTime
     }
 
     onAccepted: {
@@ -34,6 +39,11 @@ Dialog {
         AppController.configManager.autoScanOnStartup = autoScanCheck.checked
         AppController.configManager.syntaxHighlightEnabled = syntaxHighlightCheck.checked
         AppController.configManager.scanDepth = scanDepthSpin.value
+        AppController.configManager.imageSubfolder = imageSubfolderField.text.trim() || "images"
+        AppController.configManager.statusBarWordCount = sbWordCountCheck.checked
+        AppController.configManager.statusBarCharCount = sbCharCountCheck.checked
+        AppController.configManager.statusBarLineCount = sbLineCountCheck.checked
+        AppController.configManager.statusBarReadingTime = sbReadingTimeCheck.checked
         AppController.configManager.save()
     }
 
@@ -195,6 +205,72 @@ Dialog {
             Label {
                 text: "0 = unlimited"
                 color: Theme.textMuted
+            }
+        }
+
+        RowLayout {
+            spacing: Theme.sp8
+
+            Label {
+                text: "Image subfolder:"
+            }
+
+            TextField {
+                id: imageSubfolderField
+                text: "images"
+                Layout.preferredWidth: 150
+                font.family: Theme.fontMono
+                color: Theme.textEditor
+                background: Rectangle {
+                    color: Theme.bg
+                    radius: Theme.radius
+                    border.color: Theme.border
+                    border.width: 1
+                }
+            }
+
+            Label {
+                text: "Relative to document"
+                color: Theme.textMuted
+            }
+        }
+
+        // Separator
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 1
+            color: Theme.border
+        }
+
+        Label {
+            text: "Status Bar"
+            font.bold: true
+            color: Theme.textPrimary
+        }
+
+        Flow {
+            Layout.fillWidth: true
+            spacing: Theme.sp16
+
+            CheckBox {
+                id: sbWordCountCheck
+                text: "Word count"
+                checked: true
+            }
+            CheckBox {
+                id: sbCharCountCheck
+                text: "Character count"
+                checked: true
+            }
+            CheckBox {
+                id: sbLineCountCheck
+                text: "Line count"
+                checked: true
+            }
+            CheckBox {
+                id: sbReadingTimeCheck
+                text: "Reading time"
+                checked: true
             }
         }
     }

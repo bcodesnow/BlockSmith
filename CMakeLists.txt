@@ -57,12 +57,22 @@ qt_add_qml_module(BlockSmith
         src/syncengine.h src/syncengine.cpp
         src/mdsyntaxhighlighter.h src/mdsyntaxhighlighter.cpp
         src/filemanager.h src/filemanager.cpp
+        src/imagehandler.h src/imagehandler.cpp
 )
 
 qt_add_resources(BlockSmith "icons"
     PREFIX "/"
     FILES
         resources/icons/blocksmith.ico
+        resources/icons/blocksmith_16.png
+        resources/icons/blocksmith_24.png
+        resources/icons/blocksmith_32.png
+        resources/icons/blocksmith_48.png
+        resources/icons/blocksmith_64.png
+        resources/icons/blocksmith_96.png
+        resources/icons/blocksmith_128.png
+        resources/icons/blocksmith_256.png
+        resources/icons/blocksmith_512.png
 )
 
 qt_add_resources(BlockSmith "preview"

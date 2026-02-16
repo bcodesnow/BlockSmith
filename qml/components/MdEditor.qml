@@ -14,6 +14,56 @@ Item {
 
     signal addBlockRequested(string selectedText, int selStart, int selEnd)
     signal createPromptRequested(string selectedText)
+    signal imageInserted(string name)
+    signal imageErrorOccurred(string error)
+
+    // --- Image paste/drop helpers ---
+
+    function pasteImage() {
+        let docPath = AppController.currentDocument.filePath
+        if (!docPath) { imageErrorOccurred("Open a file first"); return }
+
+        let docDir = AppController.imageHandler.getDocumentDir(docPath)
+        let subfolder = AppController.configManager.imageSubfolder
+        let destDir = docDir + "/" + subfolder
+        let fileName = AppController.imageHandler.generateImageName()
+
+        let savedPath = AppController.imageHandler.saveClipboardImage(destDir, fileName)
+        if (savedPath) {
+            let savedName = AppController.imageHandler.fileNameOf(savedPath)
+            let relativePath = subfolder + "/" + savedName
+            let mdLink = "![image](" + relativePath + ")"
+            textArea.insert(textArea.cursorPosition, mdLink)
+            imageInserted(savedName)
+        }
+    }
+
+    function dropImage(fileUrl) {
+        let sourcePath = fileUrl.toString().replace("file:///", "")
+        let docPath = AppController.currentDocument.filePath
+        if (!docPath) { imageErrorOccurred("Open a file first"); return }
+
+        let docDir = AppController.imageHandler.getDocumentDir(docPath)
+        let subfolder = AppController.configManager.imageSubfolder
+        let destDir = docDir + "/" + subfolder
+
+        let savedPath = AppController.imageHandler.copyImageFile(sourcePath, destDir)
+        if (savedPath) {
+            let savedName = AppController.imageHandler.fileNameOf(savedPath)
+            let relativePath = subfolder + "/" + savedName
+            let mdLink = "![image](" + relativePath + ")\n"
+            textArea.insert(textArea.cursorPosition, mdLink)
+            imageInserted(savedName)
+        }
+    }
+
+    function isImageUrl(url) {
+        let lower = url.toString().toLowerCase()
+        return lower.endsWith(".png") || lower.endsWith(".jpg")
+            || lower.endsWith(".jpeg") || lower.endsWith(".gif")
+            || lower.endsWith(".svg") || lower.endsWith(".webp")
+            || lower.endsWith(".bmp")
+    }
 
     // --- Editing helpers ---
 
@@ -407,6 +457,14 @@ Item {
             placeholderTextColor: Theme.textPlaceholder
 
             Keys.onPressed: function(event) {
+                // Intercept Ctrl+V when clipboard has an image
+                if (event.key === Qt.Key_V && (event.modifiers & Qt.ControlModifier)) {
+                    if (AppController.imageHandler.clipboardHasImage()) {
+                        editorRoot.pasteImage()
+                        event.accepted = true
+                        return
+                    }
+                }
                 if (event.key === Qt.Key_Tab) {
                     editorRoot.handleTab(event.modifiers & Qt.ShiftModifier)
                     event.accepted = true
@@ -501,6 +559,49 @@ Item {
                     }
                 }
             }
+        }
+    }
+
+    // Drop overlay + DropArea for image drag-drop
+    DropArea {
+        anchors.fill: parent
+        keys: ["text/uri-list"]
+
+        onEntered: function(drag) {
+            let dominated = false
+            for (let i = 0; i < drag.urls.length; i++) {
+                if (editorRoot.isImageUrl(drag.urls[i])) { dominated = true; break }
+            }
+            drag.accepted = dominated
+            dropOverlay.visible = dominated
+        }
+
+        onExited: dropOverlay.visible = false
+
+        onDropped: function(drop) {
+            dropOverlay.visible = false
+            for (let i = 0; i < drop.urls.length; i++) {
+                if (editorRoot.isImageUrl(drop.urls[i]))
+                    editorRoot.dropImage(drop.urls[i])
+            }
+        }
+    }
+
+    Rectangle {
+        id: dropOverlay
+        anchors.fill: parent
+        visible: false
+        color: Qt.rgba(0.42, 0.61, 0.82, 0.15)
+        border.color: Theme.accent
+        border.width: 2
+        radius: 4
+        z: 10
+
+        Label {
+            anchors.centerIn: parent
+            text: "Drop image here"
+            color: Theme.accent
+            font.pixelSize: 16
         }
     }
 }

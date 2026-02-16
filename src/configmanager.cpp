@@ -124,6 +124,40 @@ void ConfigManager::setMarkdownToolbarVisible(bool visible)
     }
 }
 
+QString ConfigManager::imageSubfolder() const { return m_imageSubfolder; }
+
+void ConfigManager::setImageSubfolder(const QString &subfolder)
+{
+    if (m_imageSubfolder != subfolder) {
+        m_imageSubfolder = subfolder;
+        emit imageSubfolderChanged();
+    }
+}
+
+bool ConfigManager::statusBarWordCount() const { return m_statusBarWordCount; }
+void ConfigManager::setStatusBarWordCount(bool enabled)
+{
+    if (m_statusBarWordCount != enabled) { m_statusBarWordCount = enabled; emit statusBarWordCountChanged(); }
+}
+
+bool ConfigManager::statusBarCharCount() const { return m_statusBarCharCount; }
+void ConfigManager::setStatusBarCharCount(bool enabled)
+{
+    if (m_statusBarCharCount != enabled) { m_statusBarCharCount = enabled; emit statusBarCharCountChanged(); }
+}
+
+bool ConfigManager::statusBarLineCount() const { return m_statusBarLineCount; }
+void ConfigManager::setStatusBarLineCount(bool enabled)
+{
+    if (m_statusBarLineCount != enabled) { m_statusBarLineCount = enabled; emit statusBarLineCountChanged(); }
+}
+
+bool ConfigManager::statusBarReadingTime() const { return m_statusBarReadingTime; }
+void ConfigManager::setStatusBarReadingTime(bool enabled)
+{
+    if (m_statusBarReadingTime != enabled) { m_statusBarReadingTime = enabled; emit statusBarReadingTimeChanged(); }
+}
+
 void ConfigManager::load()
 {
     QFile file(configFilePath());
@@ -182,6 +216,18 @@ void ConfigManager::load()
 
     if (root.contains("markdownToolbarVisible"))
         m_markdownToolbarVisible = root["markdownToolbarVisible"].toBool(true);
+
+    if (root.contains("imageSubfolder"))
+        m_imageSubfolder = root["imageSubfolder"].toString("images");
+
+    if (root.contains("statusBarWordCount"))
+        m_statusBarWordCount = root["statusBarWordCount"].toBool(true);
+    if (root.contains("statusBarCharCount"))
+        m_statusBarCharCount = root["statusBarCharCount"].toBool(true);
+    if (root.contains("statusBarLineCount"))
+        m_statusBarLineCount = root["statusBarLineCount"].toBool(true);
+    if (root.contains("statusBarReadingTime"))
+        m_statusBarReadingTime = root["statusBarReadingTime"].toBool(true);
 }
 
 void ConfigManager::save()
@@ -218,6 +264,11 @@ void ConfigManager::save()
     root["syntaxHighlightEnabled"] = m_syntaxHighlightEnabled;
     root["scanDepth"] = m_scanDepth;
     root["markdownToolbarVisible"] = m_markdownToolbarVisible;
+    root["imageSubfolder"] = m_imageSubfolder;
+    root["statusBarWordCount"] = m_statusBarWordCount;
+    root["statusBarCharCount"] = m_statusBarCharCount;
+    root["statusBarLineCount"] = m_statusBarLineCount;
+    root["statusBarReadingTime"] = m_statusBarReadingTime;
 
     QFile file(configFilePath());
     if (!file.open(QIODevice::WriteOnly)) {

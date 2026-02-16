@@ -18,6 +18,24 @@ void MdDocument::load(const QString &filePath)
         return;
     }
 
+    // Detect encoding from BOM
+    QByteArray bom = file.peek(4);
+    QString detectedEncoding = QStringLiteral("UTF-8");
+    if (bom.size() >= 3
+        && static_cast<unsigned char>(bom[0]) == 0xEF
+        && static_cast<unsigned char>(bom[1]) == 0xBB
+        && static_cast<unsigned char>(bom[2]) == 0xBF) {
+        detectedEncoding = QStringLiteral("UTF-8 BOM");
+    } else if (bom.size() >= 2
+               && static_cast<unsigned char>(bom[0]) == 0xFF
+               && static_cast<unsigned char>(bom[1]) == 0xFE) {
+        detectedEncoding = QStringLiteral("UTF-16 LE");
+    } else if (bom.size() >= 2
+               && static_cast<unsigned char>(bom[0]) == 0xFE
+               && static_cast<unsigned char>(bom[1]) == 0xFF) {
+        detectedEncoding = QStringLiteral("UTF-16 BE");
+    }
+
     QTextStream in(&file);
     QString content = in.readAll();
     file.close();
@@ -26,12 +44,16 @@ void MdDocument::load(const QString &filePath)
     m_rawContent = content;
     m_savedContent = content;
     m_modified = false;
+    bool encChanged = (m_encoding != detectedEncoding);
+    m_encoding = detectedEncoding;
 
     parseBlocks();
 
     emit filePathChanged();
     emit rawContentChanged();
     emit modifiedChanged();
+    if (encChanged)
+        emit encodingChanged();
 }
 
 void MdDocument::save()
@@ -62,11 +84,13 @@ void MdDocument::clear()
     m_rawContent.clear();
     m_savedContent.clear();
     m_modified = false;
+    m_encoding = QStringLiteral("UTF-8");
     m_blocks.clear();
 
     emit filePathChanged();
     emit rawContentChanged();
     emit modifiedChanged();
+    emit encodingChanged();
 }
 
 void MdDocument::reload()
@@ -94,6 +118,8 @@ void MdDocument::setRawContent(const QString &content)
 }
 
 bool MdDocument::modified() const { return m_modified; }
+
+QString MdDocument::encoding() const { return m_encoding; }
 
 QList<MdDocument::BlockSegment> MdDocument::blocks() const
 {

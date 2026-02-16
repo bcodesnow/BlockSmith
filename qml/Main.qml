@@ -114,6 +114,16 @@ ApplicationWindow {
     }
 
     Connections {
+        target: AppController.imageHandler
+        function onImageSaved(path) {
+            toast.show("Image saved")
+        }
+        function onImageError(error) {
+            toast.show(error)
+        }
+    }
+
+    Connections {
         target: AppController.currentDocument
         function onSaved() {
             toast.show("Saved")

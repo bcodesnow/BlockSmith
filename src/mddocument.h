@@ -15,6 +15,7 @@ class MdDocument : public QObject
     Q_PROPERTY(QString filePath READ filePath NOTIFY filePathChanged)
     Q_PROPERTY(QString rawContent READ rawContent WRITE setRawContent NOTIFY rawContentChanged)
     Q_PROPERTY(bool modified READ modified NOTIFY modifiedChanged)
+    Q_PROPERTY(QString encoding READ encoding NOTIFY encodingChanged)
 
 public:
     struct BlockSegment {
@@ -35,6 +36,7 @@ public:
     QString rawContent() const;
     void setRawContent(const QString &content);
     bool modified() const;
+    QString encoding() const;
 
     QList<BlockSegment> blocks() const;
     Q_INVOKABLE QVariantList blockList() const;
@@ -52,6 +54,7 @@ signals:
     void saved();
     void loadFailed(const QString &error);
     void saveFailed(const QString &error);
+    void encodingChanged();
 
 private:
     void parseBlocks();
@@ -60,5 +63,6 @@ private:
     QString m_rawContent;
     QString m_savedContent;
     bool m_modified = false;
+    QString m_encoding = QStringLiteral("UTF-8");
     QList<BlockSegment> m_blocks;
 };

@@ -24,6 +24,7 @@ AppController::AppController(QObject *parent)
         QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + "/prompts.db.json", this))
     , m_syncEngine(new SyncEngine(m_blockStore, m_projectTreeModel, this))
     , m_fileManager(new FileManager(m_currentDocument, m_configManager, this))
+    , m_imageHandler(new ImageHandler(this))
 {
     connect(m_projectScanner, &ProjectScanner::scanComplete,
             this, &AppController::scanComplete);
@@ -50,6 +51,7 @@ BlockStore *AppController::blockStore() const { return m_blockStore; }
 PromptStore *AppController::promptStore() const { return m_promptStore; }
 SyncEngine *AppController::syncEngine() const { return m_syncEngine; }
 FileManager *AppController::fileManager() const { return m_fileManager; }
+ImageHandler *AppController::imageHandler() const { return m_imageHandler; }
 QStringList AppController::highlightedFiles() const { return m_highlightedFiles; }
 
 void AppController::highlightBlock(const QString &blockId)
