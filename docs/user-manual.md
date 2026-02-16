@@ -157,6 +157,8 @@ Project roots cannot be renamed, cut, or deleted.
 7. **Filter** — use the search bar or tag filter in the block panel
 8. **Delete** — click Delete in the editor popup, then confirm (two-stage confirmation)
 
+Block cards in the right pane show an **orange left border** when the block content in any file has diverged from the registry. This provides at-a-glance visibility of blocks that need attention (push or pull).
+
 ## Working with Prompts
 
 1. **Create a prompt** — select text in the editor, right-click, choose "Create Prompt", or use the add button in the prompt panel
