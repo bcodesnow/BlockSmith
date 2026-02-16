@@ -1,8 +1,13 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
+#include <QQuickWindow>
 #include <QIcon>
 #include <QtWebEngineQuick/qtwebenginequickglobal.h>
+
+#ifdef Q_OS_WIN
+#include <dwmapi.h>
+#endif
 
 int main(int argc, char *argv[])
 {
@@ -18,6 +23,28 @@ int main(int argc, char *argv[])
     QQuickStyle::setStyle("Fusion");
 
     QQmlApplicationEngine engine;
+
+    // On window creation: cloak it so DWM doesn't flash a white frame,
+    // show it (scene graph renders while cloaked), uncloak on first frame.
+    QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &app,
+        [](QObject *obj, const QUrl &) {
+            auto *window = qobject_cast<QQuickWindow *>(obj);
+            if (!window) return;
+#ifdef Q_OS_WIN
+            auto hwnd = reinterpret_cast<HWND>(window->winId());
+            BOOL cloak = TRUE;
+            DwmSetWindowAttribute(hwnd, DWMWA_CLOAK, &cloak, sizeof(cloak));
+
+            window->show();
+
+            QObject::connect(window, &QQuickWindow::frameSwapped, window, [hwnd]() {
+                BOOL uncloak = FALSE;
+                DwmSetWindowAttribute(hwnd, DWMWA_CLOAK, &uncloak, sizeof(uncloak));
+            }, Qt::SingleShotConnection);
+#else
+            window->show();
+#endif
+        });
 
     QObject::connect(
         &engine,

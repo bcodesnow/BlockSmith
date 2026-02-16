@@ -156,6 +156,7 @@ Rectangle {
                 blockContent: model.content
                 blockTags: model.tags
                 usageCount: AppController.syncEngine.filesContainingBlock(model.blockId).length
+                diverged: AppController.syncEngine.isBlockDiverged(model.blockId)
                 onClicked: AppController.highlightBlock(model.blockId)
                 onEditRequested: blockPanel.blockEditRequested(model.blockId)
                 onInsertRequested: blockPanel.blockInsertRequested(model.blockId)

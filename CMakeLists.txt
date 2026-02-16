@@ -45,6 +45,7 @@ qt_add_qml_module(BlockSmith
         qml/components/FileOperationDialog.qml
         qml/components/MdToolbar.qml
         qml/components/MdPreviewWeb.qml
+        qml/components/SplashOverlay.qml
     SOURCES
         src/configmanager.h src/configmanager.cpp
         src/md4crenderer.h src/md4crenderer.cpp
@@ -98,3 +99,7 @@ target_link_libraries(BlockSmith PRIVATE
     Qt6::WebChannel
     md4c
 )
+
+if(WIN32)
+    target_link_libraries(BlockSmith PRIVATE dwmapi)
+endif()

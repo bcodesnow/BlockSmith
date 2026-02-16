@@ -33,6 +33,9 @@ public:
     // Returns list of {filePath, status, fileContent} where status is "synced" or "diverged"
     Q_INVOKABLE QVariantList blockSyncStatus(const QString &blockId) const;
 
+    // Returns true if any file containing this block has diverged content
+    Q_INVOKABLE bool isBlockDiverged(const QString &blockId) const;
+
     // Get all .md file paths from the project tree
     QStringList allMdFiles() const;
 

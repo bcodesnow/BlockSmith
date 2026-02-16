@@ -6,7 +6,8 @@
 |----------|--------|
 | Ctrl+S | Save current document |
 | Ctrl+R | Reload current document |
-| Ctrl+E | Toggle edit / preview mode |
+| Ctrl+E | Cycle view mode: Edit → Split → Preview |
+| Ctrl+V | Paste image from clipboard (when clipboard has image) |
 | Ctrl+F | Find in editor |
 | Ctrl+H | Find & Replace in editor |
 | Ctrl+Shift+F | Global search across all project files |
@@ -49,8 +50,17 @@ All application data is stored at the OS config location:
 | Syntax highlighting | Enabled |
 | Markdown toolbar | Visible |
 | Scan depth | Unlimited |
+| Image subfolder | `images` |
+| Status bar: word count | Enabled |
+| Status bar: char count | Enabled |
+| Status bar: line count | Enabled |
+| Status bar: reading time | Enabled |
 | Ignore patterns | `node_modules`, `.git`, `dist`, `build`, `__pycache__`, `.venv`, `venv`, `target`, `.build` |
 | Trigger files | `CLAUDE.md`, `claude.md`, `.claude.md`, `AGENTS.md`, `agents.md`, `.agents.md`, `.git` |
+
+## Startup
+
+On launch, BlockSmith shows a splash overlay with the app logo, a spinner, and status text while scanning projects. The splash fades out smoothly once scanning completes (with a minimum 600ms display to avoid flashing). If no search paths are configured, the splash dismisses immediately after loading.
 
 ## Layout
 
@@ -58,11 +68,14 @@ BlockSmith uses a 3-pane layout:
 
 ```
  NavPanel (left)  |  MainContent (center)  |  RightPane (right)
- Project tree     |  Editor or Preview     |  Blocks / Prompts
+ Project tree     |  Editor / Split / Preview  |  Blocks / Prompts
 ```
 
 - **Left pane** — project tree with expand/collapse all, block usage highlighting, file management
-- **Center pane** — markdown editor with formatting toolbar, line numbers, gutter markers, or rendered preview
+- **Center pane** — three view modes:
+  - **Edit** — markdown editor with formatting toolbar, line numbers, gutter markers
+  - **Split** — editor left + WebEngine preview right (side-by-side, scroll synced)
+  - **Preview** — full WebEngine preview with mermaid diagram rendering
 - **Right pane** — tabbed panel for Blocks and Prompts
 
 ## Markdown Toolbar
@@ -91,6 +104,27 @@ The formatting toolbar sits above the editor and provides quick-access markdown 
 - **Duplicate line** — Ctrl+D duplicates the current line
 - **Block status markers** — colored strips in the gutter show block sync status (green=synced, orange=diverged, blue=local)
 - **Find & Replace** — undo-safe operations, scroll-to-match, case sensitivity toggle
+
+## Image Handling
+
+- **Paste from clipboard** — Ctrl+V when clipboard has an image saves it to the configured subfolder (default: `images/`) relative to the document and inserts a markdown image link
+- **Drag & drop** — drop image files from the file explorer onto the editor to copy and insert
+- **Visual feedback** — translucent overlay appears when dragging images over the editor
+- **Configurable subfolder** — set the image save directory in Settings (relative to document)
+- **Auto-create directories** — the image subfolder is created automatically if it doesn't exist
+- **Preview support** — relative image paths are resolved to absolute `file://` URLs in the WebEngine preview
+- **Supported formats** — PNG, JPG, JPEG, GIF, SVG, WebP, BMP
+
+## Status Bar
+
+The status bar at the bottom of the editor shows:
+
+- **Save-state dot** — green when saved, gold when unsaved (flashes on save)
+- **Cursor position** — `Ln X, Col Y` (edit/split mode) or `Preview mode`
+- **Encoding** — detected file encoding (UTF-8, UTF-8 BOM, UTF-16 LE/BE)
+- **Document stats** — configurable: word count, character count, line count, reading time
+
+All status bar stats can be toggled individually in Settings.
 
 ## File Management
 

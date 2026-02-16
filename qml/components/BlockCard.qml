@@ -10,6 +10,7 @@ Rectangle {
     property string blockContent: ""
     property var blockTags: []
     property int usageCount: 0
+    property bool diverged: false
 
     signal clicked()
     signal editRequested()
@@ -30,6 +31,19 @@ Rectangle {
         cursorShape: Qt.PointingHandCursor
         onClicked: card.clicked()
         onDoubleClicked: card.editRequested()
+    }
+
+    // Diverged indicator — orange left border
+    Rectangle {
+        visible: card.diverged
+        width: 3
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.topMargin: 1
+        anchors.bottomMargin: 1
+        color: Theme.accentOrange
+        radius: card.radius
     }
 
     ColumnLayout {

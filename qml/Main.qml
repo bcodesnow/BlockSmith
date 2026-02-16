@@ -11,18 +11,28 @@ ApplicationWindow {
     x: AppController.configManager.windowGeometry["x"] ?? 100
     y: AppController.configManager.windowGeometry["y"] ?? 100
 
-    visible: true
+    visible: false
+    color: "#1e1e1e"
     title: {
         let path = AppController.currentDocument.filePath
         let mod = AppController.currentDocument.modified ? " *" : ""
         return path ? "BlockSmith — " + path + mod : "BlockSmith"
     }
 
-    // Auto-scan on startup
-    Component.onCompleted: {
-        if (AppController.configManager.autoScanOnStartup
-            && AppController.configManager.searchPaths.length > 0) {
-            AppController.scan()
+    // Deferred startup — C++ handles showing the window (DWM cloaked).
+    // Timer lets the first frame render before the blocking scan runs.
+    Timer {
+        interval: 100
+        running: true
+        onTriggered: {
+            splashOverlay.showTime = Date.now()
+            if (AppController.configManager.autoScanOnStartup
+                && AppController.configManager.searchPaths.length > 0) {
+                splashOverlay.scanning = true
+                AppController.scan()
+            } else {
+                splashOverlay.dismiss()
+            }
         }
     }
 
@@ -105,6 +115,7 @@ ApplicationWindow {
     Connections {
         target: AppController
         function onScanComplete(count) {
+            splashOverlay.dismiss()
             toast.show("Scan complete — " + count + " project" + (count !== 1 ? "s" : "") + " found")
         }
         function onUnsavedChangesWarning(pendingPath) {
@@ -203,8 +214,10 @@ ApplicationWindow {
     }
 
     SplitView {
+        id: mainLayout
         anchors.fill: parent
         orientation: Qt.Horizontal
+        opacity: 0
 
         // Left nav pane
         NavPanel {
@@ -241,5 +254,20 @@ ApplicationWindow {
                 promptEditorPopup.openPrompt(promptId)
             }
         }
+    }
+
+    SplashOverlay {
+        id: splashOverlay
+        anchors.fill: parent
+        onDismissed: mainFadeIn.start()
+    }
+
+    NumberAnimation {
+        id: mainFadeIn
+        target: mainLayout
+        property: "opacity"
+        from: 0; to: 1
+        duration: 300
+        easing.type: Easing.InOutQuad
     }
 }

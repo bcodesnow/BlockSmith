@@ -128,27 +128,7 @@ void ProjectScanner::collectMdFiles(const QString &dirPath, TreeNode *parentNode
     QDir dir(dirPath);
     const auto &triggers = m_config->triggerFiles();
 
-    // Collect .md files in this directory
-    const auto files = dir.entryInfoList({"*.md"}, QDir::Files, QDir::Name);
-    for (const QFileInfo &file : files) {
-        bool isTrigger = false;
-        for (const QString &trigger : triggers) {
-            if (file.fileName().compare(trigger, Qt::CaseInsensitive) == 0) {
-                isTrigger = true;
-                break;
-            }
-        }
-
-        auto *fileNode = new TreeNode(
-            file.fileName(),
-            file.absoluteFilePath(),
-            TreeNode::MdFile,
-            isTrigger,
-            parentNode);
-        parentNode->appendChild(fileNode);
-    }
-
-    // Recurse into subdirectories
+    // Directories first
     const auto subdirs = dir.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot,
                                             QDir::Name);
     for (const QFileInfo &subdir : subdirs) {
@@ -171,5 +151,25 @@ void ProjectScanner::collectMdFiles(const QString &dirPath, TreeNode *parentNode
         } else {
             delete dirNode;
         }
+    }
+
+    // Then files
+    const auto files = dir.entryInfoList({"*.md"}, QDir::Files, QDir::Name);
+    for (const QFileInfo &file : files) {
+        bool isTrigger = false;
+        for (const QString &trigger : triggers) {
+            if (file.fileName().compare(trigger, Qt::CaseInsensitive) == 0) {
+                isTrigger = true;
+                break;
+            }
+        }
+
+        auto *fileNode = new TreeNode(
+            file.fileName(),
+            file.absoluteFilePath(),
+            TreeNode::MdFile,
+            isTrigger,
+            parentNode);
+        parentNode->appendChild(fileNode);
     }
 }

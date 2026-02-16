@@ -105,6 +105,16 @@ QVariantList SyncEngine::blockSyncStatus(const QString &blockId) const
     return result;
 }
 
+bool SyncEngine::isBlockDiverged(const QString &blockId) const
+{
+    const auto status = blockSyncStatus(blockId);
+    for (const auto &entry : status) {
+        if (entry.toMap().value("status").toString() == "diverged")
+            return true;
+    }
+    return false;
+}
+
 QString SyncEngine::extractBlockContent(const QString &fileContent, const QString &blockId) const
 {
     QString pattern = QString(
