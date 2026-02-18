@@ -37,8 +37,10 @@
 
 ### Tier 1 — Core Polish (Table Stakes)
 
-Every serious markdown editor has these. Without them, users will bounce.
+### GUI
+Abbrechen anstatt Cancel - how is language pulled? issue 
 
+Every serious markdown editor has these. Without them, users will bounce.
 #### Export System
 - [ ] **PDF Export** — Pandoc-based, customizable page margins/fonts, TOC option, code block styling
 - [ ] **HTML Export** — Standalone HTML with embedded CSS, self-contained (no external deps)
