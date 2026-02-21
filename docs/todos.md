@@ -56,9 +56,9 @@ Every serious markdown editor has these. Without them, users will bounce.
 - [ ] **Combine modes** — Focus + Typewriter + Zen should compose together
 
 #### Scroll Sync
-- [x] **Editor ↔ Preview scroll sync** — Proportional scroll position mapping between editor and WebEngine preview
-- [ ] **Sync on cursor move** — Preview scrolls to match cursor position in editor
-- [ ] **Click-to-scroll** — Click a heading in preview, editor jumps to source
+- [x] **Editor ↔ Preview scroll sync** — Bidirectional via WebChannel ScrollBridge, debounced, anti-feedback-loop guard
+- [x] **Sync on cursor move** — Preview scrolls to match cursor position in editor (percentage-based; data-source-line pending)
+- [x] **Click-to-scroll** — Click a heading in preview, editor jumps to source (text-match fallback)
 
 #### Outline / Document Map
 - [ ] **Outline panel** — Hierarchical heading tree (H1-H6) in left sidebar or as a tab in RightPane
@@ -97,13 +97,12 @@ Every serious markdown editor has these. Without them, users will bounce.
 - [ ] **File preview on hover** — Show first few lines of file in switcher popup
 
 #### JSONL Viewer
-- [ ] **Read-only JSONL viewer** — Opens when clicking .jsonl in tree, replaces editor area with dedicated viewer
-- [ ] **Async loading** — Background thread with chunked parsing, progress indicator (first threaded feature)
-- [ ] **Role-based filtering** — Pill toggles for user/assistant/system roles (Claude transcript aware)
-- [ ] **Text search + tool_use filter** — Search across JSON content, toggle to show only tool-use entries
-- [ ] **Expandable entries** — Collapsed cards with preview, click to expand full pretty-printed JSON
-- [ ] **Copy entry** — Per-entry clipboard button with toast notification
-- See [PLAN_JSONL_VIEWER.md](../PLAN_JSONL_VIEWER.md) for full spec
+- [x] **Read-only JSONL viewer** — Opens when clicking .jsonl in tree, replaces editor area with dedicated viewer
+- [x] **Async loading** — Background thread with chunked parsing, progress indicator
+- [x] **Role-based filtering** — Pill toggles for user/assistant/system/tool roles (Claude transcript aware)
+- [x] **Text search + tool_use filter** — Search across JSON content, toggle to show only tool-use entries
+- [x] **Expandable entries** — Collapsed cards with preview, click to expand full pretty-printed JSON
+- [x] **Copy entry** — Per-entry clipboard button with toast notification
 
 ---
 
