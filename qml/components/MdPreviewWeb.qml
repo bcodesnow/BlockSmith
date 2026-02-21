@@ -58,7 +58,7 @@ WebEngineView {
 
     function pushContent() {
         if (!_pageReady) return
-        let html = AppController.md4cRenderer.render(markdown)
+        let html = AppController.md4cRenderer.renderWithLineMap(markdown)
 
         // Resolve relative image paths to absolute file:// URLs
         let docPath = AppController.currentDocument.filePath

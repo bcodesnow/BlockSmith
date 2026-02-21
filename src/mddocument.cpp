@@ -10,6 +10,10 @@
 MdDocument::MdDocument(QObject *parent)
     : QObject(parent)
 {
+    connect(&m_watcher, &QFileSystemWatcher::fileChanged,
+            this, &MdDocument::onFileChanged);
+    connect(&m_autoSaveTimer, &QTimer::timeout,
+            this, &MdDocument::onAutoSaveTimer);
 }
 
 void MdDocument::load(const QString &filePath)
@@ -53,6 +57,8 @@ void MdDocument::load(const QString &filePath)
     if (!content.isEmpty() && content.at(0) == QChar(0xFEFF))
         content.remove(0, 1);
 
+    unwatchFile();
+
     m_filePath = filePath;
     m_rawContent = content;
     m_savedContent = content;
@@ -64,6 +70,7 @@ void MdDocument::load(const QString &filePath)
                || detectedEncoding.contains(QStringLiteral("UTF-16"));
 
     parseBlocks();
+    watchFile(m_filePath);
 
     emit filePathChanged();
     emit rawContentChanged();
@@ -77,9 +84,12 @@ void MdDocument::save()
     if (m_filePath.isEmpty())
         return;
 
+    m_ignoreNextChange = true;
+
     // QSaveFile writes to a temp file, then atomically renames on commit()
     QSaveFile file(m_filePath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        m_ignoreNextChange = false;
         qWarning("MdDocument: could not write %s", qPrintable(m_filePath));
         emit saveFailed(tr("Cannot write file: %1").arg(m_filePath));
         return;
@@ -92,6 +102,7 @@ void MdDocument::save()
     out.flush();
 
     if (!file.commit()) {
+        m_ignoreNextChange = false;
         qWarning("MdDocument: atomic save failed for %s", qPrintable(m_filePath));
         emit saveFailed(tr("Save failed: %1").arg(m_filePath));
         return;
@@ -99,12 +110,27 @@ void MdDocument::save()
 
     m_savedContent = m_rawContent;
     m_modified = false;
+
+    // QSaveFile atomic rename may remove the old path from QFileSystemWatcher.
+    // Re-watch to ensure we continue monitoring.
+    watchFile(m_filePath);
+
     emit modifiedChanged();
     emit saved();
 }
 
+void MdDocument::saveTo(const QString &newPath)
+{
+    unwatchFile();
+    m_filePath = newPath;
+    emit filePathChanged();
+    save();
+    watchFile(m_filePath);
+}
+
 void MdDocument::clear()
 {
+    unwatchFile();
     m_filePath.clear();
     m_rawContent.clear();
     m_savedContent.clear();
@@ -208,12 +234,75 @@ void MdDocument::insertBlock(int position, const QString &blockId,
     emit modifiedChanged();
 }
 
+void MdDocument::setAutoSave(bool enabled, int intervalSecs)
+{
+    if (enabled) {
+        m_autoSaveTimer.setInterval(intervalSecs * 1000);
+        if (!m_autoSaveTimer.isActive())
+            m_autoSaveTimer.start();
+    } else {
+        m_autoSaveTimer.stop();
+    }
+}
+
+void MdDocument::onAutoSaveTimer()
+{
+    if (m_modified && !m_filePath.isEmpty()) {
+        save();
+        // Only signal auto-saved if save() actually succeeded (m_modified cleared)
+        if (!m_modified)
+            emit autoSaved();
+    }
+}
+
+void MdDocument::watchFile(const QString &path)
+{
+    if (path.isEmpty())
+        return;
+    if (!m_watcher.files().contains(path))
+        m_watcher.addPath(path);
+}
+
+void MdDocument::unwatchFile()
+{
+    if (!m_watcher.files().isEmpty())
+        m_watcher.removePaths(m_watcher.files());
+}
+
+void MdDocument::onFileChanged(const QString &path)
+{
+    Q_UNUSED(path)
+
+    if (m_ignoreNextChange) {
+        m_ignoreNextChange = false;
+        return;
+    }
+
+    // Check if file still exists
+    if (!QFile::exists(m_filePath)) {
+        emit fileDeletedExternally();
+        return;
+    }
+
+    // If document has no unsaved changes, auto-reload silently
+    if (!m_modified) {
+        load(m_filePath);
+        return;
+    }
+
+    // Document has unsaved changes — let QML decide (show banner)
+    emit fileChangedExternally();
+
+    // Re-watch: some systems remove the watch after a change notification
+    watchFile(m_filePath);
+}
+
 void MdDocument::parseBlocks()
 {
     m_blocks.clear();
 
     static const QRegularExpression blockRx(
-        R"(<!-- block:\s*(.+?)\s*\[id:([a-f0-9]{6})\]\s*-->\n([\s\S]*?)<!-- \/block:\2 -->)");
+        R"(<!-- block:\s*(.+?)\s*\[id:([a-f0-9]{6})\]\s*-->\r?\n([\s\S]*?)<!-- \/block:\2 -->)");
 
     auto it = blockRx.globalMatch(m_rawContent);
     while (it.hasNext()) {

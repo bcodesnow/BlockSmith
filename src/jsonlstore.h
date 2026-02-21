@@ -18,19 +18,23 @@ class JsonlWorker : public QObject
 {
     Q_OBJECT
 public:
-    explicit JsonlWorker(const QString &filePath, QObject *parent = nullptr);
+    explicit JsonlWorker(const QString &filePath, quint64 generation,
+                         QObject *parent = nullptr);
+
+    quint64 generation() const { return m_generation; }
 
 public slots:
     void process();
 
 signals:
-    void chunkReady(const QVector<JsonlEntry> &entries);
-    void progressChanged(int current, int total);
-    void finished();
-    void error(const QString &message);
+    void chunkReady(const QVector<JsonlEntry> &entries, quint64 generation);
+    void progressChanged(int current, quint64 generation);
+    void finished(quint64 generation);
+    void error(const QString &message, quint64 generation);
 
 private:
     QString m_filePath;
+    quint64 m_generation;
 };
 
 class JsonlStore : public QAbstractListModel
@@ -101,9 +105,9 @@ signals:
     void copied(const QString &preview);
 
 private slots:
-    void appendChunk(const QVector<JsonlEntry> &entries);
-    void onLoadFinished();
-    void onLoadError(const QString &message);
+    void appendChunk(const QVector<JsonlEntry> &entries, quint64 generation);
+    void onLoadFinished(quint64 generation);
+    void onLoadError(const QString &message, quint64 generation);
 
 private:
     void rebuildFiltered();
@@ -122,4 +126,5 @@ private:
     bool m_toolUseOnly = false;
 
     QThread *m_workerThread = nullptr;
+    quint64 m_generation = 0;
 };

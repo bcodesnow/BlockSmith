@@ -42,6 +42,8 @@ Dialog {
         sbCharCountCheck.checked = AppController.configManager.statusBarCharCount
         sbLineCountCheck.checked = AppController.configManager.statusBarLineCount
         sbReadingTimeCheck.checked = AppController.configManager.statusBarReadingTime
+        autoSaveCheck.checked = AppController.configManager.autoSaveEnabled
+        autoSaveIntervalSpin.value = AppController.configManager.autoSaveInterval
     }
 
     onAccepted: {
@@ -60,6 +62,8 @@ Dialog {
         AppController.configManager.statusBarCharCount = sbCharCountCheck.checked
         AppController.configManager.statusBarLineCount = sbLineCountCheck.checked
         AppController.configManager.statusBarReadingTime = sbReadingTimeCheck.checked
+        AppController.configManager.autoSaveEnabled = autoSaveCheck.checked
+        AppController.configManager.autoSaveInterval = autoSaveIntervalSpin.value
         AppController.configManager.save()
 
         // Auto-rescan if scan-relevant settings changed
@@ -323,6 +327,49 @@ Dialog {
                 id: sbReadingTimeCheck
                 text: "Reading time"
                 checked: true
+            }
+        }
+
+        // Separator
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 1
+            color: Theme.border
+        }
+
+        Label {
+            text: "Auto-Save"
+            font.bold: true
+            color: Theme.textPrimary
+        }
+
+        CheckBox {
+            id: autoSaveCheck
+            text: "Enable auto-save"
+            checked: false
+        }
+
+        RowLayout {
+            spacing: Theme.sp8
+            enabled: autoSaveCheck.checked
+            opacity: enabled ? 1.0 : 0.5
+
+            Label {
+                text: "Interval:"
+            }
+
+            SpinBox {
+                id: autoSaveIntervalSpin
+                from: 5
+                to: 600
+                value: 30
+                editable: true
+                stepSize: 5
+            }
+
+            Label {
+                text: "seconds"
+                color: Theme.textMuted
             }
         }
     }

@@ -69,20 +69,18 @@ void SyncEngine::rebuildIndex()
 {
     m_index.clear();
 
+    static const QRegularExpression blockRx(
+        QStringLiteral("<!-- block:\\s*.+?\\s*\\[id:([a-f0-9]+)\\]\\s*-->\\r?\\n"
+                       "([\\s\\S]*?)\\r?\\n"
+                       "<!-- \\/block:\\1 -->"));
+
     QStringList allFiles;
     collectAllMdFiles(m_treeModel->rootNode(), allFiles);
-
-    // Single regex to find ALL block markers in a file
-    static const QRegularExpression blockRx(
-        QStringLiteral("<!-- block:\\s*.+?\\s*\\[id:([a-f0-9]+)\\]\\s*-->\\n"
-                       "([\\s\\S]*?)\\n"
-                       "<!-- \\/block:\\1 -->"));
 
     for (const QString &filePath : allFiles) {
         const QString content = readFileContent(filePath);
         if (content.isNull()) continue;
 
-        // Find all block occurrences in this file
         auto it = blockRx.globalMatch(content);
         while (it.hasNext()) {
             auto match = it.next();
@@ -91,7 +89,6 @@ void SyncEngine::rebuildIndex()
             m_index[blockId].append({filePath, blockContent});
         }
     }
-
     emit indexReady();
 }
 
@@ -184,7 +181,7 @@ bool SyncEngine::isBlockDiverged(const QString &blockId) const
 QString SyncEngine::extractBlockContent(const QString &fileContent, const QString &blockId) const
 {
     QString pattern = QString(
-        "<!-- block:\\s*.+?\\s*\\[id:%1\\]\\s*-->\\n([\\s\\S]*?)\\n<!-- \\/block:%1 -->")
+        "<!-- block:\\s*.+?\\s*\\[id:%1\\]\\s*-->\\r?\\n([\\s\\S]*?)\\r?\\n<!-- \\/block:%1 -->")
         .arg(QRegularExpression::escape(blockId));
 
     QRegularExpression rx(pattern);
@@ -216,7 +213,7 @@ bool SyncEngine::replaceBlockInFile(const QString &filePath, const QString &bloc
         content.remove(0, 1);
 
     QString pattern = QString(
-        "(<!-- block:\\s*.+?\\s*\\[id:%1\\]\\s*-->\\n)[\\s\\S]*?(<!-- \\/block:%1 -->)")
+        "(<!-- block:\\s*.+?\\s*\\[id:%1\\]\\s*-->\\r?\\n)[\\s\\S]*?(\\r?\\n<!-- \\/block:%1 -->)")
         .arg(QRegularExpression::escape(blockId));
 
     QRegularExpression rx(pattern);
@@ -252,7 +249,11 @@ void SyncEngine::collectAllMdFiles(TreeNode *node, QStringList &files) const
     if (!node) return;
 
     if (node->nodeType() == TreeNode::MdFile) {
-        files.append(node->path());
+        const QString path = node->path();
+        // Tree nodes may include .json/.jsonl entries (e.g. ~/.claude integration).
+        // Block indexing and markdown search should only touch real markdown files.
+        if (path.endsWith(QStringLiteral(".md"), Qt::CaseInsensitive))
+            files.append(path);
         return;
     }
 

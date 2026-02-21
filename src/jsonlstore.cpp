@@ -10,8 +10,8 @@
 
 // ── JsonlWorker ──────────────────────────────────────────────
 
-JsonlWorker::JsonlWorker(const QString &filePath, QObject *parent)
-    : QObject(parent), m_filePath(filePath)
+JsonlWorker::JsonlWorker(const QString &filePath, quint64 generation, QObject *parent)
+    : QObject(parent), m_filePath(filePath), m_generation(generation)
 {
 }
 
@@ -19,14 +19,10 @@ void JsonlWorker::process()
 {
     QFile file(m_filePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        emit error(QStringLiteral("Could not open file: ") + m_filePath);
-        emit finished();
+        emit error(QStringLiteral("Could not open file: ") + m_filePath, m_generation);
+        emit finished(m_generation);
         return;
     }
-
-    // Count lines for progress (fast scan)
-    qint64 fileSize = file.size();
-    int estimatedLines = qMax(1, static_cast<int>(fileSize / 200)); // rough estimate
 
     QTextStream in(&file);
     QVector<JsonlEntry> chunk;
@@ -205,19 +201,19 @@ void JsonlWorker::process()
         chunk.append(entry);
 
         if (chunk.size() >= kChunkSize) {
-            emit chunkReady(chunk);
-            emit progressChanged(lineNum, estimatedLines);
+            emit chunkReady(chunk, m_generation);
+            emit progressChanged(lineNum, m_generation);
             chunk.clear();
         }
     }
 
     // Emit remaining
     if (!chunk.isEmpty()) {
-        emit chunkReady(chunk);
+        emit chunkReady(chunk, m_generation);
     }
 
     file.close();
-    emit finished();
+    emit finished(m_generation);
 }
 
 // ── JsonlStore ───────────────────────────────────────────────
@@ -309,19 +305,21 @@ void JsonlStore::load(const QString &filePath)
     stopWorker();
     clear();
 
+    m_generation++;
     m_filePath = filePath;
     emit filePathChanged();
 
     m_loading = true;
     emit loadingChanged();
 
-    auto *worker = new JsonlWorker(filePath);
+    auto *worker = new JsonlWorker(filePath, m_generation);
     m_workerThread = new QThread();
     worker->moveToThread(m_workerThread);
 
     connect(m_workerThread, &QThread::started, worker, &JsonlWorker::process);
     connect(worker, &JsonlWorker::chunkReady, this, &JsonlStore::appendChunk);
-    connect(worker, &JsonlWorker::progressChanged, this, [this](int current, int) {
+    connect(worker, &JsonlWorker::progressChanged, this, [this](int current, quint64 gen) {
+        if (gen != m_generation) return;
         m_loadProgress = current;
         emit loadProgressChanged();
     });
@@ -387,8 +385,9 @@ void JsonlStore::copyEntry(int index)
     }
 }
 
-void JsonlStore::appendChunk(const QVector<JsonlEntry> &entries)
+void JsonlStore::appendChunk(const QVector<JsonlEntry> &entries, quint64 generation)
 {
+    if (generation != m_generation) return;
     QSet<QString> rolesBefore(m_availableRoles.begin(), m_availableRoles.end());
     int oldSize = m_entries.size();
     m_entries.append(entries);
@@ -430,15 +429,17 @@ void JsonlStore::appendChunk(const QVector<JsonlEntry> &entries)
         emit filteredCountChanged();
 }
 
-void JsonlStore::onLoadFinished()
+void JsonlStore::onLoadFinished(quint64 generation)
 {
+    if (generation != m_generation) return;
     m_loading = false;
     m_workerThread = nullptr; // already scheduled for deleteLater
     emit loadingChanged();
 }
 
-void JsonlStore::onLoadError(const QString &message)
+void JsonlStore::onLoadError(const QString &message, quint64 generation)
 {
+    if (generation != m_generation) return;
     emit loadFailed(message);
 }
 

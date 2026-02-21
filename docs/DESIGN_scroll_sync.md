@@ -1,7 +1,7 @@
 # Design: Improved Scroll Sync Between Editor and Preview
 
 **Date:** 2026-02-18
-**Status:** Implemented (Phases 1-3, 5) — Phase 4 (data-source-line) pending
+**Status:** Implemented (Phases 1-5) — all phases complete
 **Scope:** Split view mode in MainContent.qml
 
 ---

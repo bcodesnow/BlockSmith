@@ -17,6 +17,8 @@ struct BlockOccurrence {
     QString fileContent;   // extracted content between block markers
 };
 
+using BlockIndex = QHash<QString, QVector<BlockOccurrence>>;
+
 class SyncEngine : public QObject
 {
     Q_OBJECT
@@ -45,7 +47,7 @@ public:
     // Get all .md file paths from the project tree
     QStringList allMdFiles() const;
 
-    // Rebuild the block index (single-pass file scan)
+    // Rebuild the block index (scans all project .md files)
     Q_INVOKABLE void rebuildIndex();
 
 signals:
@@ -63,5 +65,5 @@ private:
     ProjectTreeModel *m_treeModel;
 
     // Cache: blockId -> list of occurrences (file + content)
-    QHash<QString, QVector<BlockOccurrence>> m_index;
+    BlockIndex m_index;
 };

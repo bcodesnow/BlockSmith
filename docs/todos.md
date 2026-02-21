@@ -31,6 +31,15 @@
 - [x] New project dialog (folder picker + trigger file selection)
 - [x] Global search (Ctrl+Shift+F, searches across all project files)
 
+## Reliability Hotfix Backlog (2026-02-21 review)
+- [ ] Save-safe file switching: do not switch files if save fails
+- [ ] Protect dirty buffer on rename/move of currently open file
+- [ ] Move scan + sync index rebuild off UI thread, with progress/cancel
+- [ ] JSONL load generation token: ignore stale worker chunks/signals
+- [ ] Emit auto-save success only on confirmed save commit
+- [ ] Deleted-file banner "Close" should clear/close document
+- [ ] Decode dropped image URLs before copy (`%20`, unicode paths)
+
 ---
 
 ## Roadmap — Polished Markdown Editor
@@ -38,7 +47,7 @@
 ### Tier 1 — Core Polish (Table Stakes)
 
 ### GUI
-Abbrechen anstatt Cancel - how is language pulled? issue 
+Locale consistency for dialog buttons fixed (English UI locale forced).
 
 Every serious markdown editor has these. Without them, users will bounce.
 #### Export System
@@ -57,7 +66,7 @@ Every serious markdown editor has these. Without them, users will bounce.
 
 #### Scroll Sync
 - [x] **Editor ↔ Preview scroll sync** — Bidirectional via WebChannel ScrollBridge, debounced, anti-feedback-loop guard
-- [x] **Sync on cursor move** — Preview scrolls to match cursor position in editor (percentage-based; data-source-line pending)
+- [x] **Sync on cursor move** — Preview scrolls to matching source line in editor (data-source-line mapping)
 - [x] **Click-to-scroll** — Click a heading in preview, editor jumps to source (text-match fallback)
 
 #### Outline / Document Map
@@ -86,10 +95,10 @@ Every serious markdown editor has these. Without them, users will bounce.
 - [x] **Encoding display** — Show file encoding (UTF-8, UTF-8 BOM, UTF-16 LE/BE)
 
 #### Auto-Save
-- [ ] **Timed auto-save** — Configurable interval (default 30s), saves if document has changes
-- [ ] **Auto-save on focus loss** — Save when switching away from BlockSmith
-- [ ] **Auto-save toggle** — Enable/disable in settings
-- [ ] **Visual feedback** — Subtle "Auto-saved" indicator in status bar
+- [x] **Timed auto-save** — Configurable interval (default 30s), saves if document has changes
+- [x] **Auto-save on focus loss** — Save when switching away from BlockSmith
+- [x] **Auto-save toggle** — Enable/disable in settings
+- [x] **Visual feedback** — Subtle "Auto-saved" indicator in status bar
 
 #### Quick Switcher
 - [ ] **Ctrl+P quick open** — Fuzzy search across all project files, instant navigation
@@ -230,10 +239,10 @@ The next generation of editors will have these. Early adoption = differentiation
 
 Carried over from previous roadmap:
 
-- [ ] File watcher (QFileSystemWatcher) — see Tier 3
+- [x] File watcher (QFileSystemWatcher) — shipped in Phase 8
 - [ ] Prompt template variables ({{project}}, {{date}}) — see Tier 3 Snippets
 - [ ] Export/Import blocks DB
-- [ ] Splitter size persistence
+- [x] Splitter size persistence — shipped in Phase 7
 - [ ] Block auto-discovery
 - [ ] Git-aware status indicators — see Tier 3 Git
 - [x] Split view mode (edit left, preview right) — shipped with WebEngine preview + mermaid

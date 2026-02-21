@@ -181,6 +181,47 @@ void ConfigManager::setZoomLevel(int level)
     }
 }
 
+int ConfigManager::splitLeftWidth() const { return m_splitLeftWidth; }
+
+void ConfigManager::setSplitLeftWidth(int width)
+{
+    if (m_splitLeftWidth != width) {
+        m_splitLeftWidth = width;
+        emit splitLeftWidthChanged();
+    }
+}
+
+int ConfigManager::splitRightWidth() const { return m_splitRightWidth; }
+
+void ConfigManager::setSplitRightWidth(int width)
+{
+    if (m_splitRightWidth != width) {
+        m_splitRightWidth = width;
+        emit splitRightWidthChanged();
+    }
+}
+
+bool ConfigManager::autoSaveEnabled() const { return m_autoSaveEnabled; }
+
+void ConfigManager::setAutoSaveEnabled(bool enabled)
+{
+    if (m_autoSaveEnabled != enabled) {
+        m_autoSaveEnabled = enabled;
+        emit autoSaveEnabledChanged();
+    }
+}
+
+int ConfigManager::autoSaveInterval() const { return m_autoSaveInterval; }
+
+void ConfigManager::setAutoSaveInterval(int seconds)
+{
+    seconds = qBound(5, seconds, 600);
+    if (m_autoSaveInterval != seconds) {
+        m_autoSaveInterval = seconds;
+        emit autoSaveIntervalChanged();
+    }
+}
+
 void ConfigManager::load()
 {
     QFile file(configFilePath());
@@ -257,6 +298,16 @@ void ConfigManager::load()
 
     if (root.contains("zoomLevel"))
         m_zoomLevel = qBound(50, root["zoomLevel"].toInt(100), 200);
+
+    if (root.contains("splitLeftWidth"))
+        m_splitLeftWidth = root["splitLeftWidth"].toInt(250);
+    if (root.contains("splitRightWidth"))
+        m_splitRightWidth = root["splitRightWidth"].toInt(280);
+
+    if (root.contains("autoSaveEnabled"))
+        m_autoSaveEnabled = root["autoSaveEnabled"].toBool(false);
+    if (root.contains("autoSaveInterval"))
+        m_autoSaveInterval = qBound(5, root["autoSaveInterval"].toInt(30), 600);
 }
 
 void ConfigManager::save()
@@ -300,6 +351,10 @@ void ConfigManager::save()
     root["statusBarReadingTime"] = m_statusBarReadingTime;
     root["includeClaudeCodeFolder"] = m_includeClaudeCodeFolder;
     root["zoomLevel"] = m_zoomLevel;
+    root["splitLeftWidth"] = m_splitLeftWidth;
+    root["splitRightWidth"] = m_splitRightWidth;
+    root["autoSaveEnabled"] = m_autoSaveEnabled;
+    root["autoSaveInterval"] = m_autoSaveInterval;
 
     QFile file(configFilePath());
     if (!file.open(QIODevice::WriteOnly)) {

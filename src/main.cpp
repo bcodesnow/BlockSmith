@@ -3,6 +3,7 @@
 #include <QQuickStyle>
 #include <QQuickWindow>
 #include <QIcon>
+#include <QLocale>
 #include <QtWebEngineQuick/qtwebenginequickglobal.h>
 
 #ifdef Q_OS_WIN
@@ -12,6 +13,11 @@
 int main(int argc, char *argv[])
 {
     QtWebEngineQuick::initialize();
+
+    // Force English UI so Qt Dialog buttons show "Cancel"/"Save" instead of
+    // translations from the system locale (e.g. German "Abbrechen"/"Speichern").
+    QLocale::setDefault(QLocale(QLocale::English, QLocale::UnitedStates));
+
     QGuiApplication app(argc, argv);
     app.setApplicationName("BlockSmith");
     app.setOrganizationName("BlockSmith");

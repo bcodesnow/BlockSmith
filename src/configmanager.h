@@ -27,6 +27,10 @@ class ConfigManager : public QObject
     Q_PROPERTY(bool statusBarReadingTime READ statusBarReadingTime WRITE setStatusBarReadingTime NOTIFY statusBarReadingTimeChanged)
     Q_PROPERTY(bool includeClaudeCodeFolder READ includeClaudeCodeFolder WRITE setIncludeClaudeCodeFolder NOTIFY includeClaudeCodeFolderChanged)
     Q_PROPERTY(int zoomLevel READ zoomLevel WRITE setZoomLevel NOTIFY zoomLevelChanged)
+    Q_PROPERTY(int splitLeftWidth READ splitLeftWidth WRITE setSplitLeftWidth NOTIFY splitLeftWidthChanged)
+    Q_PROPERTY(int splitRightWidth READ splitRightWidth WRITE setSplitRightWidth NOTIFY splitRightWidthChanged)
+    Q_PROPERTY(bool autoSaveEnabled READ autoSaveEnabled WRITE setAutoSaveEnabled NOTIFY autoSaveEnabledChanged)
+    Q_PROPERTY(int autoSaveInterval READ autoSaveInterval WRITE setAutoSaveInterval NOTIFY autoSaveIntervalChanged)
 
 public:
     explicit ConfigManager(QObject *parent = nullptr);
@@ -77,6 +81,16 @@ public:
     int zoomLevel() const;
     void setZoomLevel(int level);
 
+    int splitLeftWidth() const;
+    void setSplitLeftWidth(int width);
+    int splitRightWidth() const;
+    void setSplitRightWidth(int width);
+
+    bool autoSaveEnabled() const;
+    void setAutoSaveEnabled(bool enabled);
+    int autoSaveInterval() const;
+    void setAutoSaveInterval(int seconds);
+
     Q_INVOKABLE void load();
     Q_INVOKABLE void save();
 
@@ -97,6 +111,10 @@ signals:
     void statusBarReadingTimeChanged();
     void includeClaudeCodeFolderChanged();
     void zoomLevelChanged();
+    void splitLeftWidthChanged();
+    void splitRightWidthChanged();
+    void autoSaveEnabledChanged();
+    void autoSaveIntervalChanged();
     void saveFailed(const QString &message);
 
 private:
@@ -119,4 +137,8 @@ private:
     bool m_statusBarReadingTime = true;
     bool m_includeClaudeCodeFolder = false;
     int m_zoomLevel = 100;
+    int m_splitLeftWidth = 250;
+    int m_splitRightWidth = 280;
+    bool m_autoSaveEnabled = false;
+    int m_autoSaveInterval = 30;
 };

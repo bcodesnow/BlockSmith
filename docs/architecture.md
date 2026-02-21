@@ -99,7 +99,7 @@ All data stored in `QStandardPaths::AppConfigLocation`:
 
 | File | Purpose |
 |------|---------|
-| `config.json` | Search paths, ignore patterns, trigger files, window geometry, toolbar visibility, image subfolder, status bar toggles |
+| `config.json` | Search paths, ignore patterns, trigger files, window geometry, toolbar visibility, image subfolder, status bar toggles, splitter widths, auto-save settings, zoom level |
 | `blocks.db.json` | Block registry |
 | `prompts.db.json` | Prompt library |
 
@@ -129,7 +129,7 @@ Content here...
 
 ### Markdown Editor
 - Three view modes: Edit, Split (side-by-side), Preview — cycle with Ctrl+E
-- Split view with draggable handle and percentage-based scroll sync
+- Split view with draggable handle and line-based scroll sync (data-source-line injection)
 - WebEngine preview (Qt WebEngine / Chromium) with dark theme CSS
 - Mermaid diagram rendering (` ```mermaid ` code blocks → SVG)
 - Markdown formatting toolbar (H1-H3, Bold, Italic, Strikethrough, Code, Code Block, Lists, Link, Image, Table, HR, Blockquote)
@@ -196,13 +196,29 @@ Content here...
 - Navigate to search results
 - Find & Replace in editor (Ctrl+F / Ctrl+H) — undo-safe, scroll-to-match, Shift+Enter for previous
 
+### File Safety
+- File watcher (QFileSystemWatcher) — detects external changes to the open file
+  - Unmodified documents: auto-reload silently
+  - Modified documents: non-modal banner "File changed on disk. [Reload] [Ignore]"
+  - Deleted files: banner "File was deleted from disk. [Close]" — Close clears the document
+- Auto-save (opt-in via Settings)
+  - Configurable interval (5-600 seconds, default 30)
+  - Save on window focus loss (ApplicationState → Inactive)
+  - Status bar "Auto-saved" flash — only shown on successful save
+- Save-safe file switching: unsaved dialog waits for confirmed save before switching
+- Dirty-buffer protection: rename/move preserves unsaved edits via `saveTo(newPath)`
+- Async scan + index: project scanning and block indexing run off the UI thread
+- JSONL worker isolation: generation tokens prevent stale worker signals from leaking
+- Drop URL path decoding: dropped image URLs decoded for %20 and unicode
+
 ### UI & Polish
 - Dark theme (Fusion style) with centralized Theme singleton
-- 3-pane SplitView layout
+- Forced English UI locale (QLocale::setDefault) — consistent button labels
+- 3-pane SplitView layout with persisted splitter widths
 - Startup splash overlay with app logo, spinner, and status text (fades out after scan)
 - Toast notifications for save, load errors, scan results, clipboard
 - Unsaved changes dialog (Save/Discard/Cancel on file switch)
-- Status bar with save-state dot, cursor position, encoding, configurable word/char/line/reading-time stats
+- Status bar with save-state dot, cursor position, encoding, auto-save indicator, configurable word/char/line/reading-time stats
 - Pointer cursor on all clickable elements
 - Keyboard shortcuts:
   - Ctrl+S (save), Ctrl+R (reload), Ctrl+E (cycle Edit/Split/Preview)
@@ -211,6 +227,7 @@ Content here...
   - Ctrl+B (bold), Ctrl+I (italic), Ctrl+Shift+K (inline code)
   - Ctrl+D (duplicate line), Tab/Shift+Tab (indent/outdent)
 - Window geometry persistence
+- Splitter width persistence (left nav + right pane)
 - Multi-size app icon (16-1024px PNGs + ICO)
 - File encoding detection (UTF-8, UTF-8 BOM, UTF-16 LE/BE)
 - Compiler warnings enabled (-Wall -Wextra -Wpedantic), zero warnings

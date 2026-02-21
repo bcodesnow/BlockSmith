@@ -321,6 +321,82 @@ Rectangle {
             }
         }
 
+        // File changed externally banner
+        Rectangle {
+            id: fileChangedBanner
+            Layout.fillWidth: true
+            Layout.preferredHeight: visible ? 32 : 0
+            visible: false
+            color: "#3d3520"
+            property bool isDeleted: false
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: 10
+                anchors.rightMargin: 10
+                spacing: 8
+
+                Label {
+                    text: fileChangedBanner.isDeleted
+                          ? "File was deleted from disk."
+                          : "File changed on disk."
+                    font.pixelSize: Theme.fontSizeS
+                    color: Theme.accentGold
+                    Layout.fillWidth: true
+                }
+
+                Button {
+                    text: fileChangedBanner.isDeleted ? "Close" : "Reload"
+                    flat: true
+                    font.pixelSize: Theme.fontSizeXS
+                    Layout.preferredHeight: 22
+                    palette.buttonText: Theme.textPrimary
+                    background: Rectangle {
+                        color: parent.hovered ? Theme.bgButtonHov : Theme.bgButton
+                        radius: Theme.radius
+                        border.color: Theme.borderHover
+                        border.width: 1
+                    }
+                    onClicked: {
+                        if (fileChangedBanner.isDeleted)
+                            AppController.currentDocument.clear()
+                        else
+                            AppController.currentDocument.reload()
+                        fileChangedBanner.visible = false
+                    }
+                }
+
+                Button {
+                    visible: !fileChangedBanner.isDeleted
+                    text: "Ignore"
+                    flat: true
+                    font.pixelSize: Theme.fontSizeXS
+                    Layout.preferredHeight: 22
+                    palette.buttonText: Theme.textSecondary
+                    background: Rectangle {
+                        color: parent.hovered ? Theme.bgButtonHov : "transparent"
+                        radius: Theme.radius
+                    }
+                    onClicked: fileChangedBanner.visible = false
+                }
+            }
+        }
+
+        Connections {
+            target: AppController.currentDocument
+            function onFileChangedExternally() {
+                fileChangedBanner.isDeleted = false
+                fileChangedBanner.visible = true
+            }
+            function onFileDeletedExternally() {
+                fileChangedBanner.isDeleted = true
+                fileChangedBanner.visible = true
+            }
+            function onFilePathChanged() {
+                fileChangedBanner.visible = false
+            }
+        }
+
         // Content area
         Item {
             Layout.fillWidth: true
@@ -416,7 +492,7 @@ Rectangle {
                 onTriggered: scrollSyncGuard.syncing = false
             }
 
-            // Debounced editor-to-preview scroll sync
+            // Debounced editor-to-preview scroll sync (line-based)
             Timer {
                 id: editorScrollSyncTimer
                 interval: 150
@@ -424,11 +500,11 @@ Rectangle {
                     if (scrollSyncGuard.syncing) return
                     scrollSyncGuard.syncing = true
 
-                    let ef = mdEditor.scrollFlickable
-                    if (!ef) return
-                    let maxY = Math.max(1, ef.contentHeight - ef.height)
-                    let pct = ef.contentY / maxY
-                    mdPreview.scrollToPercent(pct)
+                    // Calculate which source line is at the top of the visible area
+                    let pos = mdEditor.textArea.positionAt(0, mdEditor.scrollFlickable.contentY)
+                    let content = mdEditor.textArea.text
+                    let lineNum = content.substring(0, pos).split("\n").length
+                    mdPreview.scrollToLine(lineNum)
 
                     scrollSyncTimer.restart()
                 }
@@ -563,6 +639,29 @@ Rectangle {
                 }
 
                 Item { Layout.fillWidth: true }
+
+                // Auto-saved flash label
+                Label {
+                    id: autoSavedLabel
+                    text: "Auto-saved"
+                    font.pixelSize: Theme.fontSizeS
+                    color: Theme.accentGreen
+                    opacity: 0
+                    visible: opacity > 0
+
+                    SequentialAnimation on opacity {
+                        id: autoSaveFlash
+                        running: false
+                        NumberAnimation { to: 1.0; duration: 100 }
+                        PauseAnimation { duration: 1500 }
+                        NumberAnimation { to: 0; duration: 500 }
+                    }
+
+                    Connections {
+                        target: AppController.currentDocument
+                        function onAutoSaved() { autoSaveFlash.restart() }
+                    }
+                }
 
                 // Encoding
                 Label {

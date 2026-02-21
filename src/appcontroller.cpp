@@ -45,6 +45,28 @@ AppController::AppController(QObject *parent)
                 }
                 scan();
             });
+
+    // Auto-save: apply initial config and react to changes
+    auto applyAutoSave = [this]() {
+        m_currentDocument->setAutoSave(m_configManager->autoSaveEnabled(),
+                                       m_configManager->autoSaveInterval());
+    };
+    connect(m_configManager, &ConfigManager::autoSaveEnabledChanged, this, applyAutoSave);
+    connect(m_configManager, &ConfigManager::autoSaveIntervalChanged, this, applyAutoSave);
+    applyAutoSave();
+
+    // Save on focus loss if auto-save is enabled
+    connect(qApp, &QGuiApplication::applicationStateChanged,
+            this, [this](Qt::ApplicationState state) {
+                if (state == Qt::ApplicationInactive
+                    && m_configManager->autoSaveEnabled()
+                    && m_currentDocument->modified()) {
+                    m_currentDocument->save();
+                    // Only signal auto-saved if save succeeded
+                    if (!m_currentDocument->modified())
+                        emit m_currentDocument->autoSaved();
+                }
+            });
 }
 
 AppController *AppController::create(QQmlEngine *engine, QJSEngine *scriptEngine)

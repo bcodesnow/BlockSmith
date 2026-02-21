@@ -42,6 +42,8 @@ ApplicationWindow {
             "x": root.x, "y": root.y,
             "w": root.width, "h": root.height
         }
+        AppController.configManager.splitLeftWidth = navPanel.SplitView.preferredWidth
+        AppController.configManager.splitRightWidth = rightPane.SplitView.preferredWidth
         AppController.configManager.save()
     }
 
@@ -99,8 +101,21 @@ ApplicationWindow {
         }
 
         onAccepted: {
+            let target = pendingPath
+            // One-shot: switch file only after save succeeds
+            let cSaved = function() {
+                AppController.currentDocument.saved.disconnect(cSaved)
+                AppController.currentDocument.saveFailed.disconnect(cFailed)
+                AppController.forceOpenFile(target)
+            }
+            let cFailed = function(error) {
+                AppController.currentDocument.saved.disconnect(cSaved)
+                AppController.currentDocument.saveFailed.disconnect(cFailed)
+                toast.show("Save failed — file not switched")
+            }
+            AppController.currentDocument.saved.connect(cSaved)
+            AppController.currentDocument.saveFailed.connect(cFailed)
             AppController.currentDocument.save()
-            AppController.forceOpenFile(pendingPath)
         }
         onDiscarded: {
             AppController.forceOpenFile(pendingPath)
@@ -273,7 +288,8 @@ ApplicationWindow {
 
         // Left nav pane
         NavPanel {
-            SplitView.preferredWidth: 250
+            id: navPanel
+            SplitView.preferredWidth: AppController.configManager.splitLeftWidth
             SplitView.minimumWidth: 180
             onSettingsRequested: settingsDialog.open()
             onNewProjectRequested: newProjectDialog.openDialog()
@@ -294,7 +310,8 @@ ApplicationWindow {
 
         // Right pane — Blocks / Prompts tabs
         RightPane {
-            SplitView.preferredWidth: 280
+            id: rightPane
+            SplitView.preferredWidth: AppController.configManager.splitRightWidth
             SplitView.minimumWidth: 200
             onBlockEditRequested: function(blockId) {
                 blockEditorPopup.openBlock(blockId)

@@ -5,9 +5,9 @@
 
 ---
 
-## Phase 7 — Housekeeping & Quick Wins
+## Phase 7 — Housekeeping & Quick Wins ✓
 
-Small fixes that improve polish without new features.
+Small fixes that improve polish without new features. **Completed 2026-02-21.**
 
 ### 7.1 Locale Fix
 - Force English UI locale for `Dialog.Cancel` / `Dialog.Save` button text
@@ -32,9 +32,9 @@ Small fixes that improve polish without new features.
 
 ---
 
-## Phase 8 — File Safety
+## Phase 8 — File Safety ✓
 
-Features that prevent data loss and keep content fresh.
+Features that prevent data loss and keep content fresh. **Completed 2026-02-21.**
 
 ### 8.1 File Watcher
 - Add QFileSystemWatcher to MdDocument — watch the currently open file
@@ -52,6 +52,46 @@ Features that prevent data loss and keep content fresh.
 - Status bar: subtle "Auto-saved" flash via existing toast or inline label
 - Settings dialog: checkbox + interval spinner
 - **Files:** src/configmanager.h/.cpp (2 properties), src/mddocument.h/.cpp (QTimer, focus slot), qml/components/SettingsDialog.qml (UI), qml/components/MainContent.qml (status indicator)
+
+---
+
+## Phase 8.5 — Reliability Hardening ✓
+
+Critical correctness and startup-flow fixes discovered in the 2026-02-21 full review. **Completed 2026-02-21.**
+
+### 8.5.1 Save-Safe File Switching
+- Prevent navigation when save fails in the unsaved-changes flow
+- Only call file switch after a confirmed successful save
+- **Files:** qml/Main.qml, src/mddocument.h/.cpp
+
+### 8.5.2 Dirty-Buffer Protection During Rename/Move
+- If currently opened file is modified, block rename/move or require Save/Discard/Cancel
+- Avoid silent reload that discards unsaved in-memory edits
+- **Files:** src/filemanager.cpp, qml/components/FileOperationDialog.qml, qml/Main.qml
+
+### 8.5.3 Async Scan + Index Pipeline
+- Move project scan and index rebuild off the UI thread
+- Keep splash/progress responsive and cancellable
+- Emit stage progress: scanning, indexing, complete
+- **Files:** src/projectscanner.h/.cpp, src/appcontroller.h/.cpp, qml/Main.qml, qml/components/SplashOverlay.qml
+
+### 8.5.4 JSONL Worker Isolation
+- Add cancellation token / generation id per load
+- Drop stale `chunkReady` / `finished` signals from previous worker runs
+- **Files:** src/jsonlstore.h/.cpp
+
+### 8.5.5 Truthful Auto-Save State
+- Emit auto-save success only when `save()` actually commits
+- Keep status indicator aligned with real save outcome
+- **Files:** src/mddocument.h/.cpp, src/appcontroller.cpp, qml/components/MainContent.qml
+
+### 8.5.6 Deleted-File Banner Action
+- Make "Close" actually close/clear the current document when file is missing
+- **Files:** qml/components/MainContent.qml
+
+### 8.5.7 Drop URL Path Decoding
+- Decode dropped file URL paths before copy (spaces/unicode-safe)
+- **Files:** qml/components/MdEditor.qml
 
 ---
 
@@ -141,13 +181,15 @@ Generate standalone output files from markdown documents.
 
 | Phase | Name | Items | Effort | Dependencies |
 |-------|------|-------|--------|-------------|
-| **7** | Housekeeping | Locale, splitter persist, scroll sync accuracy | Small | None |
-| **8** | File Safety | File watcher, auto-save | Medium | None |
+| **7** | Housekeeping | Locale, splitter persist, scroll sync accuracy | Small | ✓ Done |
+| **8** | File Safety | File watcher, auto-save | Medium | ✓ Done |
+| **8.5** | Reliability Hardening | Data-loss guards, async scan/index, JSONL worker isolation | Medium | ✓ Done |
 | **9** | Navigation | Quick switcher, outline panel | Medium | None |
 | **10** | Export | HTML, PDF, DOCX, dialog | Medium-Large | None |
 | **11** | Themes | Light theme, switcher, font selection | Medium | None |
 
-Phases 7-9 are independent and can be done in any order.
+Phase 8.5 should be completed before Phase 9.
+Phases 9-11 remain independent after 8.5.
 Phase 10 is self-contained.
 Phase 11 touches many files (Theme.qml ripple) — do last.
 

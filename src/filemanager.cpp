@@ -95,9 +95,13 @@ QString FileManager::renameItem(const QString &oldPath, const QString &newName)
     if (!ok)
         return QStringLiteral("Rename failed");
 
-    // If the renamed file was currently open, reload with new path
-    if (m_document->filePath() == oldPath)
-        m_document->load(newPath);
+    // If the renamed file was currently open, re-point to new path
+    if (m_document->filePath() == oldPath) {
+        if (m_document->modified())
+            m_document->saveTo(newPath);
+        else
+            m_document->load(newPath);
+    }
 
     emit fileOperationComplete();
     return {};
@@ -128,9 +132,13 @@ QString FileManager::moveItem(const QString &sourcePath, const QString &destDir)
     if (!ok)
         return QStringLiteral("Move failed");
 
-    // If the moved file was currently open, reload with new path
-    if (m_document->filePath() == sourcePath)
-        m_document->load(newPath);
+    // If the moved file was currently open, re-point to new path
+    if (m_document->filePath() == sourcePath) {
+        if (m_document->modified())
+            m_document->saveTo(newPath);
+        else
+            m_document->load(newPath);
+    }
 
     emit fileOperationComplete();
     return {};

@@ -5,6 +5,8 @@
 #include <QList>
 #include <QVariantList>
 #include <QStringConverter>
+#include <QFileSystemWatcher>
+#include <QTimer>
 #include <QtQml/qqmlregistration.h>
 
 class MdDocument : public QObject
@@ -31,6 +33,7 @@ public:
 
     void load(const QString &filePath);
     Q_INVOKABLE void save();
+    void saveTo(const QString &newPath);
     Q_INVOKABLE void reload();
 
     QString filePath() const;
@@ -48,6 +51,8 @@ public:
 
     Q_INVOKABLE void clear();
 
+    void setAutoSave(bool enabled, int intervalSecs);
+
 signals:
     void filePathChanged();
     void rawContentChanged();
@@ -56,9 +61,18 @@ signals:
     void loadFailed(const QString &error);
     void saveFailed(const QString &error);
     void encodingChanged();
+    void fileChangedExternally();
+    void fileDeletedExternally();
+    void autoSaved();
+
+private slots:
+    void onFileChanged(const QString &path);
+    void onAutoSaveTimer();
 
 private:
     void parseBlocks();
+    void watchFile(const QString &path);
+    void unwatchFile();
 
     QString m_filePath;
     QString m_rawContent;
@@ -68,4 +82,9 @@ private:
     QStringConverter::Encoding m_streamEncoding = QStringConverter::Utf8;
     bool m_hasBom = false;
     QList<BlockSegment> m_blocks;
+
+    QFileSystemWatcher m_watcher;
+    bool m_ignoreNextChange = false; // suppress watcher after our own save
+
+    QTimer m_autoSaveTimer;
 };

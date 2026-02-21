@@ -39,7 +39,7 @@ Item {
     }
 
     function dropImage(fileUrl) {
-        let sourcePath = fileUrl.toString().replace("file:///", "")
+        let sourcePath = decodeURIComponent(fileUrl.toString().replace("file:///", ""))
         let docPath = AppController.currentDocument.filePath
         if (!docPath) { imageErrorOccurred("Open a file first"); return }
 
