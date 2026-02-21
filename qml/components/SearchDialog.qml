@@ -65,9 +65,12 @@ Dialog {
                     background: null
 
                     onTextChanged: {
-                        if (text.length < 2)
+                        if (text.length < 2) {
                             searchDialog.results = []
-                        searchTimer.restart()
+                            searchTimer.stop()
+                        } else {
+                            searchTimer.restart()
+                        }
                     }
                 }
 

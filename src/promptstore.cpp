@@ -1,6 +1,7 @@
 #include "promptstore.h"
 
 #include <QFile>
+#include <QSaveFile>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
@@ -28,7 +29,9 @@ QVariant PromptStore::data(const QModelIndex &index, int role) const
     if (!index.isValid() || index.row() >= m_filteredIds.size())
         return {};
 
-    const auto &prompt = m_prompts[m_filteredIds[index.row()]];
+    auto it = m_prompts.constFind(m_filteredIds[index.row()]);
+    if (it == m_prompts.constEnd()) return {};
+    const auto &prompt = *it;
 
     switch (role) {
     case Qt::DisplayRole:
@@ -226,13 +229,18 @@ void PromptStore::save()
         catsArr.append(c);
     root["categories"] = catsArr;
 
-    QFile file(m_dbPath);
+    QSaveFile file(m_dbPath);
     if (!file.open(QIODevice::WriteOnly)) {
         qWarning("PromptStore: could not write %s", qPrintable(m_dbPath));
         emit saveFailed(tr("Could not save prompts database"));
         return;
     }
-    file.write(QJsonDocument(root).toJson(QJsonDocument::Indented));
+
+    const QByteArray json = QJsonDocument(root).toJson(QJsonDocument::Indented);
+    if (file.write(json) != json.size() || !file.commit()) {
+        qWarning("PromptStore: write/commit failed for %s", qPrintable(m_dbPath));
+        emit saveFailed(tr("Could not save prompts database"));
+    }
 }
 
 void PromptStore::rebuildFiltered()

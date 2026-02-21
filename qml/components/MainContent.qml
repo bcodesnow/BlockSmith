@@ -46,8 +46,6 @@ Rectangle {
 
         let content = mdEditor.textArea.text
         let matches = []
-        let searchFrom = 0
-        let flags = caseSensitive ? "" : "gi"
         let escaped = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
         let rx = new RegExp(escaped, caseSensitive ? "g" : "gi")
         let m

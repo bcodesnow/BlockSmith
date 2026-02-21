@@ -11,6 +11,7 @@
 #include <QtConcurrent>
 #include <QClipboard>
 #include <QProcess>
+#include <QPointer>
 
 AppController::AppController(QObject *parent)
     : QObject(parent)
@@ -220,7 +221,8 @@ void AppController::searchFiles(const QString &query)
     m_searchCancel = cancel;
 
     // Run file I/O + search on a worker thread
-    QtConcurrent::run([this, query, files, cancel]() {
+    QPointer<AppController> self(this);
+    QtConcurrent::run([self, query, files, cancel]() {
         QVariantList results;
 
         for (const QString &filePath : files) {
@@ -230,20 +232,20 @@ void AppController::searchFiles(const QString &query)
             if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
                 continue;
 
-            QString content = QTextStream(&file).readAll();
-            file.close();
-
-            const QStringList lines = content.split('\n');
-            for (int i = 0; i < lines.size(); i++) {
+            QTextStream in(&file);
+            int lineNum = 0;
+            while (!in.atEnd()) {
                 if (cancel->load()) return;
+                const QString line = in.readLine();
+                lineNum++;
 
-                int col = lines[i].indexOf(query, 0, Qt::CaseInsensitive);
-                if (col < 0) continue;
+                if (line.indexOf(query, 0, Qt::CaseInsensitive) < 0)
+                    continue;
 
                 QVariantMap hit;
                 hit["filePath"] = filePath;
-                hit["line"] = i + 1;
-                hit["text"] = lines[i].trimmed();
+                hit["line"] = lineNum;
+                hit["text"] = line.trimmed();
                 results.append(hit);
 
                 if (results.size() >= 200) break;
@@ -251,9 +253,9 @@ void AppController::searchFiles(const QString &query)
             if (results.size() >= 200) break;
         }
 
-        if (cancel->load()) return;
+        if (cancel->load() || !self) return;
 
-        QMetaObject::invokeMethod(this, "searchResultsReady",
+        QMetaObject::invokeMethod(self.data(), "searchResultsReady",
                                   Qt::QueuedConnection,
                                   Q_ARG(QVariantList, results));
     });

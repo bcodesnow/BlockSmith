@@ -70,9 +70,7 @@ WebEngineView {
                                'src="' + fileUrl + '$1"')
         }
 
-        // Escape for JS template literal
-        html = html.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$')
-        runJavaScript("updateContent(`" + html + "`)")
+        runJavaScript("updateContent(" + JSON.stringify(html) + ")")
     }
 
     function scrollToPercent(pct) {

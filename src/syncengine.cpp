@@ -6,6 +6,56 @@
 #include <QSaveFile>
 #include <QTextStream>
 #include <QRegularExpression>
+#include <QStringConverter>
+
+// Detect encoding from BOM; returns Utf8 for files without a BOM
+static QStringConverter::Encoding detectEncoding(QFile &file, bool &hasBom)
+{
+    QByteArray bom = file.peek(4);
+    hasBom = false;
+
+    if (bom.size() >= 3
+        && static_cast<unsigned char>(bom[0]) == 0xEF
+        && static_cast<unsigned char>(bom[1]) == 0xBB
+        && static_cast<unsigned char>(bom[2]) == 0xBF) {
+        hasBom = true;
+        return QStringConverter::Utf8;
+    }
+    if (bom.size() >= 2
+        && static_cast<unsigned char>(bom[0]) == 0xFF
+        && static_cast<unsigned char>(bom[1]) == 0xFE) {
+        hasBom = true;
+        return QStringConverter::Utf16LE;
+    }
+    if (bom.size() >= 2
+        && static_cast<unsigned char>(bom[0]) == 0xFE
+        && static_cast<unsigned char>(bom[1]) == 0xFF) {
+        hasBom = true;
+        return QStringConverter::Utf16BE;
+    }
+    return QStringConverter::Utf8;
+}
+
+// Read file with BOM-aware encoding, stripping the BOM character
+static QString readFileContent(const QString &filePath)
+{
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly))
+        return {};
+
+    bool hasBom = false;
+    auto encoding = detectEncoding(file, hasBom);
+
+    QTextStream in(&file);
+    in.setEncoding(encoding);
+    QString content = in.readAll();
+
+    // Strip BOM character (U+FEFF) if present
+    if (!content.isEmpty() && content.at(0) == QChar(0xFEFF))
+        content.remove(0, 1);
+
+    return content;
+}
 
 SyncEngine::SyncEngine(BlockStore *blockStore, ProjectTreeModel *treeModel,
                        QObject *parent)
@@ -29,12 +79,8 @@ void SyncEngine::rebuildIndex()
                        "<!-- \\/block:\\1 -->"));
 
     for (const QString &filePath : allFiles) {
-        QFile file(filePath);
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-            continue;
-
-        const QString content = QTextStream(&file).readAll();
-        file.close();
+        const QString content = readFileContent(filePath);
+        if (content.isNull()) continue;
 
         // Find all block occurrences in this file
         auto it = blockRx.globalMatch(content);
@@ -72,12 +118,8 @@ int SyncEngine::pushBlock(const QString &blockId)
 
 void SyncEngine::pullBlock(const QString &blockId, const QString &filePath)
 {
-    QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-        return;
-
-    const QString content = QTextStream(&file).readAll();
-    file.close();
+    const QString content = readFileContent(filePath);
+    if (content.isNull()) return;
 
     const QString fileContent = extractBlockContent(content, blockId);
     if (fileContent.isNull())
@@ -156,12 +198,22 @@ QString SyncEngine::extractBlockContent(const QString &fileContent, const QStrin
 bool SyncEngine::replaceBlockInFile(const QString &filePath, const QString &blockId,
                                      const QString &newContent)
 {
+    // Read with encoding detection
     QFile readFile(filePath);
-    if (!readFile.open(QIODevice::ReadOnly | QIODevice::Text))
+    if (!readFile.open(QIODevice::ReadOnly))
         return false;
 
-    QString content = QTextStream(&readFile).readAll();
+    bool hasBom = false;
+    auto encoding = detectEncoding(readFile, hasBom);
+
+    QTextStream in(&readFile);
+    in.setEncoding(encoding);
+    QString content = in.readAll();
     readFile.close();
+
+    // Strip BOM character
+    if (!content.isEmpty() && content.at(0) == QChar(0xFEFF))
+        content.remove(0, 1);
 
     QString pattern = QString(
         "(<!-- block:\\s*.+?\\s*\\[id:%1\\]\\s*-->\\n)[\\s\\S]*?(<!-- \\/block:%1 -->)")
@@ -175,11 +227,14 @@ bool SyncEngine::replaceBlockInFile(const QString &filePath, const QString &bloc
     QString replacement = match.captured(1) + newContent + "\n" + match.captured(2);
     content.replace(match.capturedStart(), match.capturedLength(), replacement);
 
+    // Write back with original encoding preserved
     QSaveFile writeFile(filePath);
-    if (!writeFile.open(QIODevice::WriteOnly | QIODevice::Text))
+    if (!writeFile.open(QIODevice::WriteOnly))
         return false;
 
     QTextStream out(&writeFile);
+    out.setEncoding(encoding);
+    out.setGenerateByteOrderMark(hasBom);
     out << content;
     out.flush();
     return writeFile.commit();

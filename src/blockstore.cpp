@@ -1,6 +1,7 @@
 #include "blockstore.h"
 
 #include <QFile>
+#include <QSaveFile>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
@@ -26,7 +27,9 @@ QVariant BlockStore::data(const QModelIndex &index, int role) const
     if (!index.isValid() || index.row() >= m_filteredIds.size())
         return {};
 
-    const auto &block = m_blocks[m_filteredIds[index.row()]];
+    auto it = m_blocks.constFind(m_filteredIds[index.row()]);
+    if (it == m_blocks.constEnd()) return {};
+    const auto &block = *it;
 
     switch (role) {
     case Qt::DisplayRole:
@@ -281,13 +284,18 @@ void BlockStore::save()
     meta["updatedAt"] = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
     root["meta"] = meta;
 
-    QFile file(m_dbPath);
+    QSaveFile file(m_dbPath);
     if (!file.open(QIODevice::WriteOnly)) {
         qWarning("BlockStore: could not write %s", qPrintable(m_dbPath));
         emit saveFailed(tr("Could not save blocks database"));
         return;
     }
-    file.write(QJsonDocument(root).toJson(QJsonDocument::Indented));
+
+    const QByteArray json = QJsonDocument(root).toJson(QJsonDocument::Indented);
+    if (file.write(json) != json.size() || !file.commit()) {
+        qWarning("BlockStore: write/commit failed for %s", qPrintable(m_dbPath));
+        emit saveFailed(tr("Could not save blocks database"));
+    }
 }
 
 void BlockStore::rebuildFiltered()
@@ -315,7 +323,7 @@ void BlockStore::rebuildFiltered()
 
     // Sort by name
     std::sort(m_filteredIds.begin(), m_filteredIds.end(), [this](const QString &a, const QString &b) {
-        return m_blocks[a].name.toLower() < m_blocks[b].name.toLower();
+        return m_blocks.value(a).name.toLower() < m_blocks.value(b).name.toLower();
     });
 
     endResetModel();
