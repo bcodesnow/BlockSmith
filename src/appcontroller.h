@@ -3,6 +3,8 @@
 #include <QObject>
 #include <QQmlEngine>
 #include <QtQml/qqmlregistration.h>
+#include <QFutureWatcher>
+#include <atomic>
 
 #include "configmanager.h"
 #include "md4crenderer.h"
@@ -53,7 +55,7 @@ public:
     JsonlStore *jsonlStore() const;
     QStringList highlightedFiles() const;
 
-    Q_INVOKABLE QVariantList searchFiles(const QString &query) const;
+    Q_INVOKABLE void searchFiles(const QString &query);
     Q_INVOKABLE void revealInExplorer(const QString &path) const;
     Q_INVOKABLE void copyToClipboard(const QString &text) const;
     Q_INVOKABLE QStringList fileTriggerFiles() const;
@@ -65,6 +67,7 @@ signals:
     void scanComplete(int projectCount);
     void highlightedFilesChanged();
     void unsavedChangesWarning(const QString &pendingPath);
+    void searchResultsReady(const QVariantList &results);
 
 public slots:
     void scan();
@@ -84,4 +87,5 @@ private:
     ImageHandler *m_imageHandler = nullptr;
     JsonlStore *m_jsonlStore = nullptr;
     QStringList m_highlightedFiles;
+    std::shared_ptr<std::atomic<bool>> m_searchCancel;
 };

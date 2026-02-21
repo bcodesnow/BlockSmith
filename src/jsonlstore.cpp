@@ -406,18 +406,23 @@ void JsonlStore::appendChunk(const QVector<JsonlEntry> &entries)
         emit availableRolesChanged();
     }
 
-    // Add to filtered if they match
-    int addedCount = 0;
+    // Collect matching indices first, then insert as a single batch
+    QVector<int> newFiltered;
     for (int i = oldSize; i < m_entries.size(); ++i) {
         const auto &e = m_entries[i];
         if (!m_roleFilter.isEmpty() && e.role != m_roleFilter) continue;
         if (m_toolUseOnly && !e.hasToolUse) continue;
         if (!m_textFilter.isEmpty() && !e.preview.contains(m_textFilter, Qt::CaseInsensitive)) continue;
+        newFiltered.append(i);
+    }
 
-        beginInsertRows({}, m_filteredIndices.size(), m_filteredIndices.size());
-        m_filteredIndices.append(i);
+    int addedCount = newFiltered.size();
+    if (addedCount > 0) {
+        int first = m_filteredIndices.size();
+        int last = first + addedCount - 1;
+        beginInsertRows({}, first, last);
+        m_filteredIndices.append(newFiltered);
         endInsertRows();
-        addedCount++;
     }
 
     emit totalCountChanged();

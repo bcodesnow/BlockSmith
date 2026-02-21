@@ -174,11 +174,11 @@ QVariantMap BlockStore::getBlock(const QString &id) const
     return m;
 }
 
-const BlockData *BlockStore::blockById(const QString &id) const
+std::optional<BlockData> BlockStore::blockById(const QString &id) const
 {
     auto it = m_blocks.find(id);
-    if (it == m_blocks.end()) return nullptr;
-    return &(*it);
+    if (it == m_blocks.end()) return std::nullopt;
+    return *it;
 }
 
 QString BlockStore::searchFilter() const { return m_searchFilter; }
@@ -227,7 +227,6 @@ void BlockStore::load()
     QJsonObject root = doc.object();
     QJsonObject blocksObj = root["blocks"].toObject();
 
-    beginResetModel();
     m_blocks.clear();
 
     for (auto it = blocksObj.begin(); it != blocksObj.end(); ++it) {
@@ -247,7 +246,6 @@ void BlockStore::load()
     }
 
     rebuildFiltered();
-    endResetModel();
     emit countChanged();
     emit allTagsChanged();
 }
@@ -286,6 +284,7 @@ void BlockStore::save()
     QFile file(m_dbPath);
     if (!file.open(QIODevice::WriteOnly)) {
         qWarning("BlockStore: could not write %s", qPrintable(m_dbPath));
+        emit saveFailed(tr("Could not save blocks database"));
         return;
     }
     file.write(QJsonDocument(root).toJson(QJsonDocument::Indented));

@@ -24,6 +24,13 @@ Dialog {
 
     onOpened: focusSearch()
 
+    Connections {
+        target: AppController
+        function onSearchResultsReady(results) {
+            searchDialog.results = results
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: Theme.sp8
@@ -58,6 +65,8 @@ Dialog {
                     background: null
 
                     onTextChanged: {
+                        if (text.length < 2)
+                            searchDialog.results = []
                         searchTimer.restart()
                     }
                 }
@@ -75,11 +84,7 @@ Dialog {
             id: searchTimer
             interval: 300
             onTriggered: {
-                if (searchInput.text.length >= 2) {
-                    searchDialog.results = AppController.searchFiles(searchInput.text)
-                } else {
-                    searchDialog.results = []
-                }
+                AppController.searchFiles(searchInput.text)
             }
         }
 

@@ -3,6 +3,7 @@
 #include "projecttreemodel.h"
 
 #include <QFile>
+#include <QSaveFile>
 #include <QTextStream>
 #include <QRegularExpression>
 
@@ -14,12 +15,46 @@ SyncEngine::SyncEngine(BlockStore *blockStore, ProjectTreeModel *treeModel,
 {
 }
 
+void SyncEngine::rebuildIndex()
+{
+    m_index.clear();
+
+    QStringList allFiles;
+    collectAllMdFiles(m_treeModel->rootNode(), allFiles);
+
+    // Single regex to find ALL block markers in a file
+    static const QRegularExpression blockRx(
+        QStringLiteral("<!-- block:\\s*.+?\\s*\\[id:([a-f0-9]+)\\]\\s*-->\\n"
+                       "([\\s\\S]*?)\\n"
+                       "<!-- \\/block:\\1 -->"));
+
+    for (const QString &filePath : allFiles) {
+        QFile file(filePath);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+            continue;
+
+        const QString content = QTextStream(&file).readAll();
+        file.close();
+
+        // Find all block occurrences in this file
+        auto it = blockRx.globalMatch(content);
+        while (it.hasNext()) {
+            auto match = it.next();
+            const QString blockId = match.captured(1);
+            const QString blockContent = match.captured(2);
+            m_index[blockId].append({filePath, blockContent});
+        }
+    }
+
+    emit indexReady();
+}
+
 int SyncEngine::pushBlock(const QString &blockId)
 {
-    const BlockData *block = m_blockStore->blockById(blockId);
+    auto block = m_blockStore->blockById(blockId);
     if (!block) return 0;
 
-    QStringList files = filesContainingBlock(blockId);
+    const QStringList files = filesContainingBlock(blockId);
     int updated = 0;
 
     for (const QString &filePath : files) {
@@ -27,35 +62,12 @@ int SyncEngine::pushBlock(const QString &blockId)
             updated++;
     }
 
-    if (updated > 0)
+    if (updated > 0) {
+        rebuildIndex();
         emit blockPushed(blockId, updated);
-
-    return updated;
-}
-
-QStringList SyncEngine::filesContainingBlock(const QString &blockId) const
-{
-    QStringList allFiles;
-    collectAllMdFiles(m_treeModel->rootNode(), allFiles);
-
-    // Pattern to find this block ID in files
-    QString pattern = QString("<!-- block:\\s*.+?\\s*\\[id:%1\\]\\s*-->").arg(blockId);
-    QRegularExpression rx(pattern);
-
-    QStringList result;
-    for (const QString &filePath : allFiles) {
-        QFile file(filePath);
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-            continue;
-
-        QString content = QTextStream(&file).readAll();
-        file.close();
-
-        if (rx.match(content).hasMatch())
-            result.append(filePath);
     }
 
-    return result;
+    return updated;
 }
 
 void SyncEngine::pullBlock(const QString &blockId, const QString &filePath)
@@ -64,41 +76,47 @@ void SyncEngine::pullBlock(const QString &blockId, const QString &filePath)
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
         return;
 
-    QString content = QTextStream(&file).readAll();
+    const QString content = QTextStream(&file).readAll();
     file.close();
 
-    QString fileContent = extractBlockContent(content, blockId);
+    const QString fileContent = extractBlockContent(content, blockId);
     if (fileContent.isNull())
         return;
 
     m_blockStore->updateBlock(blockId, fileContent);
+    rebuildIndex();
     emit blockPulled(blockId, filePath);
+}
+
+QStringList SyncEngine::filesContainingBlock(const QString &blockId) const
+{
+    QStringList result;
+    auto it = m_index.constFind(blockId);
+    if (it != m_index.constEnd()) {
+        for (const auto &occ : it.value())
+            result.append(occ.filePath);
+    }
+    return result;
 }
 
 QVariantList SyncEngine::blockSyncStatus(const QString &blockId) const
 {
-    const BlockData *block = m_blockStore->blockById(blockId);
+    auto block = m_blockStore->blockById(blockId);
     if (!block) return {};
 
-    QStringList files = filesContainingBlock(blockId);
     QVariantList result;
+    auto it = m_index.constFind(blockId);
+    if (it == m_index.constEnd())
+        return result;
 
-    for (const QString &filePath : files) {
-        QFile file(filePath);
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-            continue;
-
-        QString content = QTextStream(&file).readAll();
-        file.close();
-
-        QString fileContent = extractBlockContent(content, blockId);
-
+    for (const auto &occ : it.value()) {
         QVariantMap entry;
-        entry["filePath"] = filePath;
-        bool synced = (fileContent == block->content);
-        entry["status"] = synced ? "synced" : "diverged";
+        entry[QStringLiteral("filePath")] = occ.filePath;
+        bool synced = (occ.fileContent == block->content);
+        entry[QStringLiteral("status")] = synced
+            ? QStringLiteral("synced") : QStringLiteral("diverged");
         if (!synced)
-            entry["fileContent"] = fileContent;
+            entry[QStringLiteral("fileContent")] = occ.fileContent;
         result.append(entry);
     }
 
@@ -107,9 +125,15 @@ QVariantList SyncEngine::blockSyncStatus(const QString &blockId) const
 
 bool SyncEngine::isBlockDiverged(const QString &blockId) const
 {
-    const auto status = blockSyncStatus(blockId);
-    for (const auto &entry : status) {
-        if (entry.toMap().value("status").toString() == "diverged")
+    auto block = m_blockStore->blockById(blockId);
+    if (!block) return false;
+
+    auto it = m_index.constFind(blockId);
+    if (it == m_index.constEnd())
+        return false;
+
+    for (const auto &occ : it.value()) {
+        if (occ.fileContent != block->content)
             return true;
     }
     return false;
@@ -130,16 +154,15 @@ QString SyncEngine::extractBlockContent(const QString &fileContent, const QStrin
 }
 
 bool SyncEngine::replaceBlockInFile(const QString &filePath, const QString &blockId,
-                                     const QString &newContent) const
+                                     const QString &newContent)
 {
-    QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+    QFile readFile(filePath);
+    if (!readFile.open(QIODevice::ReadOnly | QIODevice::Text))
         return false;
 
-    QString content = QTextStream(&file).readAll();
-    file.close();
+    QString content = QTextStream(&readFile).readAll();
+    readFile.close();
 
-    // Match the full block: opening tag, content, closing tag
     QString pattern = QString(
         "(<!-- block:\\s*.+?\\s*\\[id:%1\\]\\s*-->\\n)[\\s\\S]*?(<!-- \\/block:%1 -->)")
         .arg(QRegularExpression::escape(blockId));
@@ -149,16 +172,17 @@ bool SyncEngine::replaceBlockInFile(const QString &filePath, const QString &bloc
     if (!match.hasMatch())
         return false;
 
-    // Replace content between markers
     QString replacement = match.captured(1) + newContent + "\n" + match.captured(2);
     content.replace(match.capturedStart(), match.capturedLength(), replacement);
 
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+    QSaveFile writeFile(filePath);
+    if (!writeFile.open(QIODevice::WriteOnly | QIODevice::Text))
         return false;
 
-    QTextStream out(&file);
+    QTextStream out(&writeFile);
     out << content;
-    return true;
+    out.flush();
+    return writeFile.commit();
 }
 
 QStringList SyncEngine::allMdFiles() const

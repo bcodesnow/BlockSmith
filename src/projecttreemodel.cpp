@@ -19,6 +19,22 @@ void TreeNode::appendChild(TreeNode *child)
     m_children.append(child);
 }
 
+void TreeNode::insertChild(int row, TreeNode *child)
+{
+    m_children.insert(row, child);
+    child->m_parent = this;
+}
+
+TreeNode *TreeNode::takeChild(int row)
+{
+    if (row < 0 || row >= m_children.size())
+        return nullptr;
+    TreeNode *child = m_children.at(row);
+    m_children.removeAt(row);
+    child->m_parent = nullptr;
+    return child;
+}
+
 TreeNode *TreeNode::child(int row) const
 {
     if (row < 0 || row >= m_children.size())
@@ -41,6 +57,31 @@ int TreeNode::row() const
 TreeNode *TreeNode::parentNode() const
 {
     return m_parent;
+}
+
+TreeNode *TreeNode::findChildByPath(const QString &path) const
+{
+    for (TreeNode *child : m_children) {
+        if (child->m_path == path)
+            return child;
+    }
+    return nullptr;
+}
+
+// --- Static helper: deep-clone a shadow TreeNode subtree ---
+
+static TreeNode *cloneSubtree(TreeNode *source, TreeNode *newParent)
+{
+    auto *clone = new TreeNode(
+        source->name(), source->path(), source->nodeType(),
+        source->isTriggerFile(), newParent);
+    clone->setCreatedDate(source->createdDate());
+
+    for (TreeNode *srcChild : source->children()) {
+        TreeNode *childClone = cloneSubtree(srcChild, clone);
+        clone->appendChild(childClone);
+    }
+    return clone;
 }
 
 // --- ProjectTreeModel ---
@@ -110,6 +151,11 @@ QVariant ProjectTreeModel::data(const QModelIndex &index, int role) const
         return static_cast<int>(node->nodeType());
     case IsTriggerFileRole:
         return node->isTriggerFile();
+    case CreatedDateRole: {
+        QDateTime dt = node->createdDate();
+        if (!dt.isValid()) return QString();
+        return dt.toString(QStringLiteral("yyyy-MM-dd"));
+    }
     default:
         return {};
     }
@@ -122,6 +168,7 @@ QHash<int, QByteArray> ProjectTreeModel::roleNames() const
         {PathRole, "filePath"},
         {NodeTypeRole, "nodeType"},
         {IsTriggerFileRole, "isTriggerFile"},
+        {CreatedDateRole, "createdDate"},
         {Qt::DisplayRole, "display"}
     };
 }
@@ -140,6 +187,96 @@ void ProjectTreeModel::addProjectRoot(TreeNode *projectRoot)
     beginInsertRows(QModelIndex(), row, row);
     m_rootNode->appendChild(projectRoot);
     endInsertRows();
+}
+
+QModelIndex ProjectTreeModel::indexForNode(TreeNode *node) const
+{
+    if (!node || node == m_rootNode)
+        return {};
+    return createIndex(node->row(), 0, node);
+}
+
+void ProjectTreeModel::insertChildNode(TreeNode *parent, int row, TreeNode *child)
+{
+    QModelIndex parentIndex = indexForNode(parent);
+    beginInsertRows(parentIndex, row, row);
+    parent->insertChild(row, child);
+    endInsertRows();
+}
+
+void ProjectTreeModel::removeChildNode(TreeNode *parent, int row)
+{
+    QModelIndex parentIndex = indexForNode(parent);
+    beginRemoveRows(parentIndex, row, row);
+    TreeNode *removed = parent->takeChild(row);
+    endRemoveRows();
+    delete removed;
+}
+
+void ProjectTreeModel::emitDataChanged(TreeNode *node)
+{
+    QModelIndex idx = indexForNode(node);
+    if (idx.isValid())
+        emit dataChanged(idx, idx);
+}
+
+void ProjectTreeModel::syncChildren(TreeNode *liveParent, TreeNode *newParent)
+{
+    // Pass 1: Remove children from live that don't exist in new (iterate backwards)
+    for (int i = liveParent->childCount() - 1; i >= 0; --i) {
+        TreeNode *liveChild = liveParent->child(i);
+        bool found = false;
+        for (TreeNode *nc : newParent->children()) {
+            if (nc->path() == liveChild->path()) {
+                found = true;
+                break;
+            }
+        }
+        if (!found)
+            removeChildNode(liveParent, i);
+    }
+
+    // Pass 2: Insert new children and update existing ones, maintaining order
+    for (int newIdx = 0; newIdx < newParent->childCount(); ++newIdx) {
+        TreeNode *newChild = newParent->child(newIdx);
+        TreeNode *liveChild = liveParent->findChildByPath(newChild->path());
+
+        if (!liveChild) {
+            // Build complete clone of the new subtree, then insert
+            TreeNode *clone = cloneSubtree(newChild, liveParent);
+            insertChildNode(liveParent, newIdx, clone);
+        } else {
+            // Update data if changed
+            bool changed = false;
+            if (liveChild->name() != newChild->name()) {
+                liveChild->setName(newChild->name());
+                changed = true;
+            }
+            if (liveChild->isTriggerFile() != newChild->isTriggerFile()) {
+                liveChild->setIsTriggerFile(newChild->isTriggerFile());
+                changed = true;
+            }
+            if (changed)
+                emitDataChanged(liveChild);
+
+            // Ensure correct position
+            int liveIdx = liveChild->row();
+            if (liveIdx != newIdx) {
+                QModelIndex parentIndex = indexForNode(liveParent);
+                int destIdx = newIdx > liveIdx ? newIdx + 1 : newIdx;
+                beginMoveRows(parentIndex, liveIdx, liveIdx,
+                              parentIndex, destIdx);
+                TreeNode *taken = liveParent->takeChild(liveIdx);
+                liveParent->insertChild(newIdx, taken);
+                endMoveRows();
+            }
+
+            // Recurse into children for directories/project roots
+            if (liveChild->nodeType() != TreeNode::MdFile) {
+                syncChildren(liveChild, newChild);
+            }
+        }
+    }
 }
 
 TreeNode *ProjectTreeModel::nodeFromIndex(const QModelIndex &index) const

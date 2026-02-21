@@ -8,7 +8,7 @@ Rectangle {
     border.color: Theme.border
     border.width: 1
     visible: false
-    height: replaceMode ? 68 : 36
+    implicitHeight: replaceMode ? 68 : 36
 
     property bool replaceMode: false
     property int matchCount: 0

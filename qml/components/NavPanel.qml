@@ -199,17 +199,25 @@ Rectangle {
                             ToolTip.delay: 600
                             color: {
                                 if (treeDelegate.current) return Theme.textWhite
-                                if (treeDelegate.isHighlighted) return "#a5d6a7"
+                                if (treeDelegate.isHighlighted) return Theme.accentGreenLight
                                 if (model.nodeType === 0) return Theme.textPrimary
                                 return Theme.textPrimary
                             }
+                        }
+
+                        // Creation date for projects and directories
+                        Label {
+                            visible: model.nodeType !== 2 && (model.createdDate ?? "") !== ""
+                            text: model.createdDate ?? ""
+                            font.pixelSize: Theme.fontSizeXS
+                            color: Theme.textMuted
                         }
                     }
 
                     background: Rectangle {
                         color: treeDelegate.current ? Theme.bgActive :
-                               treeDelegate.isHighlighted ? "#2a3a2a" :
-                               treeDelegate.hovered ? "#383838" : "transparent"
+                               treeDelegate.isHighlighted ? Theme.highlightItemBg :
+                               treeDelegate.hovered ? Theme.bgCardHov : "transparent"
                     }
 
                     TapHandler {

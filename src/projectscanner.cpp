@@ -18,7 +18,8 @@ void ProjectScanner::scan()
 {
     emit scanStarted();
 
-    m_model->clear();
+    // Build a shadow root with the new tree structure (no model signals)
+    TreeNode shadowRoot("root", "", TreeNode::Directory);
 
     int maxDepth = m_config->scanDepth(); // 0 = unlimited
     int projectCount = 0;
@@ -39,15 +40,16 @@ void ProjectScanner::scan()
                 searchPath,
                 TreeNode::ProjectRoot,
                 false,
-                m_model->rootNode());
+                &shadowRoot);
+            projectNode->setCreatedDate(pathInfo.birthTime());
 
             collectMdFiles(searchPath, projectNode);
-            m_model->addProjectRoot(projectNode);
+            shadowRoot.appendChild(projectNode);
             projectCount++;
         }
 
         // Recurse into subdirectories looking for projects
-        scanRecursive(searchPath, 1, maxDepth, projectCount);
+        scanRecursive(searchPath, 1, maxDepth, &shadowRoot, projectCount);
     }
 
     // Claude Code folder (pinned root, no trigger-file check)
@@ -55,16 +57,18 @@ void ProjectScanner::scan()
         const QString claudePath = m_config->claudeCodeFolderPath();
         QDir claudeDir(claudePath);
         if (claudeDir.exists()) {
+            QFileInfo claudeInfo(claudePath);
             auto *claudeNode = new TreeNode(
                 QStringLiteral(".claude"),
                 claudePath,
                 TreeNode::ProjectRoot,
                 false,
-                m_model->rootNode());
+                &shadowRoot);
+            claudeNode->setCreatedDate(claudeInfo.birthTime());
 
             collectAllFiles(claudePath, claudeNode);
             if (claudeNode->childCount() > 0) {
-                m_model->addProjectRoot(claudeNode);
+                shadowRoot.appendChild(claudeNode);
                 projectCount++;
             } else {
                 delete claudeNode;
@@ -72,11 +76,17 @@ void ProjectScanner::scan()
         }
     }
 
+    // Diff the shadow tree against the live model tree
+    m_model->syncChildren(m_model->rootNode(), &shadowRoot);
+
+    // shadowRoot destructor will delete the shadow nodes
+
     emit scanComplete(projectCount);
 }
 
 void ProjectScanner::scanRecursive(const QString &dirPath, int depth,
-                                    int maxDepth, int &projectCount)
+                                    int maxDepth, TreeNode *shadowRoot,
+                                    int &projectCount)
 {
     if (maxDepth > 0 && depth > maxDepth)
         return;
@@ -96,15 +106,16 @@ void ProjectScanner::scanRecursive(const QString &dirPath, int depth,
                 entryPath,
                 TreeNode::ProjectRoot,
                 false,
-                m_model->rootNode());
+                shadowRoot);
+            projectNode->setCreatedDate(entry.birthTime());
 
             collectMdFiles(entryPath, projectNode);
-            m_model->addProjectRoot(projectNode);
+            shadowRoot->appendChild(projectNode);
             projectCount++;
             // Don't recurse into project roots — they're leaf projects
         } else {
             // Not a project, keep searching deeper
-            scanRecursive(entryPath, depth + 1, maxDepth, projectCount);
+            scanRecursive(entryPath, depth + 1, maxDepth, shadowRoot, projectCount);
         }
     }
 }
@@ -145,8 +156,12 @@ bool ProjectScanner::containsTriggerFile(const QString &dirPath) const
     return false;
 }
 
-void ProjectScanner::collectAllFiles(const QString &dirPath, TreeNode *parentNode)
+void ProjectScanner::collectAllFiles(const QString &dirPath, TreeNode *parentNode, int depth)
 {
+    static constexpr int kMaxCollectDepth = 20;
+    if (depth >= kMaxCollectDepth)
+        return;
+
     QDir dir(dirPath);
 
     // Directories first
@@ -162,8 +177,9 @@ void ProjectScanner::collectAllFiles(const QString &dirPath, TreeNode *parentNod
             TreeNode::Directory,
             false,
             parentNode);
+        dirNode->setCreatedDate(subdir.birthTime());
 
-        collectAllFiles(subdir.absoluteFilePath(), dirNode);
+        collectAllFiles(subdir.absoluteFilePath(), dirNode, depth + 1);
 
         if (dirNode->childCount() > 0) {
             parentNode->appendChild(dirNode);
@@ -185,8 +201,12 @@ void ProjectScanner::collectAllFiles(const QString &dirPath, TreeNode *parentNod
     }
 }
 
-void ProjectScanner::collectMdFiles(const QString &dirPath, TreeNode *parentNode)
+void ProjectScanner::collectMdFiles(const QString &dirPath, TreeNode *parentNode, int depth)
 {
+    static constexpr int kMaxCollectDepth = 20;
+    if (depth >= kMaxCollectDepth)
+        return;
+
     QDir dir(dirPath);
     const auto &triggers = m_config->triggerFiles();
 
@@ -204,8 +224,9 @@ void ProjectScanner::collectMdFiles(const QString &dirPath, TreeNode *parentNode
             TreeNode::Directory,
             false,
             parentNode);
+        dirNode->setCreatedDate(subdir.birthTime());
 
-        collectMdFiles(subdir.absoluteFilePath(), dirNode);
+        collectMdFiles(subdir.absoluteFilePath(), dirNode, depth + 1);
 
         // Only add directory if it has children
         if (dirNode->childCount() > 0) {

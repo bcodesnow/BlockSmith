@@ -144,6 +144,20 @@ Rectangle {
         performFind(findText, caseSensitive, "next")
     }
 
+    // Ctrl+MouseWheel zoom (on root so it doesn't interfere with ScrollView)
+    WheelHandler {
+        acceptedModifiers: Qt.ControlModifier
+        onWheel: function(event) {
+            let delta = event.angleDelta.y
+            if (delta > 0)
+                AppController.configManager.zoomLevel = Math.min(200,
+                    AppController.configManager.zoomLevel + 10)
+            else if (delta < 0)
+                AppController.configManager.zoomLevel = Math.max(50,
+                    AppController.configManager.zoomLevel - 10)
+        }
+    }
+
     AddBlockDialog {
         id: addBlockDialog
     }
@@ -283,6 +297,7 @@ Rectangle {
         FindReplaceBar {
             id: findReplaceBar
             Layout.fillWidth: true
+            Layout.preferredHeight: visible ? implicitHeight : 0
 
             onFindNext: function(text, caseSensitive) {
                 mainContent.performFind(text, caseSensitive, "next")
@@ -341,9 +356,9 @@ Rectangle {
                          : SplitHandle.hovered ? Theme.borderHover
                          : Theme.border
                     containmentMask: Item {
-                        x: (parent.width - width) / 2
+                        x: parent ? (parent.width - width) / 2 : 0
                         width: 12
-                        height: parent.height
+                        height: parent ? parent.height : 0
                     }
                 }
 
@@ -377,21 +392,120 @@ Rectangle {
                     visible: mainContent.viewMode !== MainContent.ViewMode.Edit
                     SplitView.fillWidth: true
                     SplitView.minimumWidth: 200
+
+                    // Redirect focus away from Chromium → editor (prevents focus fight + Ctrl+F interception)
+                    onActiveFocusChanged: {
+                        if (activeFocus && mainContent.editorVisible)
+                            mdEditor.textArea.forceActiveFocus()
+                    }
                     markdown: AppController.currentDocument.rawContent
                 }
             }
 
-            // Scroll sync: editor → preview (split mode only)
-            Connections {
-                target: mdEditor.scrollFlickable
-                enabled: mainContent.viewMode === MainContent.ViewMode.Split
-                function onContentYChanged() {
+            // --- Scroll sync infrastructure ---
+
+            // Anti-feedback-loop guard: prevents infinite scroll loops
+            // between editor and preview in bidirectional sync
+            QtObject {
+                id: scrollSyncGuard
+                property bool syncing: false
+            }
+
+            // Releases the sync guard after scroll animation settles
+            Timer {
+                id: scrollSyncTimer
+                interval: 120
+                onTriggered: scrollSyncGuard.syncing = false
+            }
+
+            // Debounced editor-to-preview scroll sync
+            Timer {
+                id: editorScrollSyncTimer
+                interval: 150
+                onTriggered: {
+                    if (scrollSyncGuard.syncing) return
+                    scrollSyncGuard.syncing = true
+
                     let ef = mdEditor.scrollFlickable
                     if (!ef) return
                     let maxY = Math.max(1, ef.contentHeight - ef.height)
                     let pct = ef.contentY / maxY
                     mdPreview.scrollToPercent(pct)
+
+                    scrollSyncTimer.restart()
                 }
+            }
+
+            // Editor scroll -> preview (debounced)
+            Connections {
+                target: mdEditor.scrollFlickable
+                enabled: mainContent.viewMode === MainContent.ViewMode.Split
+                function onContentYChanged() {
+                    editorScrollSyncTimer.restart()
+                }
+            }
+
+            // Preview scroll -> editor (via WebChannel bridge)
+            Connections {
+                target: mdPreview.scrollBridge
+                enabled: mainContent.viewMode === MainContent.ViewMode.Split
+                function onPreviewScrolled(percent) {
+                    if (scrollSyncGuard.syncing) return
+                    scrollSyncGuard.syncing = true
+                    let ef = mdEditor.scrollFlickable
+                    if (!ef) return
+                    let maxY = Math.max(1, ef.contentHeight - ef.height)
+                    ef.contentY = Math.max(0, Math.min(percent * maxY, maxY))
+                    scrollSyncTimer.restart()
+                }
+            }
+
+            // Heading click in preview -> scroll editor to heading
+            Connections {
+                target: mdPreview.scrollBridge
+                function onHeadingClicked(sourceLine, text) {
+                    // If we have data-source-line, use it directly
+                    if (sourceLine > 0) {
+                        scrollEditorToLine(sourceLine)
+                        return
+                    }
+
+                    // Fallback: text-search for the heading in the editor
+                    let content = mdEditor.textArea.text
+                    let lines = content.split("\n")
+                    for (let i = 0; i < lines.length; i++) {
+                        // Match markdown heading lines: # text, ## text, etc.
+                        let stripped = lines[i].replace(/^#+\s*/, "").trim()
+                        if (stripped === text) {
+                            scrollEditorToLine(i + 1)
+                            return
+                        }
+                    }
+                }
+            }
+
+            function scrollEditorToLine(lineNum) {
+                let content = mdEditor.textArea.text
+                let lines = content.split("\n")
+                if (lineNum < 1 || lineNum > lines.length) return
+
+                // Calculate character offset of the target line start
+                let offset = 0
+                for (let i = 0; i < lineNum - 1; i++) {
+                    offset += lines[i].length + 1 // +1 for \n
+                }
+
+                // Temporarily set guard to prevent cursor change from syncing back
+                scrollSyncGuard.syncing = true
+
+                // Move cursor to that line
+                mdEditor.textArea.cursorPosition = offset
+
+                // Scroll the editor to make that line visible
+                let rect = mdEditor.textArea.positionToRectangle(offset)
+                mdEditor.ensureVisible(rect.y)
+
+                scrollSyncTimer.restart()
             }
         }
 
@@ -457,6 +571,26 @@ Rectangle {
                     text: AppController.currentDocument.encoding
                     font.pixelSize: Theme.fontSizeS
                     color: Theme.textMuted
+                }
+
+                // Zoom indicator (only visible when != 100%)
+                Label {
+                    text: AppController.configManager.zoomLevel + "%"
+                    font.pixelSize: Theme.fontSizeS
+                    color: Theme.textMuted
+                    visible: AppController.configManager.zoomLevel !== 100
+
+                    MouseArea {
+                        id: zoomMa
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: AppController.configManager.zoomLevel = 100
+                    }
+
+                    ToolTip.text: "Click to reset zoom"
+                    ToolTip.visible: zoomMa.containsMouse
+                    ToolTip.delay: 400
                 }
 
                 // Configurable stats

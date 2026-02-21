@@ -7,6 +7,7 @@
 #include <QHash>
 #include <QVector>
 #include <QtQml/qqmlregistration.h>
+#include <optional>
 
 struct BlockData {
     QString id;
@@ -61,7 +62,7 @@ public:
 
     // Lookup
     Q_INVOKABLE QVariantMap getBlock(const QString &id) const;
-    const BlockData *blockById(const QString &id) const;
+    std::optional<BlockData> blockById(const QString &id) const;
 
     // Filtering
     QString searchFilter() const;
@@ -80,6 +81,7 @@ signals:
     void tagFilterChanged();
     void allTagsChanged();
     void blockUpdated(const QString &id);
+    void saveFailed(const QString &message);
 
 private:
     void rebuildFiltered();

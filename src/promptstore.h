@@ -76,6 +76,7 @@ signals:
     void categoryFilterChanged();
     void allCategoriesChanged();
     void copied(const QString &name);
+    void saveFailed(const QString &message);
 
 private:
     void rebuildFiltered();

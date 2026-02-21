@@ -57,9 +57,9 @@ Dialog {
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    color: "#1a2530"
+                    color: Theme.diffRegistryBg
                     radius: 4
-                    border.color: "#3d5a80"
+                    border.color: Theme.diffRegistryBorder
                     border.width: 1
 
                     ScrollView {
@@ -96,9 +96,9 @@ Dialog {
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    color: "#2a2010"
+                    color: Theme.diffFileBg
                     radius: 4
-                    border.color: "#806020"
+                    border.color: Theme.diffFileBorder
                     border.width: 1
 
                     ScrollView {

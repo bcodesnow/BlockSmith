@@ -340,7 +340,7 @@ Item {
         width: {
             let lineCount = Math.max(1, (textArea.text || "").split("\n").length)
             let digits = Math.max(3, lineCount.toString().length)
-            return digits * 9 + 20 // ~9px per digit + padding for block strip
+            return digits * fm.averageCharacterWidth + 20 // font-scaled digit width + padding for block strip
         }
         color: Theme.bgGutter
         clip: true
@@ -399,7 +399,7 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         text: index + 1
                         font: textArea.font
-                        color: (index + 1) === gutter.currentLine ? "#eee" : Theme.textSecondary
+                        color: (index + 1) === gutter.currentLine ? Theme.textBright : Theme.textSecondary
                     }
                 }
             }
@@ -434,14 +434,14 @@ Item {
                 let rect = textArea.positionToRectangle(textArea.cursorPosition)
                 return textArea.mapToItem(scrollView, 0, rect.y).y
             }
-            color: Qt.rgba(1, 1, 1, 0.04)
+            color: Qt.rgba(1, 1, 1, 0.08)
             z: -1
         }
 
         TextArea {
             id: textArea
             font.family: Theme.fontMono
-            font.pixelSize: Theme.fontSizeL
+            font.pixelSize: Theme.fontSizeLZoomed
             wrapMode: TextArea.Wrap
             tabStopDistance: 28
             selectByMouse: true
@@ -455,6 +455,21 @@ Item {
             selectionColor: Theme.bgSelection
             selectedTextColor: Theme.textWhite
             placeholderTextColor: Theme.textPlaceholder
+
+            cursorDelegate: Rectangle {
+                visible: textArea.activeFocus
+                width: Theme.cursorWidth
+                color: Theme.cursorColor
+
+                SequentialAnimation on opacity {
+                    running: textArea.activeFocus
+                    loops: Animation.Infinite
+                    NumberAnimation { to: 1.0; duration: 0 }
+                    PauseAnimation { duration: 530 }
+                    NumberAnimation { to: 0.0; duration: 120 }
+                    PauseAnimation { duration: 350 }
+                }
+            }
 
             Keys.onPressed: function(event) {
                 // Intercept Ctrl+V when clipboard has an image

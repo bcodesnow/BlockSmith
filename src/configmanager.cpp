@@ -170,6 +170,17 @@ QString ConfigManager::claudeCodeFolderPath() const
     return QDir::homePath() + QStringLiteral("/.claude");
 }
 
+int ConfigManager::zoomLevel() const { return m_zoomLevel; }
+
+void ConfigManager::setZoomLevel(int level)
+{
+    level = qBound(50, level, 200);
+    if (m_zoomLevel != level) {
+        m_zoomLevel = level;
+        emit zoomLevelChanged();
+    }
+}
+
 void ConfigManager::load()
 {
     QFile file(configFilePath());
@@ -243,6 +254,9 @@ void ConfigManager::load()
 
     if (root.contains("includeClaudeCodeFolder"))
         m_includeClaudeCodeFolder = root["includeClaudeCodeFolder"].toBool(false);
+
+    if (root.contains("zoomLevel"))
+        m_zoomLevel = qBound(50, root["zoomLevel"].toInt(100), 200);
 }
 
 void ConfigManager::save()
@@ -285,10 +299,12 @@ void ConfigManager::save()
     root["statusBarLineCount"] = m_statusBarLineCount;
     root["statusBarReadingTime"] = m_statusBarReadingTime;
     root["includeClaudeCodeFolder"] = m_includeClaudeCodeFolder;
+    root["zoomLevel"] = m_zoomLevel;
 
     QFile file(configFilePath());
     if (!file.open(QIODevice::WriteOnly)) {
         qWarning("ConfigManager: Could not write %s", qPrintable(configFilePath()));
+        emit saveFailed(tr("Could not save configuration"));
         return;
     }
 

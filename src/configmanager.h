@@ -26,6 +26,7 @@ class ConfigManager : public QObject
     Q_PROPERTY(bool statusBarLineCount READ statusBarLineCount WRITE setStatusBarLineCount NOTIFY statusBarLineCountChanged)
     Q_PROPERTY(bool statusBarReadingTime READ statusBarReadingTime WRITE setStatusBarReadingTime NOTIFY statusBarReadingTimeChanged)
     Q_PROPERTY(bool includeClaudeCodeFolder READ includeClaudeCodeFolder WRITE setIncludeClaudeCodeFolder NOTIFY includeClaudeCodeFolderChanged)
+    Q_PROPERTY(int zoomLevel READ zoomLevel WRITE setZoomLevel NOTIFY zoomLevelChanged)
 
 public:
     explicit ConfigManager(QObject *parent = nullptr);
@@ -73,6 +74,9 @@ public:
     void setIncludeClaudeCodeFolder(bool enabled);
     Q_INVOKABLE QString claudeCodeFolderPath() const;
 
+    int zoomLevel() const;
+    void setZoomLevel(int level);
+
     Q_INVOKABLE void load();
     Q_INVOKABLE void save();
 
@@ -92,6 +96,8 @@ signals:
     void statusBarLineCountChanged();
     void statusBarReadingTimeChanged();
     void includeClaudeCodeFolderChanged();
+    void zoomLevelChanged();
+    void saveFailed(const QString &message);
 
 private:
     QString configDir() const;
@@ -112,4 +118,5 @@ private:
     bool m_statusBarLineCount = true;
     bool m_statusBarReadingTime = true;
     bool m_includeClaudeCodeFolder = false;
+    int m_zoomLevel = 100;
 };

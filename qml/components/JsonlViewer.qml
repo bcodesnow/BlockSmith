@@ -208,7 +208,16 @@ Rectangle {
                     width: entryList.width - entryList.leftMargin - entryList.rightMargin
                 }
 
-                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+                ScrollBar.vertical: ScrollBar {
+                    policy: ScrollBar.AlwaysOn
+                    background: Rectangle { color: Theme.bg }
+                    contentItem: Rectangle {
+                        implicitWidth: 8
+                        radius: 4
+                        color: parent.pressed ? Theme.bgButtonPrs
+                             : parent.hovered ? Theme.bgButtonHov : Theme.borderHover
+                    }
+                }
             }
 
             // Loading overlay

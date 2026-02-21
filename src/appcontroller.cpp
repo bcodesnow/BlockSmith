@@ -8,6 +8,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QGuiApplication>
+#include <QtConcurrent>
 #include <QClipboard>
 #include <QProcess>
 
@@ -28,9 +29,21 @@ AppController::AppController(QObject *parent)
     , m_jsonlStore(new JsonlStore(this))
 {
     connect(m_projectScanner, &ProjectScanner::scanComplete,
-            this, &AppController::scanComplete);
+            this, [this](int count) {
+                m_syncEngine->rebuildIndex();
+                emit scanComplete(count);
+            });
+    connect(m_currentDocument, &MdDocument::saved,
+            m_syncEngine, &SyncEngine::rebuildIndex);
     connect(m_fileManager, &FileManager::fileOperationComplete,
-            this, &AppController::scan);
+            this, [this]() {
+                // Clear JSONL viewer if its file was deleted/moved
+                if (!m_jsonlStore->filePath().isEmpty()
+                    && !QFileInfo::exists(m_jsonlStore->filePath())) {
+                    m_jsonlStore->clear();
+                }
+                scan();
+            });
 }
 
 AppController *AppController::create(QQmlEngine *engine, QJSEngine *scriptEngine)
@@ -103,7 +116,14 @@ void AppController::openFile(const QString &path)
 
 void AppController::forceOpenFile(const QString &path)
 {
-    m_currentDocument->load(path);
+    if (path.endsWith(QStringLiteral(".jsonl"), Qt::CaseInsensitive)) {
+        m_currentDocument->clear();
+        m_jsonlStore->load(path);
+    } else {
+        if (!m_jsonlStore->filePath().isEmpty())
+            m_jsonlStore->clear();
+        m_currentDocument->load(path);
+    }
 }
 
 void AppController::revealInExplorer(const QString &path) const
@@ -181,35 +201,60 @@ QString AppController::createProject(const QString &folderPath, const QString &t
     return QString();
 }
 
-QVariantList AppController::searchFiles(const QString &query) const
+void AppController::searchFiles(const QString &query)
 {
-    QVariantList results;
-    if (query.length() < 2) return results;
+    // Cancel any previous search
+    if (m_searchCancel)
+        m_searchCancel->store(true);
 
-    const QStringList files = m_syncEngine->allMdFiles();
-
-    for (const QString &filePath : files) {
-        QFile file(filePath);
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-            continue;
-
-        QString content = QTextStream(&file).readAll();
-        file.close();
-
-        const QStringList lines = content.split('\n');
-        for (int i = 0; i < lines.size(); i++) {
-            int col = lines[i].indexOf(query, 0, Qt::CaseInsensitive);
-            if (col < 0) continue;
-
-            QVariantMap hit;
-            hit["filePath"] = filePath;
-            hit["line"] = i + 1;
-            hit["text"] = lines[i].trimmed();
-            results.append(hit);
-
-            if (results.size() >= 500) return results;
-        }
+    if (query.length() < 2) {
+        emit searchResultsReady({});
+        return;
     }
 
-    return results;
+    // Gather file list on main thread (fast — just tree walk)
+    const QStringList files = m_syncEngine->allMdFiles();
+
+    // Shared cancel flag for this search run
+    auto cancel = std::make_shared<std::atomic<bool>>(false);
+    m_searchCancel = cancel;
+
+    // Run file I/O + search on a worker thread
+    QtConcurrent::run([this, query, files, cancel]() {
+        QVariantList results;
+
+        for (const QString &filePath : files) {
+            if (cancel->load()) return;
+
+            QFile file(filePath);
+            if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+                continue;
+
+            QString content = QTextStream(&file).readAll();
+            file.close();
+
+            const QStringList lines = content.split('\n');
+            for (int i = 0; i < lines.size(); i++) {
+                if (cancel->load()) return;
+
+                int col = lines[i].indexOf(query, 0, Qt::CaseInsensitive);
+                if (col < 0) continue;
+
+                QVariantMap hit;
+                hit["filePath"] = filePath;
+                hit["line"] = i + 1;
+                hit["text"] = lines[i].trimmed();
+                results.append(hit);
+
+                if (results.size() >= 200) break;
+            }
+            if (results.size() >= 200) break;
+        }
+
+        if (cancel->load()) return;
+
+        QMetaObject::invokeMethod(this, "searchResultsReady",
+                                  Qt::QueuedConnection,
+                                  Q_ARG(QVariantList, results));
+    });
 }

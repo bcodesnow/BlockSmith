@@ -77,7 +77,7 @@ Rectangle {
                 width: insertRow.implicitWidth + 12
                 height: 22
                 radius: Theme.radius
-                color: insertMa.containsMouse ? "#4a6a9a" : (card.hovered ? Theme.bgButton : "transparent")
+                color: insertMa.containsMouse ? Theme.bgActive : (card.hovered ? Theme.bgButton : "transparent")
                 border.color: card.hovered ? Theme.accent : "transparent"
                 border.width: 1
                 opacity: card.hovered ? 1.0 : 0.0
@@ -141,7 +141,7 @@ Rectangle {
                         width: tagLabel.implicitWidth + 10
                         height: 18
                         radius: 9
-                        color: "#3d5a80"
+                        color: Theme.tagBg
 
                         Label {
                             id: tagLabel

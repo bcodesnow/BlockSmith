@@ -1,13 +1,27 @@
 import QtQuick
 import QtWebEngine
+import QtWebChannel
 import BlockSmith
 
 WebEngineView {
     id: previewWeb
 
     property string markdown: ""
-    backgroundColor: "#1e1e1e"
+    property ScrollBridge scrollBridge: ScrollBridge {
+        id: scrollBridgeObj
+        objectName: "scrollBridge"
+        WebChannel.id: "scrollBridge"
+    }
+
+    backgroundColor: Theme.bg
     url: "qrc:/preview/index.html"
+
+    zoomFactor: AppController.configManager.zoomLevel / 100.0
+
+    webChannel: WebChannel {
+        id: previewChannel
+        registeredObjects: [scrollBridgeObj]
+    }
 
     // Security: lock down the embedded browser
     settings.localContentCanAccessRemoteUrls: false
@@ -62,6 +76,12 @@ WebEngineView {
     }
 
     function scrollToPercent(pct) {
+        if (!_pageReady) return
         runJavaScript("scrollToPercent(" + pct + ")")
+    }
+
+    function scrollToLine(lineNum) {
+        if (!_pageReady) return
+        runJavaScript("scrollToLine(" + lineNum + ")")
     }
 }

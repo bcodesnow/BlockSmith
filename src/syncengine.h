@@ -3,12 +3,19 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
+#include <QHash>
 #include <QVariantList>
 #include <QtQml/qqmlregistration.h>
 
 class BlockStore;
 class ProjectTreeModel;
 class TreeNode;
+
+// Per-file occurrence of a block: file path + content as found in that file
+struct BlockOccurrence {
+    QString filePath;
+    QString fileContent;   // extracted content between block markers
+};
 
 class SyncEngine : public QObject
 {
@@ -26,11 +33,10 @@ public:
     // Pull a block's content from a specific file into the registry
     Q_INVOKABLE void pullBlock(const QString &blockId, const QString &filePath);
 
-    // Find all .md files across projects that contain a given block ID
+    // Find all .md files across projects that contain a given block ID (from cache)
     Q_INVOKABLE QStringList filesContainingBlock(const QString &blockId) const;
 
-    // Get per-file sync status for a block
-    // Returns list of {filePath, status, fileContent} where status is "synced" or "diverged"
+    // Get per-file sync status for a block (from cache, no disk I/O)
     Q_INVOKABLE QVariantList blockSyncStatus(const QString &blockId) const;
 
     // Returns true if any file containing this block has diverged content
@@ -39,16 +45,23 @@ public:
     // Get all .md file paths from the project tree
     QStringList allMdFiles() const;
 
+    // Rebuild the block index (single-pass file scan)
+    Q_INVOKABLE void rebuildIndex();
+
 signals:
     void blockPushed(const QString &blockId, int fileCount);
     void blockPulled(const QString &blockId, const QString &filePath);
+    void indexReady();
 
 private:
     QString extractBlockContent(const QString &fileContent, const QString &blockId) const;
     bool replaceBlockInFile(const QString &filePath, const QString &blockId,
-                            const QString &newContent) const;
+                            const QString &newContent);
     void collectAllMdFiles(TreeNode *node, QStringList &files) const;
 
     BlockStore *m_blockStore;
     ProjectTreeModel *m_treeModel;
+
+    // Cache: blockId -> list of occurrences (file + content)
+    QHash<QString, QVector<BlockOccurrence>> m_index;
 };

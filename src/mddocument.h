@@ -4,6 +4,7 @@
 #include <QString>
 #include <QList>
 #include <QVariantList>
+#include <QStringConverter>
 #include <QtQml/qqmlregistration.h>
 
 class MdDocument : public QObject
@@ -64,5 +65,7 @@ private:
     QString m_savedContent;
     bool m_modified = false;
     QString m_encoding = QStringLiteral("UTF-8");
+    QStringConverter::Encoding m_streamEncoding = QStringConverter::Utf8;
+    bool m_hasBom = false;
     QList<BlockSegment> m_blocks;
 };

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QAbstractItemModel>
+#include <QDateTime>
 #include <QString>
 #include <QVector>
 #include <QtQml/qqmlregistration.h>
@@ -15,21 +16,33 @@ public:
     ~TreeNode();
 
     void appendChild(TreeNode *child);
+    void insertChild(int row, TreeNode *child);
+    TreeNode *takeChild(int row);
     TreeNode *child(int row) const;
     int childCount() const;
     int row() const;
     TreeNode *parentNode() const;
+    const QVector<TreeNode *> &children() const { return m_children; }
+
+    TreeNode *findChildByPath(const QString &path) const;
 
     QString name() const { return m_name; }
     QString path() const { return m_path; }
     NodeType nodeType() const { return m_type; }
     bool isTriggerFile() const { return m_isTriggerFile; }
+    QDateTime createdDate() const { return m_createdDate; }
+
+    void setName(const QString &name) { m_name = name; }
+    void setIsTriggerFile(bool trigger) { m_isTriggerFile = trigger; }
+    void setParent(TreeNode *parent) { m_parent = parent; }
+    void setCreatedDate(const QDateTime &dt) { m_createdDate = dt; }
 
 private:
     QString m_name;
     QString m_path;
     NodeType m_type;
     bool m_isTriggerFile;
+    QDateTime m_createdDate;
     TreeNode *m_parent;
     QVector<TreeNode *> m_children;
 };
@@ -44,7 +57,8 @@ public:
         NameRole = Qt::UserRole + 1,
         PathRole,
         NodeTypeRole,
-        IsTriggerFileRole
+        IsTriggerFileRole,
+        CreatedDateRole
     };
     Q_ENUM(Roles)
 
@@ -62,6 +76,13 @@ public:
     void clear();
     TreeNode *rootNode() const { return m_rootNode; }
     void addProjectRoot(TreeNode *projectRoot);
+
+    // Incremental update methods
+    QModelIndex indexForNode(TreeNode *node) const;
+    void insertChildNode(TreeNode *parent, int row, TreeNode *child);
+    void removeChildNode(TreeNode *parent, int row);
+    void emitDataChanged(TreeNode *node);
+    void syncChildren(TreeNode *liveParent, TreeNode *newParent);
 
 private:
     TreeNode *nodeFromIndex(const QModelIndex &index) const;

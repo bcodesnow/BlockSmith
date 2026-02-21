@@ -142,21 +142,32 @@ Rectangle {
 
         // Block list
         ListView {
+            id: blockListView
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
             spacing: 4
             model: AppController.blockStore
 
+            // Increments each time the sync index is rebuilt — triggers delegate rebind
+            property int indexRevision: 0
+
+            Connections {
+                target: AppController.syncEngine
+                function onIndexReady() { blockListView.indexRevision++ }
+            }
+
             delegate: BlockCard {
+                id: blockDelegate
                 width: ListView.view.width - 12
                 anchors.horizontalCenter: parent ? parent.horizontalCenter : undefined
                 blockId: model.blockId
                 blockName: model.name
                 blockContent: model.content
                 blockTags: model.tags
-                usageCount: AppController.syncEngine.filesContainingBlock(model.blockId).length
-                diverged: AppController.syncEngine.isBlockDiverged(model.blockId)
+                // O(1) lookups from cached index; re-evaluated when indexRevision changes
+                usageCount: blockListView.indexRevision < -1 ? 0 : AppController.syncEngine.filesContainingBlock(model.blockId).length
+                diverged: blockListView.indexRevision < -1 ? false : AppController.syncEngine.isBlockDiverged(model.blockId)
                 onClicked: AppController.highlightBlock(model.blockId)
                 onEditRequested: blockPanel.blockEditRequested(model.blockId)
                 onInsertRequested: blockPanel.blockInsertRequested(model.blockId)

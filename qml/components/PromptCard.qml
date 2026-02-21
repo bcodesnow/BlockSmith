@@ -89,11 +89,11 @@ Rectangle {
             radius: 9
             color: {
                 switch(card.promptCategory) {
-                    case "audit":    return "#5a3d3d"
-                    case "review":   return "#3d5a3d"
-                    case "debug":    return "#5a4d3d"
-                    case "generate": return "#3d3d5a"
-                    default:         return "#4a4a4a"
+                    case "audit":    return Theme.categoryAudit
+                    case "review":   return Theme.categoryReview
+                    case "debug":    return Theme.categoryDebug
+                    case "generate": return Theme.categoryGenerate
+                    default:         return Theme.categoryDefault
                 }
             }
 

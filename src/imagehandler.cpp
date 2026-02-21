@@ -44,14 +44,14 @@ QString ImageHandler::saveClipboardImage(const QString &destDir, const QString &
         return {};
     }
 
-    QString path = destDir + "/" + fileName + ".png";
+    QString path = dir.filePath(fileName + ".png");
 
     // Avoid overwriting
     if (QFileInfo::exists(path)) {
         int counter = 1;
-        while (QFileInfo::exists(destDir + "/" + fileName + "-" + QString::number(counter) + ".png"))
+        while (QFileInfo::exists(dir.filePath(fileName + "-" + QString::number(counter) + ".png")))
             counter++;
-        path = destDir + "/" + fileName + "-" + QString::number(counter) + ".png";
+        path = dir.filePath(fileName + "-" + QString::number(counter) + ".png");
     }
 
     if (!image.save(path, "PNG")) {
@@ -82,7 +82,7 @@ QString ImageHandler::copyImageFile(const QString &sourcePath, const QString &de
         return {};
     }
 
-    QString destPath = destDir + "/" + srcInfo.fileName();
+    QString destPath = dir.filePath(srcInfo.fileName());
 
     // Skip copy if source is already in destination
     if (QFileInfo(sourcePath).absoluteFilePath() == QFileInfo(destPath).absoluteFilePath())
@@ -93,9 +93,9 @@ QString ImageHandler::copyImageFile(const QString &sourcePath, const QString &de
         QString baseName = srcInfo.completeBaseName();
         QString suffix = srcInfo.suffix();
         int counter = 1;
-        while (QFileInfo::exists(destDir + "/" + baseName + "-" + QString::number(counter) + "." + suffix))
+        while (QFileInfo::exists(dir.filePath(baseName + "-" + QString::number(counter) + "." + suffix)))
             counter++;
-        destPath = destDir + "/" + baseName + "-" + QString::number(counter) + "." + suffix;
+        destPath = dir.filePath(baseName + "-" + QString::number(counter) + "." + suffix);
     }
 
     if (!QFile::copy(sourcePath, destPath)) {

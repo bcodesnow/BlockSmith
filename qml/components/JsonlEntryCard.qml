@@ -37,7 +37,7 @@ Rectangle {
         case "user":       return Theme.accent
         case "assistant":  return Theme.accentGreen
         case "system":     return Theme.accentGold
-        case "tool":       return "#8888cc"
+        case "tool":       return Theme.accentPurple
         case "progress":   return Theme.textMuted
         case "error":      return Theme.accentRed
         default:           return Theme.textSecondary

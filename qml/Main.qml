@@ -12,7 +12,7 @@ ApplicationWindow {
     y: AppController.configManager.windowGeometry["y"] ?? 100
 
     visible: false
-    color: "#1e1e1e"
+    color: Theme.bg
     title: {
         let path = AppController.currentDocument.filePath
         let mod = AppController.currentDocument.modified ? " *" : ""
@@ -111,6 +111,23 @@ ApplicationWindow {
         target: AppController.promptStore
         function onCopied(name) {
             toast.show("Copied '" + name + "'")
+        }
+        function onSaveFailed(message) {
+            toast.show(message)
+        }
+    }
+
+    Connections {
+        target: AppController.blockStore
+        function onSaveFailed(message) {
+            toast.show(message)
+        }
+    }
+
+    Connections {
+        target: AppController.configManager
+        function onSaveFailed(message) {
+            toast.show(message)
         }
     }
 
@@ -211,18 +228,41 @@ ApplicationWindow {
     }
     Shortcut {
         sequence: "Ctrl+F"
+        context: Qt.ApplicationShortcut
         onActivated: mainContentArea.openFind()
     }
     Shortcut {
         sequence: "Ctrl+H"
+        context: Qt.ApplicationShortcut
         onActivated: mainContentArea.openReplace()
     }
     Shortcut {
         sequence: "Ctrl+Shift+F"
+        context: Qt.ApplicationShortcut
         onActivated: {
             searchDialog.open()
             searchDialog.focusSearch()
         }
+    }
+
+    // Zoom shortcuts
+    Shortcut {
+        sequences: ["Ctrl+=", "Ctrl++"]
+        onActivated: {
+            AppController.configManager.zoomLevel = Math.min(200,
+                AppController.configManager.zoomLevel + 10)
+        }
+    }
+    Shortcut {
+        sequence: "Ctrl+-"
+        onActivated: {
+            AppController.configManager.zoomLevel = Math.max(50,
+                AppController.configManager.zoomLevel - 10)
+        }
+    }
+    Shortcut {
+        sequence: "Ctrl+0"
+        onActivated: AppController.configManager.zoomLevel = 100
     }
 
     SplitView {

@@ -63,14 +63,55 @@
   ::-webkit-scrollbar-thumb:hover { background: #666; }
   ::-webkit-scrollbar-corner { background: #1e1e1e; }
 </style>
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
 <script src="mermaid.min.js"></script>
 <script>
   mermaid.initialize({ startOnLoad: false, theme: 'dark' });
   var renderCounter = 0;
+  var bridge = null;
+  var isSyncing = false;
+  var scrollTimeout = null;
 
+  // --- WebChannel setup (deferred until transport is ready) ---
+  function initBridge() {
+      try {
+          new QWebChannel(qt.webChannelTransport, function(channel) {
+              bridge = channel.objects.scrollBridge;
+          });
+      } catch(e) {
+          // Transport not ready yet — retry in 200ms
+          setTimeout(initBridge, 200);
+      }
+  }
+  if (typeof qt !== 'undefined' && qt.webChannelTransport) {
+      initBridge();
+  } else {
+      // Wait for transport to become available
+      var waitForQt = setInterval(function() {
+          if (typeof qt !== 'undefined' && qt.webChannelTransport) {
+              clearInterval(waitForQt);
+              initBridge();
+          }
+      }, 100);
+  }
+
+  // --- Scroll event: preview -> editor (debounced 50ms) ---
+  window.addEventListener('scroll', function() {
+      if (isSyncing) return;
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(function() {
+          if (!bridge) return;
+          var maxY = document.documentElement.scrollHeight - window.innerHeight;
+          var pct = maxY > 0 ? (window.scrollY / maxY) : 0;
+          bridge.onPreviewScroll(pct);
+      }, 50);
+  });
+
+  // --- Content update ---
   function updateContent(html) {
     document.getElementById('content').innerHTML = html;
     renderMermaidBlocks();
+    attachHeadingClickHandlers();
   }
 
   function renderMermaidBlocks() {
@@ -100,9 +141,48 @@
     });
   }
 
+  // --- Called from QML: editor -> preview (percentage-based) ---
   function scrollToPercent(pct) {
+    isSyncing = true;
     var maxY = document.documentElement.scrollHeight - window.innerHeight;
     window.scrollTo(0, Math.max(0, pct * maxY));
+    setTimeout(function() { isSyncing = false; }, 100);
+  }
+
+  // --- Line-based scroll (for cursor sync, future data-source-line support) ---
+  function scrollToLine(lineNum) {
+    isSyncing = true;
+    var el = document.querySelector('[data-source-line="' + lineNum + '"]');
+    if (!el) {
+        // Find nearest element with data-source-line <= lineNum
+        var all = document.querySelectorAll('[data-source-line]');
+        var best = null;
+        for (var i = 0; i < all.length; i++) {
+            var ln = parseInt(all[i].getAttribute('data-source-line'));
+            if (ln <= lineNum) best = all[i];
+            else break;
+        }
+        el = best;
+    }
+    if (el) {
+        el.scrollIntoView({ behavior: 'auto', block: 'start' });
+    }
+    setTimeout(function() { isSyncing = false; }, 100);
+  }
+
+  // --- Heading click handlers (Phase 5) ---
+  function attachHeadingClickHandlers() {
+    var headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    headings.forEach(function(h) {
+        h.style.cursor = 'pointer';
+        h.addEventListener('click', function(e) {
+            if (!bridge) return;
+            var lineNum = parseInt(h.getAttribute('data-source-line')) || 0;
+            var text = h.textContent.trim();
+            bridge.onHeadingClicked(lineNum, text);
+            e.preventDefault();
+        });
+    });
   }
 </script>
 </head>

@@ -181,7 +181,6 @@ void PromptStore::load()
     QJsonObject root = doc.object();
     QJsonArray promptsArr = root["prompts"].toArray();
 
-    beginResetModel();
     m_prompts.clear();
 
     for (const auto &val : promptsArr) {
@@ -198,7 +197,6 @@ void PromptStore::load()
     }
 
     rebuildFiltered();
-    endResetModel();
     emit countChanged();
     emit allCategoriesChanged();
 }
@@ -231,6 +229,7 @@ void PromptStore::save()
     QFile file(m_dbPath);
     if (!file.open(QIODevice::WriteOnly)) {
         qWarning("PromptStore: could not write %s", qPrintable(m_dbPath));
+        emit saveFailed(tr("Could not save prompts database"));
         return;
     }
     file.write(QJsonDocument(root).toJson(QJsonDocument::Indented));
@@ -272,7 +271,8 @@ QString PromptStore::generateId() const
     auto *rng = QRandomGenerator::global();
     QString id;
     do {
-        id = "p" + QString::number(rng->bounded(10000u)).rightJustified(4, '0');
+        quint32 val = rng->bounded(0x1000000u); // 24 bits = 6 hex chars
+        id = "p" + QString::number(val, 16).rightJustified(6, '0');
     } while (m_prompts.contains(id));
     return id;
 }

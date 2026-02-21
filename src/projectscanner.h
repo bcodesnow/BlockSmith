@@ -27,9 +27,10 @@ signals:
 private:
     bool isIgnored(const QString &dirName) const;
     bool containsTriggerFile(const QString &dirPath) const;
-    void scanRecursive(const QString &dirPath, int depth, int maxDepth, int &projectCount);
-    void collectMdFiles(const QString &dirPath, TreeNode *parentNode);
-    void collectAllFiles(const QString &dirPath, TreeNode *parentNode);
+    void scanRecursive(const QString &dirPath, int depth, int maxDepth,
+                        TreeNode *shadowRoot, int &projectCount);
+    void collectMdFiles(const QString &dirPath, TreeNode *parentNode, int depth = 0);
+    void collectAllFiles(const QString &dirPath, TreeNode *parentNode, int depth = 0);
 
     ConfigManager *m_config;
     ProjectTreeModel *m_model;

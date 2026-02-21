@@ -1,8 +1,11 @@
 #include "mddocument.h"
 
 #include <QFile>
+#include <QDir>
 #include <QTextStream>
 #include <QRegularExpression>
+#include <QStringConverter>
+#include <QSaveFile>
 
 MdDocument::MdDocument(QObject *parent)
     : QObject(parent)
@@ -18,27 +21,37 @@ void MdDocument::load(const QString &filePath)
         return;
     }
 
-    // Detect encoding from BOM
+    // Detect encoding from BOM and configure stream accordingly
     QByteArray bom = file.peek(4);
     QString detectedEncoding = QStringLiteral("UTF-8");
+    auto streamEncoding = QStringConverter::Utf8;
+
     if (bom.size() >= 3
         && static_cast<unsigned char>(bom[0]) == 0xEF
         && static_cast<unsigned char>(bom[1]) == 0xBB
         && static_cast<unsigned char>(bom[2]) == 0xBF) {
         detectedEncoding = QStringLiteral("UTF-8 BOM");
+        streamEncoding = QStringConverter::Utf8;
     } else if (bom.size() >= 2
                && static_cast<unsigned char>(bom[0]) == 0xFF
                && static_cast<unsigned char>(bom[1]) == 0xFE) {
         detectedEncoding = QStringLiteral("UTF-16 LE");
+        streamEncoding = QStringConverter::Utf16LE;
     } else if (bom.size() >= 2
                && static_cast<unsigned char>(bom[0]) == 0xFE
                && static_cast<unsigned char>(bom[1]) == 0xFF) {
         detectedEncoding = QStringLiteral("UTF-16 BE");
+        streamEncoding = QStringConverter::Utf16BE;
     }
 
     QTextStream in(&file);
+    in.setEncoding(streamEncoding);
     QString content = in.readAll();
     file.close();
+
+    // Strip BOM character (U+FEFF) if present — we re-add it on save via setGenerateByteOrderMark
+    if (!content.isEmpty() && content.at(0) == QChar(0xFEFF))
+        content.remove(0, 1);
 
     m_filePath = filePath;
     m_rawContent = content;
@@ -46,6 +59,9 @@ void MdDocument::load(const QString &filePath)
     m_modified = false;
     bool encChanged = (m_encoding != detectedEncoding);
     m_encoding = detectedEncoding;
+    m_streamEncoding = streamEncoding;
+    m_hasBom = detectedEncoding.contains(QStringLiteral("BOM"))
+               || detectedEncoding.contains(QStringLiteral("UTF-16"));
 
     parseBlocks();
 
@@ -61,7 +77,8 @@ void MdDocument::save()
     if (m_filePath.isEmpty())
         return;
 
-    QFile file(m_filePath);
+    // QSaveFile writes to a temp file, then atomically renames on commit()
+    QSaveFile file(m_filePath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         qWarning("MdDocument: could not write %s", qPrintable(m_filePath));
         emit saveFailed(tr("Cannot write file: %1").arg(m_filePath));
@@ -69,8 +86,16 @@ void MdDocument::save()
     }
 
     QTextStream out(&file);
+    out.setEncoding(m_streamEncoding);
+    out.setGenerateByteOrderMark(m_hasBom);
     out << m_rawContent;
-    file.close();
+    out.flush();
+
+    if (!file.commit()) {
+        qWarning("MdDocument: atomic save failed for %s", qPrintable(m_filePath));
+        emit saveFailed(tr("Save failed: %1").arg(m_filePath));
+        return;
+    }
 
     m_savedContent = m_rawContent;
     m_modified = false;
@@ -85,6 +110,8 @@ void MdDocument::clear()
     m_savedContent.clear();
     m_modified = false;
     m_encoding = QStringLiteral("UTF-8");
+    m_streamEncoding = QStringConverter::Utf8;
+    m_hasBom = false;
     m_blocks.clear();
 
     emit filePathChanged();

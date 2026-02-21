@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 6.10 REQUIRED COMPONENTS Quick QuickControls2 Core WebEngineQuick WebChannel)
+find_package(Qt6 6.10 REQUIRED COMPONENTS Quick QuickControls2 Core WebEngineQuick WebChannel Concurrent)
 qt_policy(SET QTP0001 NEW)
 qt_policy(SET QTP0004 NEW)
 
@@ -62,6 +62,7 @@ qt_add_qml_module(BlockSmith
         src/filemanager.h src/filemanager.cpp
         src/imagehandler.h src/imagehandler.cpp
         src/jsonlstore.h src/jsonlstore.cpp
+        src/scrollbridge.h src/scrollbridge.cpp
 )
 
 qt_add_resources(BlockSmith "icons"
@@ -100,6 +101,7 @@ target_link_libraries(BlockSmith PRIVATE
     Qt6::Core
     Qt6::WebEngineQuick
     Qt6::WebChannel
+    Qt6::Concurrent
     md4c
 )
 
