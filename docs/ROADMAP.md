@@ -28,7 +28,7 @@ Small fixes that improve polish without new features. **Completed 2026-02-21.**
 - JS `scrollToLine()` already exists and handles the attributes
 - **Result:** Accurate cursor-to-preview sync instead of percentage fallback
 - **Files:** src/md4crenderer.h/.cpp, qml/components/MdPreviewWeb.qml
-- **Design:** See [DESIGN_scroll_sync.md](DESIGN_scroll_sync.md) Phase 4
+- **Design:** Implemented — bidirectional scroll sync with data-source-line mapping
 
 ---
 
@@ -190,7 +190,7 @@ Phase 11 touches many files (Theme.qml ripple) — plan carefully.
 
 ## Out of Scope (Tier 2+ / Future)
 
-These are documented in [todos.md](todos.md) but not planned for near-term:
+Not planned for near-term:
 - Multi-tab editor
 - Table editor
 - Math/KaTeX
@@ -199,4 +199,4 @@ These are documented in [todos.md](todos.md) but not planned for near-term:
 - WikiLinks / graph view
 - Git integration
 - AI features
-- Auto-updater (see [PLAN_UPDATE_FROM_GITHUB_RELEASE.md](PLAN_UPDATE_FROM_GITHUB_RELEASE.md))
+- Auto-updater
