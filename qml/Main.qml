@@ -252,11 +252,13 @@ ApplicationWindow {
     Shortcut {
         sequence: "Ctrl+F"
         context: Qt.ApplicationShortcut
+        enabled: !mainContentArea.isJsonlActive
         onActivated: mainContentArea.openFind()
     }
     Shortcut {
         sequence: "Ctrl+H"
         context: Qt.ApplicationShortcut
+        enabled: !mainContentArea.isJsonlActive
         onActivated: mainContentArea.openReplace()
     }
     Shortcut {
@@ -296,6 +298,10 @@ ApplicationWindow {
     }
     Shortcut {
         sequence: "Ctrl+W"
+        onActivated: AppController.currentDocument.clear()
+    }
+    Shortcut {
+        sequence: "Ctrl+Q"
         onActivated: root.close()
     }
     Shortcut {
@@ -311,15 +317,17 @@ ApplicationWindow {
         opacity: 0
 
         handle: Rectangle {
-            implicitWidth: 3
-            implicitHeight: 3
-            color: SplitHandle.pressed ? Theme.accent
-                 : SplitHandle.hovered ? Theme.borderHover
-                 : Theme.border
-            containmentMask: Item {
-                x: parent ? (parent.width - width) / 2 : 0
-                width: 12
-                height: parent ? parent.height : 0
+            implicitWidth: 6
+            implicitHeight: 6
+            color: "transparent"
+
+            Rectangle {
+                anchors.centerIn: parent
+                width: 2
+                height: parent.height
+                color: SplitHandle.pressed ? Theme.accent
+                     : SplitHandle.hovered ? Theme.borderHover
+                     : Theme.border
             }
         }
 

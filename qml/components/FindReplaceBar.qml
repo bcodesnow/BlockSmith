@@ -14,6 +14,7 @@ Rectangle {
     property int matchCount: 0
     property int currentMatch: 0
 
+    signal findRequested(string text, bool caseSensitive)
     signal findNext(string text, bool caseSensitive)
     signal findPrev(string text, bool caseSensitive)
     signal replaceOne(string findText, string replaceText, bool caseSensitive)
@@ -68,10 +69,11 @@ Rectangle {
 
                 onTextChanged: {
                     if (text.length > 0)
-                        findBar.findNext(text, caseSensitiveBtn.checked)
+                        findBar.findRequested(text, caseSensitiveBtn.checked)
                     else {
                         findBar.matchCount = 0
                         findBar.currentMatch = 0
+                        findBar.closed()
                     }
                 }
 

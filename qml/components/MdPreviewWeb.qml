@@ -30,6 +30,7 @@ WebEngineView {
     settings.javascriptCanAccessClipboard: false
     settings.localStorageEnabled: false
     settings.pluginsEnabled: false
+    settings.focusOnNavigationEnabled: false
 
     // Intercept link clicks — open in system browser
     onNavigationRequested: function(request) {

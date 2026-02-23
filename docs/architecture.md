@@ -232,7 +232,7 @@ Content here...
 ### UI & Polish
 - Dark theme (Fusion style) with centralized Theme singleton
 - Forced English UI locale (QLocale::setDefault) — consistent button labels
-- 3-pane SplitView layout with custom draggable handles (12px hit area) and persisted splitter widths
+- 3-pane SplitView layout with custom draggable handles (6px transparent + 2px visual line) and persisted splitter widths
 - Startup splash overlay with app logo, spinner, and status text (fades out after scan)
 - Toast notifications for save, load errors, scan results, clipboard
 - Unsaved changes dialog (Save/Discard/Cancel on file switch)
@@ -245,7 +245,7 @@ Content here...
   - Ctrl+B (bold), Ctrl+I (italic), Ctrl+Shift+K (inline code)
   - Ctrl+D (duplicate line), Tab/Shift+Tab (indent/outdent)
   - Ctrl+P (quick switcher)
-  - Ctrl+W (close window), Ctrl+=/Ctrl+- (zoom), Ctrl+0 (reset zoom)
+  - Ctrl+W (close file), Ctrl+Q (quit), Ctrl+=/Ctrl+- (zoom), Ctrl+0 (reset zoom)
 - Window geometry persistence
 - Splitter width persistence (left nav + right pane)
 - Multi-size app icon (16-1024px PNGs + ICO)

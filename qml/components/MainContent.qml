@@ -36,7 +36,6 @@ Rectangle {
 
     function openFind() {
         if (AppController.currentDocument.filePath === "") return
-        // Switch to Edit mode if in Preview so the editor is visible
         if (viewMode === MainContent.ViewMode.Preview)
             viewMode = MainContent.ViewMode.Edit
         findReplaceBar.openFind()
@@ -113,7 +112,6 @@ Rectangle {
         if (idx < 0 || idx >= findMatches.length) return
         let match = findMatches[idx]
         mdEditor.textArea.select(match.start, match.end)
-        mdEditor.textArea.forceActiveFocus()
         // Scroll to match
         let rect = mdEditor.textArea.positionToRectangle(match.start)
         mdEditor.ensureVisible(rect.y)
@@ -315,17 +313,14 @@ Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: visible ? implicitHeight : 0
 
+            onFindRequested: function(text, caseSensitive) {
+                mainContent.performFind(text, caseSensitive, "next")
+            }
             onFindNext: function(text, caseSensitive) {
                 mainContent.findNext(text, caseSensitive)
             }
             onFindPrev: function(text, caseSensitive) {
-                if (mainContent.findMatches.length > 0 && mainContent.findMatchIndex >= 0) {
-                    mainContent.findMatchIndex = (mainContent.findMatchIndex - 1 + mainContent.findMatches.length) % mainContent.findMatches.length
-                    findReplaceBar.currentMatch = mainContent.findMatchIndex + 1
-                    mainContent.selectMatch(mainContent.findMatchIndex)
-                } else {
-                    mainContent.performFind(text, caseSensitive, "prev")
-                }
+                mainContent.findPrev(text, caseSensitive)
             }
             onReplaceOne: function(findText, replaceText, caseSensitive) {
                 mainContent.replaceOne(findText, replaceText, caseSensitive)
@@ -443,15 +438,17 @@ Rectangle {
                 visible: AppController.currentDocument.filePath !== "" && !mainContent.isJsonlActive
 
                 handle: Rectangle {
-                    implicitWidth: 3
-                    implicitHeight: 3
-                    color: SplitHandle.pressed ? Theme.accent
-                         : SplitHandle.hovered ? Theme.borderHover
-                         : Theme.border
-                    containmentMask: Item {
-                        x: parent ? (parent.width - width) / 2 : 0
-                        width: 12
-                        height: parent ? parent.height : 0
+                    implicitWidth: 6
+                    implicitHeight: 6
+                    color: "transparent"
+
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: 2
+                        height: parent.height
+                        color: SplitHandle.pressed ? Theme.accent
+                             : SplitHandle.hovered ? Theme.borderHover
+                             : Theme.border
                     }
                 }
 
@@ -485,12 +482,6 @@ Rectangle {
                     visible: mainContent.viewMode !== MainContent.ViewMode.Edit
                     SplitView.fillWidth: true
                     SplitView.minimumWidth: 200
-
-                    // Redirect focus away from Chromium → editor (prevents focus fight + Ctrl+F interception)
-                    onActiveFocusChanged: {
-                        if (activeFocus && mainContent.editorVisible)
-                            mdEditor.textArea.forceActiveFocus()
-                    }
                     markdown: AppController.currentDocument.rawContent
                 }
             }

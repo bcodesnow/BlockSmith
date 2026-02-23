@@ -24,7 +24,8 @@
 | Shift+Enter | Find previous match (in find bar) |
 | Ctrl+P | Quick Switcher: fuzzy file finder |
 | Ctrl+Shift+E | Export document (PDF / HTML / DOCX) |
-| Ctrl+W | Close window |
+| Ctrl+W | Close current file |
+| Ctrl+Q | Quit application |
 | Ctrl+= / Ctrl++ | Zoom in (max 200%) |
 | Ctrl+- | Zoom out (min 50%) |
 | Ctrl+0 | Reset zoom to 100% |

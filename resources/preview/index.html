@@ -95,6 +95,23 @@
       }, 100);
   }
 
+  // --- Suppress shortcuts that the Qt host app handles ---
+  document.addEventListener('keydown', function(e) {
+      // Let Chromium handle basic text nav (arrows, home, end, page up/down)
+      // Suppress Ctrl+<key> combos that the Qt app needs:
+      //   Ctrl+F (find), Ctrl+H (replace), Ctrl+S (save), Ctrl+E (view toggle),
+      //   Ctrl+P (quick switcher), Ctrl+W (close), Ctrl+R (reload),
+      //   Ctrl+Shift+F (global search), Ctrl+Shift+S (scan), Ctrl+Shift+E (export)
+      if (e.ctrlKey && !e.altKey) {
+          var key = e.key.toLowerCase();
+          if ('fhsewrp0'.indexOf(key) >= 0 || key === '=' || key === '+' || key === '-') {
+              e.preventDefault();
+              e.stopPropagation();
+              return false;
+          }
+      }
+  }, true);  // capture phase — runs before Chromium's handlers
+
   // --- Scroll event: preview -> editor (debounced 50ms) ---
   window.addEventListener('scroll', function() {
       if (isSyncing) return;

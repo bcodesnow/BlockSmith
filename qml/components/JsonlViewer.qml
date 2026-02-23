@@ -304,6 +304,7 @@ Rectangle {
     // Keyboard shortcuts
     Shortcut {
         sequence: "Ctrl+F"
+        enabled: viewer.visible
         onActivated: searchField.forceActiveFocus()
     }
 
