@@ -49,6 +49,8 @@ qt_add_qml_module(BlockSmith
         qml/components/JsonlViewer.qml
         qml/components/JsonlEntryCard.qml
         qml/components/ExportDialog.qml
+        qml/components/QuickSwitcher.qml
+        qml/components/OutlinePanel.qml
     SOURCES
         src/configmanager.h src/configmanager.cpp
         src/md4crenderer.h src/md4crenderer.cpp

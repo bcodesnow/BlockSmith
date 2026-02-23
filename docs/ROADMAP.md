@@ -1,6 +1,6 @@
 # BlockSmith Roadmap
 
-**Date:** 2026-02-22
+**Date:** 2026-02-23
 **Baseline:** All 6 phases complete + JSONL viewer, scroll sync, zoom, robustness audit
 
 ---
@@ -95,26 +95,26 @@ Critical correctness and startup-flow fixes discovered in the 2026-02-21 full re
 
 ---
 
-## Phase 9 — Navigation & Productivity
+## Phase 9 — Navigation & Productivity ✓
 
-Features that speed up daily workflows.
+Features that speed up daily workflows. **Completed 2026-02-23.**
 
 ### 9.1 Quick Switcher (Ctrl+P)
 - Popup dialog with fuzzy-match text field
-- Source: all files from SyncEngine::allMdFiles() + JSONL files from tree
-- Fuzzy matching: score by substring position + consecutive chars (no external lib needed)
+- Source: all files from AppController::getAllFiles() (tree walk, .md + .jsonl + .json)
+- Fuzzy matching: score by substring position + consecutive chars (JS, no external lib)
 - ListView of results, keyboard navigable (Up/Down/Enter/Esc)
 - Opens file on Enter, closes on Esc
-- Recent files bonus: track last 10 opened files in ConfigManager, show at top when query is empty
-- **Files:** qml/components/QuickSwitcher.qml (new), qml/Main.qml (Shortcut + instantiation), src/configmanager.h/.cpp (recentFiles list)
+- Recent files: last 10 opened files in ConfigManager, shown when query is empty
+- **Files:** qml/components/QuickSwitcher.qml (new), qml/Main.qml, src/configmanager.h/.cpp, src/appcontroller.h/.cpp
 
 ### 9.2 Outline Panel
-- New tab in RightPane: "Outline" (alongside Blocks / Prompts)
-- Parses headings from current document (regex: `^#{1,6}\s+(.*)`)
-- Hierarchical tree model showing H1-H6 nesting
-- Click to scroll editor + preview to that heading
-- Current heading highlighted based on cursor position
-- **Files:** qml/components/OutlinePanel.qml (new), qml/components/RightPane.qml (add tab), qml/components/MainContent.qml (heading parse + scroll-to)
+- New "Outline" tab in RightPane (alongside Blocks / Prompts)
+- Parses headings from current document (regex: `^#{1,6}\s+(.*)`, skips fenced code blocks)
+- Indented heading list showing H1-H6 nesting
+- Click to scroll editor to that heading
+- Current heading highlighted based on cursor position (accent left bar)
+- **Files:** qml/components/OutlinePanel.qml (new), qml/components/RightPane.qml, qml/components/MainContent.qml
 
 ---
 
@@ -179,13 +179,12 @@ Generate standalone output files from markdown documents. **Completed 2026-02-22
 | **7** | Housekeeping | Locale, splitter persist, scroll sync accuracy | Small | ✓ Done |
 | **8** | File Safety | File watcher, auto-save | Medium | ✓ Done |
 | **8.5** | Reliability Hardening | Data-loss guards, async scan/index, JSONL worker isolation | Medium | ✓ Done |
-| **9** | Navigation | Quick switcher, outline panel | Medium | None |
+| **9** | Navigation | Quick switcher, outline panel | Medium | ✓ Done |
 | **10** | Export | HTML, PDF, DOCX, dialog | Medium-Large | ✓ Done |
 | **11** | Themes | Light theme, switcher, font selection | Medium | None |
 
-Phase 8.5 should be completed before Phase 9.
-Phases 9 and 11 remain independent.
-Phase 11 touches many files (Theme.qml ripple) — do last.
+Phase 11 (Themes) is the only remaining planned phase.
+Phase 11 touches many files (Theme.qml ripple) — plan carefully.
 
 ---
 

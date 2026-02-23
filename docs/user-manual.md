@@ -22,6 +22,7 @@
 | Shift+Tab | Outdent |
 | Enter | Auto-continue lists (in list context) |
 | Shift+Enter | Find previous match (in find bar) |
+| Ctrl+P | Quick Switcher: fuzzy file finder |
 | Ctrl+Shift+E | Export document (PDF / HTML / DOCX) |
 | Ctrl+W | Close window |
 | Ctrl+= / Ctrl++ | Zoom in (max 200%) |
@@ -75,7 +76,7 @@ BlockSmith uses a 3-pane layout:
 
 ```
  NavPanel (left)  |  MainContent (center)  |  RightPane (right)
- Project tree     |  Editor / Split / Preview  |  Blocks / Prompts
+ Project tree     |  Editor / Split / Preview  |  Blocks / Prompts / Outline
 ```
 
 - **Left pane** — project tree with expand/collapse all, block usage highlighting, file management
@@ -83,7 +84,7 @@ BlockSmith uses a 3-pane layout:
   - **Edit** — markdown editor with formatting toolbar, line numbers, gutter markers
   - **Split** — editor left + WebEngine preview right (side-by-side, scroll synced)
   - **Preview** — full WebEngine preview with mermaid diagram rendering
-- **Right pane** — tabbed panel for Blocks and Prompts
+- **Right pane** — tabbed panel for Blocks, Prompts, and Outline
 
 ## Markdown Toolbar
 
@@ -173,6 +174,26 @@ Block cards in the right pane show an **orange left border** when the block cont
 3. **Edit** — click a prompt card to open the editor popup
 4. **Categories** — organize prompts by category, filter by category in the panel
 5. **Delete** — click Delete in the editor popup, then confirm (two-stage confirmation)
+
+## Quick Switcher (Ctrl+P)
+
+Press **Ctrl+P** to open the Quick Switcher — a fuzzy file finder for rapidly navigating between project files.
+
+- **Fuzzy search** — type a few characters to filter all project files by name (substring and character-order matching)
+- **Recent files** — when the query is empty, the last 10 opened files are shown
+- **Keyboard navigation** — Up/Down arrows to select, Enter to open, Esc to close
+- **Mouse** — hover to highlight, click to open
+- **Path display** — each result shows the filename (bold) and directory path (muted)
+
+## Outline Panel
+
+The **Outline** tab in the right pane shows the heading structure of the current document.
+
+- **Heading hierarchy** — H1 through H6 headings parsed from the document, indented by level
+- **Click to navigate** — click any heading to scroll the editor to that line
+- **Active heading** — the heading corresponding to the current cursor position is highlighted with an accent bar
+- **Live updates** — the outline refreshes as you type (300ms debounce)
+- **Code block aware** — headings inside fenced code blocks are excluded
 
 ## JSONL Transcript Viewer
 

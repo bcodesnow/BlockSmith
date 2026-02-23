@@ -80,6 +80,10 @@ ApplicationWindow {
         id: exportDialog
     }
 
+    QuickSwitcher {
+        id: quickSwitcher
+    }
+
     // Unsaved changes dialog
     Dialog {
         id: unsavedDialog
@@ -294,6 +298,11 @@ ApplicationWindow {
         sequence: "Ctrl+W"
         onActivated: root.close()
     }
+    Shortcut {
+        sequence: "Ctrl+P"
+        context: Qt.ApplicationShortcut
+        onActivated: quickSwitcher.openSwitcher()
+    }
 
     SplitView {
         id: mainLayout
@@ -337,11 +346,12 @@ ApplicationWindow {
             }
         }
 
-        // Right pane — Blocks / Prompts tabs
+        // Right pane — Blocks / Prompts / Outline tabs
         RightPane {
             id: rightPane
             SplitView.preferredWidth: AppController.configManager.splitRightWidth
             SplitView.minimumWidth: 200
+            editorCursorLine: mainContentArea.currentLine
             onBlockEditRequested: function(blockId) {
                 blockEditorPopup.openBlock(blockId)
             }
@@ -350,6 +360,9 @@ ApplicationWindow {
             }
             onPromptEditRequested: function(promptId) {
                 promptEditorPopup.openPrompt(promptId)
+            }
+            onHeadingScrollRequested: function(lineNumber) {
+                mainContentArea.scrollToLine(lineNumber)
             }
         }
     }

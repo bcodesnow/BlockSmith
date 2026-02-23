@@ -67,7 +67,7 @@ qml/
     MdToolbar.qml              # Markdown formatting toolbar
     MdPreview.qml              # Lightweight HTML preview (popups)
     MdPreviewWeb.qml           # WebEngine preview with mermaid support
-    RightPane.qml              # TabBar: Blocks / Prompts
+    RightPane.qml              # TabBar: Blocks / Prompts / Outline
     BlockListPanel.qml         # Block list with search + tag filter
     BlockCard.qml              # Block card with insert button
     BlockEditorPopup.qml       # Modal block editor
@@ -86,6 +86,8 @@ qml/
     JsonlViewer.qml            # JSONL transcript viewer panel
     JsonlEntryCard.qml         # Entry card with role badge + preview
     ExportDialog.qml           # Export format picker (PDF/HTML/DOCX)
+    QuickSwitcher.qml          # Fuzzy file finder popup (Ctrl+P)
+    OutlinePanel.qml           # Document heading outline panel
 resources/
   icons/                       # Multi-size app icons (16-1024px)
   preview/
@@ -194,6 +196,11 @@ Content here...
 - Recursively indexes .md, .jsonl, .json files from the Claude internal folder
 - Auto-rescan when integration setting changes
 
+### Navigation
+- Quick Switcher (Ctrl+P) — fuzzy file finder with recent files, keyboard navigation
+- Outline Panel — third tab in right pane, heading hierarchy (H1-H6), click-to-navigate, active heading highlight
+- Recent files tracking (last 10 opened files, persisted in config)
+
 ### Search
 - Global search across all project files (Ctrl+Shift+F)
 - Navigate to search results
@@ -237,6 +244,7 @@ Content here...
   - Ctrl+Shift+E (export), Ctrl+Shift+S / F5 (scan), Ctrl+, (settings)
   - Ctrl+B (bold), Ctrl+I (italic), Ctrl+Shift+K (inline code)
   - Ctrl+D (duplicate line), Tab/Shift+Tab (indent/outdent)
+  - Ctrl+P (quick switcher)
   - Ctrl+W (close window), Ctrl+=/Ctrl+- (zoom), Ctrl+0 (reset zoom)
 - Window geometry persistence
 - Splitter width persistence (left nav + right pane)

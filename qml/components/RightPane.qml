@@ -10,6 +10,9 @@ Rectangle {
     signal blockEditRequested(string blockId)
     signal blockInsertRequested(string blockId)
     signal promptEditRequested(string promptId)
+    signal headingScrollRequested(int lineNumber)
+
+    property int editorCursorLine: 0
 
     ColumnLayout {
         anchors.fill: parent
@@ -64,6 +67,25 @@ Rectangle {
                     }
                 }
             }
+
+            TabButton {
+                text: "Outline"
+                width: implicitWidth
+                font.pixelSize: Theme.fontSizeXS
+                font.bold: true
+                palette.buttonText: tabBar.currentIndex === 2 ? Theme.textPrimary : Theme.textMuted
+
+                background: Rectangle {
+                    color: tabBar.currentIndex === 2 ? Theme.bgPanel : Theme.bgHeader
+                    Rectangle {
+                        width: parent.width
+                        height: 2
+                        color: Theme.accent
+                        visible: tabBar.currentIndex === 2
+                        anchors.bottom: parent.bottom
+                    }
+                }
+            }
         }
 
         // Content
@@ -84,6 +106,13 @@ Rectangle {
             PromptListPanel {
                 onPromptEditRequested: function(promptId) {
                     rightPane.promptEditRequested(promptId)
+                }
+            }
+
+            OutlinePanel {
+                cursorLine: rightPane.editorCursorLine
+                onHeadingClicked: function(lineNumber) {
+                    rightPane.headingScrollRequested(lineNumber)
                 }
             }
         }

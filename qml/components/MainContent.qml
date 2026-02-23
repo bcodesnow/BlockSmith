@@ -17,7 +17,22 @@ Rectangle {
     // Convenience: editor is visible in Edit or Split mode (and not JSONL)
     readonly property bool editorVisible: viewMode !== MainContent.ViewMode.Preview && !isJsonlActive
 
+    // Current editor line (1-based), used by outline panel
+    readonly property int currentLine: {
+        if (viewMode === MainContent.ViewMode.Preview) return 0
+        let pos = mdEditor.cursorPosition
+        let content = AppController.currentDocument.rawContent
+        if (!content || content.length === 0) return 0
+        return content.substring(0, pos).split("\n").length
+    }
+
     signal createPromptRequested(string content)
+
+    function scrollToLine(lineNum) {
+        if (viewMode === MainContent.ViewMode.Preview)
+            viewMode = MainContent.ViewMode.Edit
+        contentArea.scrollEditorToLine(lineNum)
+    }
 
     function openFind() {
         if (AppController.currentDocument.filePath === "") return
@@ -402,6 +417,7 @@ Rectangle {
 
         // Content area
         Item {
+            id: contentArea
             Layout.fillWidth: true
             Layout.fillHeight: true
 

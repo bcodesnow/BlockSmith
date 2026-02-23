@@ -65,6 +65,7 @@ public:
     Q_INVOKABLE QString createProject(const QString &folderPath, const QString &triggerFileName);
 
     Q_INVOKABLE void forceOpenFile(const QString &path);
+    Q_INVOKABLE QStringList getAllFiles() const;
 
 signals:
     void scanComplete(int projectCount);

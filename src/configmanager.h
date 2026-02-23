@@ -31,6 +31,7 @@ class ConfigManager : public QObject
     Q_PROPERTY(int splitRightWidth READ splitRightWidth WRITE setSplitRightWidth NOTIFY splitRightWidthChanged)
     Q_PROPERTY(bool autoSaveEnabled READ autoSaveEnabled WRITE setAutoSaveEnabled NOTIFY autoSaveEnabledChanged)
     Q_PROPERTY(int autoSaveInterval READ autoSaveInterval WRITE setAutoSaveInterval NOTIFY autoSaveIntervalChanged)
+    Q_PROPERTY(QStringList recentFiles READ recentFiles WRITE setRecentFiles NOTIFY recentFilesChanged)
 
 public:
     explicit ConfigManager(QObject *parent = nullptr);
@@ -91,6 +92,10 @@ public:
     int autoSaveInterval() const;
     void setAutoSaveInterval(int seconds);
 
+    QStringList recentFiles() const;
+    void setRecentFiles(const QStringList &files);
+    Q_INVOKABLE void addRecentFile(const QString &filePath);
+
     Q_INVOKABLE void load();
     Q_INVOKABLE void save();
 
@@ -115,6 +120,7 @@ signals:
     void splitRightWidthChanged();
     void autoSaveEnabledChanged();
     void autoSaveIntervalChanged();
+    void recentFilesChanged();
     void saveFailed(const QString &message);
 
 private:
@@ -141,4 +147,5 @@ private:
     int m_splitRightWidth = 280;
     bool m_autoSaveEnabled = false;
     int m_autoSaveInterval = 30;
+    QStringList m_recentFiles;
 };

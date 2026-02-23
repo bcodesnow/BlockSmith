@@ -12,6 +12,7 @@
 #include <QClipboard>
 #include <QProcess>
 #include <QPointer>
+#include <functional>
 
 AppController::AppController(QObject *parent)
     : QObject(parent)
@@ -124,6 +125,7 @@ void AppController::openFile(const QString &path)
         }
         m_currentDocument->clear();
         m_jsonlStore->load(path);
+        m_configManager->addRecentFile(path);
         return;
     }
 
@@ -137,6 +139,7 @@ void AppController::openFile(const QString &path)
     }
 
     m_currentDocument->load(path);
+    m_configManager->addRecentFile(path);
 }
 
 void AppController::forceOpenFile(const QString &path)
@@ -149,6 +152,23 @@ void AppController::forceOpenFile(const QString &path)
             m_jsonlStore->clear();
         m_currentDocument->load(path);
     }
+    m_configManager->addRecentFile(path);
+}
+
+QStringList AppController::getAllFiles() const
+{
+    QStringList files;
+    std::function<void(TreeNode*)> collect = [&](TreeNode *node) {
+        if (!node) return;
+        if (node->nodeType() == TreeNode::MdFile) {
+            files.append(node->path());
+            return;
+        }
+        for (int i = 0; i < node->childCount(); i++)
+            collect(node->child(i));
+    };
+    collect(m_projectTreeModel->rootNode());
+    return files;
 }
 
 void AppController::revealInExplorer(const QString &path) const

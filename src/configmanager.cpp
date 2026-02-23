@@ -222,6 +222,26 @@ void ConfigManager::setAutoSaveInterval(int seconds)
     }
 }
 
+QStringList ConfigManager::recentFiles() const { return m_recentFiles; }
+
+void ConfigManager::setRecentFiles(const QStringList &files)
+{
+    if (m_recentFiles != files) {
+        m_recentFiles = files;
+        emit recentFilesChanged();
+    }
+}
+
+void ConfigManager::addRecentFile(const QString &filePath)
+{
+    QStringList files = m_recentFiles;
+    files.removeAll(filePath);
+    files.prepend(filePath);
+    while (files.size() > 10)
+        files.removeLast();
+    setRecentFiles(files);
+}
+
 void ConfigManager::load()
 {
     QFile file(configFilePath());
@@ -308,6 +328,13 @@ void ConfigManager::load()
         m_autoSaveEnabled = root["autoSaveEnabled"].toBool(false);
     if (root.contains("autoSaveInterval"))
         m_autoSaveInterval = qBound(5, root["autoSaveInterval"].toInt(30), 600);
+
+    if (root.contains("recentFiles")) {
+        QStringList files;
+        for (const auto &v : root["recentFiles"].toArray())
+            files.append(v.toString());
+        m_recentFiles = files;
+    }
 }
 
 void ConfigManager::save()
@@ -355,6 +382,11 @@ void ConfigManager::save()
     root["splitRightWidth"] = m_splitRightWidth;
     root["autoSaveEnabled"] = m_autoSaveEnabled;
     root["autoSaveInterval"] = m_autoSaveInterval;
+
+    QJsonArray recentArr;
+    for (const auto &f : m_recentFiles)
+        recentArr.append(f);
+    root["recentFiles"] = recentArr;
 
     QFile file(configFilePath());
     if (!file.open(QIODevice::WriteOnly)) {
