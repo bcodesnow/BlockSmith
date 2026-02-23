@@ -20,15 +20,18 @@ Rectangle {
     signal createPromptRequested(string content)
 
     function openFind() {
-        if (mainContent.editorVisible && AppController.currentDocument.filePath !== "") {
-            findReplaceBar.openFind()
-        }
+        if (AppController.currentDocument.filePath === "") return
+        // Switch to Edit mode if in Preview so the editor is visible
+        if (viewMode === MainContent.ViewMode.Preview)
+            viewMode = MainContent.ViewMode.Edit
+        findReplaceBar.openFind()
     }
 
     function openReplace() {
-        if (mainContent.editorVisible && AppController.currentDocument.filePath !== "") {
-            findReplaceBar.openReplace()
-        }
+        if (AppController.currentDocument.filePath === "") return
+        if (viewMode === MainContent.ViewMode.Preview)
+            viewMode = MainContent.ViewMode.Edit
+        findReplaceBar.openReplace()
     }
 
     // Find/replace logic
@@ -298,7 +301,7 @@ Rectangle {
             Layout.preferredHeight: visible ? implicitHeight : 0
 
             onFindNext: function(text, caseSensitive) {
-                mainContent.performFind(text, caseSensitive, "next")
+                mainContent.findNext(text, caseSensitive)
             }
             onFindPrev: function(text, caseSensitive) {
                 if (mainContent.findMatches.length > 0 && mainContent.findMatchIndex >= 0) {

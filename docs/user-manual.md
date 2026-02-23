@@ -22,6 +22,12 @@
 | Shift+Tab | Outdent |
 | Enter | Auto-continue lists (in list context) |
 | Shift+Enter | Find previous match (in find bar) |
+| Ctrl+Shift+E | Export document (PDF / HTML / DOCX) |
+| Ctrl+W | Close window |
+| Ctrl+= / Ctrl++ | Zoom in (max 200%) |
+| Ctrl+- | Zoom out (min 50%) |
+| Ctrl+0 | Reset zoom to 100% |
+| Ctrl+MouseWheel | Zoom in/out |
 | Escape | Close find bar / dialogs |
 
 ## Data Storage
@@ -193,6 +199,34 @@ BlockSmith includes a built-in viewer for `.jsonl` transcript files — the form
 Enable **Settings > Integrations > Include Claude Code folder** to add your `~/.claude` directory to the project tree. This gives you direct access to Claude Code's conversation transcripts, project configs, and other internal files.
 
 The viewer's content block parsing follows the [Claude Messages API spec](https://docs.anthropic.com/en/api/messages). If Anthropic adds new content block types in the future, the parser in `src/jsonlstore.cpp` can be updated accordingly.
+
+## Exporting Documents
+
+Export the current markdown document to PDF, HTML, or DOCX via **Ctrl+Shift+E**.
+
+### Formats
+
+| Format | Engine | Notes |
+|--------|--------|-------|
+| **PDF** | QWebEnginePage::printToPdf() | Pixel-perfect output matching the preview. A4 page, 15mm margins. |
+| **HTML** | md4c + standalone template | Dark theme CSS embedded. Relative images resolved to absolute paths. |
+| **DOCX** | Pandoc (external) | Requires [pandoc](https://pandoc.org/installing.html) installed on the system. Disabled with warning if not found. |
+
+### Workflow
+
+1. Open a markdown file
+2. Press **Ctrl+Shift+E** (or use the menu)
+3. Select format: PDF (default), HTML, or DOCX
+4. Review the output path (defaults to same directory as source, with matching extension)
+5. Optionally browse to a different output location
+6. Click **Export**
+7. A spinner shows during export; toast notification on completion
+
+### Notes
+
+- Exports use the current editor content (including unsaved changes), not the on-disk version
+- PDF export renders through Chromium (same engine as the preview), so the output matches what you see
+- DOCX export passes the source `.md` file to pandoc, so unsaved changes are **not** included — save first
 
 ## Context Menus
 

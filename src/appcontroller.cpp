@@ -28,6 +28,7 @@ AppController::AppController(QObject *parent)
     , m_fileManager(new FileManager(m_currentDocument, m_configManager, this))
     , m_imageHandler(new ImageHandler(this))
     , m_jsonlStore(new JsonlStore(this))
+    , m_exportManager(new ExportManager(m_md4cRenderer, this))
 {
     connect(m_projectScanner, &ProjectScanner::scanComplete,
             this, [this](int count) {
@@ -90,6 +91,7 @@ SyncEngine *AppController::syncEngine() const { return m_syncEngine; }
 FileManager *AppController::fileManager() const { return m_fileManager; }
 ImageHandler *AppController::imageHandler() const { return m_imageHandler; }
 JsonlStore *AppController::jsonlStore() const { return m_jsonlStore; }
+ExportManager *AppController::exportManager() const { return m_exportManager; }
 QStringList AppController::highlightedFiles() const { return m_highlightedFiles; }
 
 void AppController::highlightBlock(const QString &blockId)

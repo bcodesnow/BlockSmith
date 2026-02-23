@@ -1,6 +1,6 @@
 # BlockSmith Roadmap
 
-**Date:** 2026-02-21
+**Date:** 2026-02-22
 **Baseline:** All 6 phases complete + JSONL viewer, scroll sync, zoom, robustness audit
 
 ---
@@ -118,40 +118,35 @@ Features that speed up daily workflows.
 
 ---
 
-## Phase 10 — Export System
+## Phase 10 — Export System ✓
 
-Generate standalone output files from markdown documents.
+Generate standalone output files from markdown documents. **Completed 2026-02-22.**
 
 ### 10.1 HTML Export
-- Standalone .html with embedded CSS (reuse preview theme CSS)
-- Wrap md4c output in full HTML5 document template with inline styles
-- Include images as relative paths or optionally base64-embedded
-- File save dialog with .html filter
-- **Implementation:** Pure C++ — Md4cRenderer already produces HTML, just wrap in `<html><head><style>...</style></head><body>` template
-- **Files:** src/exportmanager.h/.cpp (new class), qml/components/ExportDialog.qml (new)
+- Standalone .html with embedded CSS (dark theme, matches preview)
+- md4c renders markdown → HTML, wrapped in full HTML5 document template with inline styles
+- Relative image paths resolved to absolute `file:///` URLs using document directory
+- Atomic write via QSaveFile
+- **Files:** src/exportmanager.h/.cpp
 
 ### 10.2 PDF Export
-- Use QPrinter + QTextDocument::setHtml() for native Qt PDF rendering
-- Page size (A4/Letter), margins, header/footer options
-- Code block styling preserved, page breaks at headings
-- Alternative: QWebEnginePage::printToPdf() — uses the WebEngine renderer for pixel-perfect output matching the preview
-- **Recommended:** QWebEnginePage::printToPdf() — zero layout differences from preview, supports mermaid diagrams
-- **Files:** src/exportmanager.h/.cpp, qml/components/ExportDialog.qml
+- QWebEnginePage::printToPdf() — offscreen Chromium renderer for pixel-perfect output
+- A4 page size, 15mm margins (QPageLayout)
+- Loads the same standalone HTML as HTML export, renders via WebEngine
+- Async: loadFinished → printToPdf → pdfPrintingFinished signal chain
+- **Files:** src/exportmanager.h/.cpp
 
-### 10.3 DOCX Export (Optional — Pandoc)
-- Shell out to Pandoc if available on system (`QProcess`)
-- Pass markdown source + reference docx template for styling
-- Gracefully degrade: if Pandoc not found, show message with install link
-- No bundling Pandoc — it's a 100MB+ dependency
-- **Files:** src/exportmanager.h/.cpp (pandoc path detection, QProcess invocation)
+### 10.3 DOCX Export (Pandoc)
+- Shells out to pandoc via QProcess (async)
+- Gracefully degrades: if pandoc not found, radio button disabled with "(pandoc not found)" label
+- **Files:** src/exportmanager.h/.cpp
 
 ### 10.4 Export Dialog
-- Format picker: HTML / PDF / DOCX
-- Output path with file browser
-- Format-specific options (PDF: page size, margins; HTML: embed images toggle)
-- "Export & Overwrite Previous" — remember last export path per document, one-click re-export
+- Format picker: PDF (default) / HTML / DOCX radio buttons
+- Output path TextField pre-filled with default path, browse button opens FileDialog
+- BusyIndicator during export, error label for failures
 - Keyboard shortcut: Ctrl+Shift+E
-- **Files:** qml/components/ExportDialog.qml (new), qml/Main.qml (Shortcut)
+- **Files:** qml/components/ExportDialog.qml (new), qml/Main.qml (Shortcut + instance)
 
 ---
 
@@ -185,12 +180,11 @@ Generate standalone output files from markdown documents.
 | **8** | File Safety | File watcher, auto-save | Medium | ✓ Done |
 | **8.5** | Reliability Hardening | Data-loss guards, async scan/index, JSONL worker isolation | Medium | ✓ Done |
 | **9** | Navigation | Quick switcher, outline panel | Medium | None |
-| **10** | Export | HTML, PDF, DOCX, dialog | Medium-Large | None |
+| **10** | Export | HTML, PDF, DOCX, dialog | Medium-Large | ✓ Done |
 | **11** | Themes | Light theme, switcher, font selection | Medium | None |
 
 Phase 8.5 should be completed before Phase 9.
-Phases 9-11 remain independent after 8.5.
-Phase 10 is self-contained.
+Phases 9 and 11 remain independent.
 Phase 11 touches many files (Theme.qml ripple) — do last.
 
 ---

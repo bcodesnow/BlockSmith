@@ -11,6 +11,7 @@ Rectangle {
 
     signal settingsRequested()
     signal newProjectRequested()
+    signal exportRequested()
     signal fileNewRequested(string dirPath)
     signal folderNewRequested(string dirPath)
     signal fileRenameRequested(string itemPath)
@@ -99,6 +100,32 @@ Rectangle {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: treeView.collapseRecursively()
+                    }
+                }
+
+                // Export
+                Rectangle {
+                    width: 24
+                    height: 24
+                    radius: Theme.radius
+                    color: exportMa.containsMouse ? Theme.bgButtonHov : "transparent"
+                    visible: AppController.currentDocument.filePath !== ""
+                    ToolTip.text: "Export (Ctrl+Shift+E)"
+                    ToolTip.visible: exportMa.containsMouse
+                    ToolTip.delay: 400
+
+                    Label {
+                        anchors.centerIn: parent
+                        text: "\u21E9"
+                        font.pixelSize: 14
+                        color: Theme.textSecondary
+                    }
+                    MouseArea {
+                        id: exportMa
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: navPanel.exportRequested()
                     }
                 }
             }

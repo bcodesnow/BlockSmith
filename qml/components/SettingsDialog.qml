@@ -9,11 +9,13 @@ Dialog {
     parent: Overlay.overlay
     anchors.centerIn: parent
     width: 560
-    height: 760
+    height: 580
 
     modal: true
     title: "Settings"
     standardButtons: Dialog.Save | Dialog.Cancel
+    palette.accent: Theme.accent
+    palette.highlight: Theme.accent
 
     signal scanRequested()
 
@@ -78,298 +80,341 @@ Dialog {
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: Theme.sp12
+        spacing: 0
 
-        Label {
-            text: "Search Paths"
-            font.bold: true
-            color: Theme.textPrimary
-        }
-
-        Label {
-            text: "One directory per line. These will be scanned for projects."
-            color: Theme.textMuted
-            wrapMode: Text.Wrap
+        TabBar {
+            id: tabBar
             Layout.fillWidth: true
-        }
 
-        ScrollView {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            Layout.preferredHeight: 140
-
-            TextArea {
-                id: searchPathsArea
-                placeholderText: "C:/Users/you/projects\nC:/Users/you/work"
-                placeholderTextColor: Theme.textPlaceholder
-                font.family: Theme.fontMono
-                wrapMode: TextArea.NoWrap
-                color: Theme.textEditor
-                background: Rectangle {
-                    color: Theme.bg
-                    radius: Theme.radius
-                    border.color: Theme.border
-                    border.width: 1
-                }
+            TabButton {
+                text: "Projects"
+                width: implicitWidth
+            }
+            TabButton {
+                text: "Editor"
+                width: implicitWidth
+            }
+            TabButton {
+                text: "Integrations"
+                width: implicitWidth
             }
         }
 
-        Label {
-            text: "Ignore Patterns"
-            font.bold: true
-            color: Theme.textPrimary
-        }
-
-        Label {
-            text: "Directory names to skip during scanning. One per line."
-            color: Theme.textMuted
-            wrapMode: Text.Wrap
-            Layout.fillWidth: true
-        }
-
-        ScrollView {
+        StackLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.preferredHeight: 100
+            currentIndex: tabBar.currentIndex
 
-            TextArea {
-                id: ignorePatternsArea
-                placeholderText: "node_modules\n.git\nbuild"
-                placeholderTextColor: Theme.textPlaceholder
-                font.family: Theme.fontMono
-                wrapMode: TextArea.NoWrap
-                color: Theme.textEditor
-                background: Rectangle {
-                    color: Theme.bg
-                    radius: Theme.radius
-                    border.color: Theme.border
-                    border.width: 1
-                }
-            }
-        }
+            // ── Tab 0: Projects ──
+            ColumnLayout {
+                spacing: Theme.sp12
+                Layout.topMargin: Theme.sp12
 
-        Label {
-            text: "Project Markers"
-            font.bold: true
-            color: Theme.textPrimary
-        }
-
-        Label {
-            text: "File or directory names that mark a project root (e.g. CLAUDE.md, .git)."
-            color: Theme.textMuted
-            wrapMode: Text.Wrap
-            Layout.fillWidth: true
-        }
-
-        ScrollView {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            Layout.preferredHeight: 80
-
-            TextArea {
-                id: triggerFilesArea
-                placeholderText: "CLAUDE.md\nAGENTS.md\n.git"
-                placeholderTextColor: Theme.textPlaceholder
-                font.family: Theme.fontMono
-                wrapMode: TextArea.NoWrap
-                color: Theme.textEditor
-                background: Rectangle {
-                    color: Theme.bg
-                    radius: Theme.radius
-                    border.color: Theme.border
-                    border.width: 1
-                }
-            }
-        }
-
-        // Separator
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 1
-            color: Theme.border
-        }
-
-        Label {
-            text: "Options"
-            font.bold: true
-            color: Theme.textPrimary
-        }
-
-        CheckBox {
-            id: autoScanCheck
-            text: "Auto-scan on startup"
-            checked: true
-        }
-
-        CheckBox {
-            id: syntaxHighlightCheck
-            text: "Syntax highlighting in editor"
-            checked: true
-        }
-
-        RowLayout {
-            spacing: Theme.sp8
-
-            Label {
-                text: "Scan depth:"
-            }
-
-            SpinBox {
-                id: scanDepthSpin
-                from: 0
-                to: 50
-                value: 0
-                editable: true
-
-                textFromValue: function(value) {
-                    return value === 0 ? "Unlimited" : value.toString()
+                Label {
+                    text: "Search Paths"
+                    font.bold: true
+                    color: Theme.textPrimary
                 }
 
-                valueFromText: function(text) {
-                    if (text.toLowerCase() === "unlimited") return 0
-                    return parseInt(text) || 0
+                Label {
+                    text: "One directory per line. These will be scanned for projects."
+                    color: Theme.textMuted
+                    wrapMode: Text.Wrap
+                    Layout.fillWidth: true
                 }
-            }
 
-            Label {
-                text: "0 = unlimited"
-                color: Theme.textMuted
-            }
-        }
+                ScrollView {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.minimumHeight: 80
 
-        RowLayout {
-            spacing: Theme.sp8
-
-            Label {
-                text: "Image subfolder:"
-            }
-
-            TextField {
-                id: imageSubfolderField
-                text: "images"
-                Layout.preferredWidth: 150
-                font.family: Theme.fontMono
-                color: Theme.textEditor
-                background: Rectangle {
-                    color: Theme.bg
-                    radius: Theme.radius
-                    border.color: Theme.border
-                    border.width: 1
+                    TextArea {
+                        id: searchPathsArea
+                        placeholderText: "C:/Users/you/projects\nC:/Users/you/work"
+                        placeholderTextColor: Theme.textPlaceholder
+                        font.family: Theme.fontMono
+                        wrapMode: TextArea.NoWrap
+                        color: Theme.textEditor
+                        background: Rectangle {
+                            color: Theme.bg
+                            radius: Theme.radius
+                            border.color: Theme.border
+                            border.width: 1
+                        }
+                    }
                 }
+
+                Label {
+                    text: "Ignore Patterns"
+                    font.bold: true
+                    color: Theme.textPrimary
+                }
+
+                Label {
+                    text: "Directory names to skip during scanning. One per line."
+                    color: Theme.textMuted
+                    wrapMode: Text.Wrap
+                    Layout.fillWidth: true
+                }
+
+                ScrollView {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.minimumHeight: 60
+
+                    TextArea {
+                        id: ignorePatternsArea
+                        placeholderText: "node_modules\n.git\nbuild"
+                        placeholderTextColor: Theme.textPlaceholder
+                        font.family: Theme.fontMono
+                        wrapMode: TextArea.NoWrap
+                        color: Theme.textEditor
+                        background: Rectangle {
+                            color: Theme.bg
+                            radius: Theme.radius
+                            border.color: Theme.border
+                            border.width: 1
+                        }
+                    }
+                }
+
+                Label {
+                    text: "Project Markers"
+                    font.bold: true
+                    color: Theme.textPrimary
+                }
+
+                Label {
+                    text: "File or directory names that mark a project root (e.g. CLAUDE.md, .git)."
+                    color: Theme.textMuted
+                    wrapMode: Text.Wrap
+                    Layout.fillWidth: true
+                }
+
+                ScrollView {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.minimumHeight: 50
+
+                    TextArea {
+                        id: triggerFilesArea
+                        placeholderText: "CLAUDE.md\nAGENTS.md\n.git"
+                        placeholderTextColor: Theme.textPlaceholder
+                        font.family: Theme.fontMono
+                        wrapMode: TextArea.NoWrap
+                        color: Theme.textEditor
+                        background: Rectangle {
+                            color: Theme.bg
+                            radius: Theme.radius
+                            border.color: Theme.border
+                            border.width: 1
+                        }
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 1
+                    color: Theme.border
+                }
+
+                CheckBox {
+                    id: autoScanCheck
+                    text: "Auto-scan on startup"
+                    checked: true
+
+                }
+
+                RowLayout {
+                    spacing: Theme.sp8
+
+                    Label { text: "Scan depth:" }
+
+                    SpinBox {
+                        id: scanDepthSpin
+                        from: 0
+                        to: 50
+                        value: 0
+                        editable: true
+
+                        textFromValue: function(value) {
+                            return value === 0 ? "Unlimited" : value.toString()
+                        }
+                        valueFromText: function(text) {
+                            if (text.toLowerCase() === "unlimited") return 0
+                            return parseInt(text) || 0
+                        }
+                    }
+
+                    Label {
+                        text: "0 = unlimited"
+                        color: Theme.textMuted
+                    }
+                }
+
+                Item { Layout.fillHeight: true }
             }
 
-            Label {
-                text: "Relative to document"
-                color: Theme.textMuted
+            // ── Tab 1: Editor ──
+            ColumnLayout {
+                spacing: Theme.sp12
+                Layout.topMargin: Theme.sp12
+
+                CheckBox {
+                    id: syntaxHighlightCheck
+                    text: "Syntax highlighting in editor"
+                    checked: true
+
+                }
+
+                RowLayout {
+                    spacing: Theme.sp8
+
+                    Label { text: "Image subfolder:" }
+
+                    TextField {
+                        id: imageSubfolderField
+                        text: "images"
+                        Layout.preferredWidth: 150
+                        font.family: Theme.fontMono
+                        color: Theme.textEditor
+                        background: Rectangle {
+                            color: Theme.bg
+                            radius: Theme.radius
+                            border.color: Theme.border
+                            border.width: 1
+                        }
+                    }
+
+                    Label {
+                        text: "Relative to document"
+                        color: Theme.textMuted
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 1
+                    color: Theme.border
+                }
+
+                Label {
+                    text: "Status Bar"
+                    font.bold: true
+                    color: Theme.textPrimary
+                }
+
+                Flow {
+                    Layout.fillWidth: true
+                    spacing: Theme.sp16
+
+                    CheckBox {
+                        id: sbWordCountCheck
+                        text: "Word count"
+                        checked: true
+    
+                    }
+                    CheckBox {
+                        id: sbCharCountCheck
+                        text: "Character count"
+                        checked: true
+    
+                    }
+                    CheckBox {
+                        id: sbLineCountCheck
+                        text: "Line count"
+                        checked: true
+    
+                    }
+                    CheckBox {
+                        id: sbReadingTimeCheck
+                        text: "Reading time"
+                        checked: true
+    
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 1
+                    color: Theme.border
+                }
+
+                Label {
+                    text: "Auto-Save"
+                    font.bold: true
+                    color: Theme.textPrimary
+                }
+
+                CheckBox {
+                    id: autoSaveCheck
+                    text: "Enable auto-save"
+                    checked: false
+
+                }
+
+                RowLayout {
+                    spacing: Theme.sp8
+                    enabled: autoSaveCheck.checked
+                    opacity: enabled ? 1.0 : 0.5
+
+                    Label { text: "Interval:" }
+
+                    SpinBox {
+                        id: autoSaveIntervalSpin
+                        from: 5
+                        to: 600
+                        value: 30
+                        editable: true
+                        stepSize: 5
+                    }
+
+                    Label {
+                        text: "seconds"
+                        color: Theme.textMuted
+                    }
+                }
+
+                Item { Layout.fillHeight: true }
             }
-        }
 
-        // Separator
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 1
-            color: Theme.border
-        }
+            // ── Tab 2: Integrations ──
+            ColumnLayout {
+                spacing: Theme.sp12
+                Layout.topMargin: Theme.sp12
 
-        Label {
-            text: "Integrations"
-            font.bold: true
-            color: Theme.textPrimary
-        }
+                Label {
+                    text: "Claude Code"
+                    font.bold: true
+                    color: Theme.textPrimary
+                }
 
-        CheckBox {
-            id: claudeCodeCheck
-            text: "Include Claude Code folder"
-            checked: false
-        }
+                CheckBox {
+                    id: claudeCodeCheck
+                    text: "Include Claude Code folder in project tree"
+                    checked: false
 
-        Label {
-            text: AppController.configManager.claudeCodeFolderPath()
-            color: Theme.textMuted
-            font.family: Theme.fontMono
-            font.pixelSize: Theme.fontSizeXS
-            Layout.leftMargin: 24
-        }
+                }
 
-        // Separator
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 1
-            color: Theme.border
-        }
+                Label {
+                    text: AppController.configManager.claudeCodeFolderPath()
+                    color: Theme.textMuted
+                    font.family: Theme.fontMono
+                    font.pixelSize: Theme.fontSizeXS
+                    Layout.leftMargin: 24
+                }
 
-        Label {
-            text: "Status Bar"
-            font.bold: true
-            color: Theme.textPrimary
-        }
+                Label {
+                    text: "Adds ~/.claude to the project tree for browsing transcripts,\nproject configs, and other Claude Code internal files."
+                    color: Theme.textMuted
+                    font.pixelSize: Theme.fontSizeXS
+                    wrapMode: Text.Wrap
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 24
+                    lineHeight: 1.3
+                }
 
-        Flow {
-            Layout.fillWidth: true
-            spacing: Theme.sp16
-
-            CheckBox {
-                id: sbWordCountCheck
-                text: "Word count"
-                checked: true
-            }
-            CheckBox {
-                id: sbCharCountCheck
-                text: "Character count"
-                checked: true
-            }
-            CheckBox {
-                id: sbLineCountCheck
-                text: "Line count"
-                checked: true
-            }
-            CheckBox {
-                id: sbReadingTimeCheck
-                text: "Reading time"
-                checked: true
-            }
-        }
-
-        // Separator
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 1
-            color: Theme.border
-        }
-
-        Label {
-            text: "Auto-Save"
-            font.bold: true
-            color: Theme.textPrimary
-        }
-
-        CheckBox {
-            id: autoSaveCheck
-            text: "Enable auto-save"
-            checked: false
-        }
-
-        RowLayout {
-            spacing: Theme.sp8
-            enabled: autoSaveCheck.checked
-            opacity: enabled ? 1.0 : 0.5
-
-            Label {
-                text: "Interval:"
-            }
-
-            SpinBox {
-                id: autoSaveIntervalSpin
-                from: 5
-                to: 600
-                value: 30
-                editable: true
-                stepSize: 5
-            }
-
-            Label {
-                text: "seconds"
-                color: Theme.textMuted
+                Item { Layout.fillHeight: true }
             }
         }
     }

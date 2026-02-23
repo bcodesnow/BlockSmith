@@ -48,6 +48,7 @@ qt_add_qml_module(BlockSmith
         qml/components/SplashOverlay.qml
         qml/components/JsonlViewer.qml
         qml/components/JsonlEntryCard.qml
+        qml/components/ExportDialog.qml
     SOURCES
         src/configmanager.h src/configmanager.cpp
         src/md4crenderer.h src/md4crenderer.cpp
@@ -62,6 +63,7 @@ qt_add_qml_module(BlockSmith
         src/filemanager.h src/filemanager.cpp
         src/imagehandler.h src/imagehandler.cpp
         src/jsonlstore.h src/jsonlstore.cpp
+        src/exportmanager.h src/exportmanager.cpp
         src/scrollbridge.h src/scrollbridge.cpp
 )
 

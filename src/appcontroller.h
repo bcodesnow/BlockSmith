@@ -17,6 +17,7 @@
 #include "filemanager.h"
 #include "imagehandler.h"
 #include "jsonlstore.h"
+#include "exportmanager.h"
 
 class AppController : public QObject
 {
@@ -35,6 +36,7 @@ class AppController : public QObject
     Q_PROPERTY(FileManager* fileManager READ fileManager CONSTANT)
     Q_PROPERTY(ImageHandler* imageHandler READ imageHandler CONSTANT)
     Q_PROPERTY(JsonlStore* jsonlStore READ jsonlStore CONSTANT)
+    Q_PROPERTY(ExportManager* exportManager READ exportManager CONSTANT)
     Q_PROPERTY(QStringList highlightedFiles READ highlightedFiles NOTIFY highlightedFilesChanged)
 
 public:
@@ -53,6 +55,7 @@ public:
     FileManager *fileManager() const;
     ImageHandler *imageHandler() const;
     JsonlStore *jsonlStore() const;
+    ExportManager *exportManager() const;
     QStringList highlightedFiles() const;
 
     Q_INVOKABLE void searchFiles(const QString &query);
@@ -86,6 +89,7 @@ private:
     FileManager *m_fileManager = nullptr;
     ImageHandler *m_imageHandler = nullptr;
     JsonlStore *m_jsonlStore = nullptr;
+    ExportManager *m_exportManager = nullptr;
     QStringList m_highlightedFiles;
     std::shared_ptr<std::atomic<bool>> m_searchCancel;
 };

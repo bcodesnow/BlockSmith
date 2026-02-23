@@ -462,12 +462,23 @@ Item {
                 color: Theme.cursorColor
 
                 SequentialAnimation on opacity {
+                    id: cursorBlink
                     running: textArea.activeFocus
                     loops: Animation.Infinite
                     NumberAnimation { to: 1.0; duration: 0 }
                     PauseAnimation { duration: 530 }
                     NumberAnimation { to: 0.0; duration: 120 }
                     PauseAnimation { duration: 350 }
+                }
+
+                // Reset cursor visibility on focus gain so it's never stuck invisible
+                Connections {
+                    target: textArea
+                    function onActiveFocusChanged() {
+                        if (textArea.activeFocus) {
+                            cursorBlink.restart()
+                        }
+                    }
                 }
             }
 

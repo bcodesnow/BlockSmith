@@ -76,6 +76,10 @@ ApplicationWindow {
         id: fileOpDialog
     }
 
+    ExportDialog {
+        id: exportDialog
+    }
+
     // Unsaved changes dialog
     Dialog {
         id: unsavedDialog
@@ -259,6 +263,13 @@ ApplicationWindow {
             searchDialog.focusSearch()
         }
     }
+    Shortcut {
+        sequence: "Ctrl+Shift+E"
+        onActivated: {
+            if (AppController.currentDocument.filePath !== "")
+                exportDialog.openDialog()
+        }
+    }
 
     // Zoom shortcuts
     Shortcut {
@@ -279,12 +290,29 @@ ApplicationWindow {
         sequence: "Ctrl+0"
         onActivated: AppController.configManager.zoomLevel = 100
     }
+    Shortcut {
+        sequence: "Ctrl+W"
+        onActivated: root.close()
+    }
 
     SplitView {
         id: mainLayout
         anchors.fill: parent
         orientation: Qt.Horizontal
         opacity: 0
+
+        handle: Rectangle {
+            implicitWidth: 3
+            implicitHeight: 3
+            color: SplitHandle.pressed ? Theme.accent
+                 : SplitHandle.hovered ? Theme.borderHover
+                 : Theme.border
+            containmentMask: Item {
+                x: parent ? (parent.width - width) / 2 : 0
+                width: 12
+                height: parent ? parent.height : 0
+            }
+        }
 
         // Left nav pane
         NavPanel {
@@ -293,6 +321,7 @@ ApplicationWindow {
             SplitView.minimumWidth: 180
             onSettingsRequested: settingsDialog.open()
             onNewProjectRequested: newProjectDialog.openDialog()
+            onExportRequested: exportDialog.openDialog()
             onFileNewRequested: function(dirPath) { fileOpDialog.openNewFile(dirPath) }
             onFolderNewRequested: function(dirPath) { fileOpDialog.openNewFolder(dirPath) }
             onFileRenameRequested: function(itemPath) { fileOpDialog.openRename(itemPath) }

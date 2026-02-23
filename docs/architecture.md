@@ -33,6 +33,7 @@ Project tree     |  Markdown editor/preview|  Blocks / Prompts tabs
 | FileManager | File operations (create, rename, delete, duplicate, move) |
 | ImageHandler | Clipboard image paste, drag-drop copy, image path utilities |
 | JsonlStore | JSONL transcript viewer — threaded parser, filtered list model |
+| ExportManager | Export to HTML, PDF (WebEngine), DOCX (pandoc) |
 
 ## Project Structure
 
@@ -53,6 +54,7 @@ src/
   filemanager.h / .cpp         # File create/rename/delete/duplicate/move
   imagehandler.h / .cpp        # Clipboard/file image operations
   jsonlstore.h / .cpp          # JSONL transcript viewer (threaded parser + list model)
+  exportmanager.h / .cpp       # Export to HTML, PDF, DOCX
 third_party/
   md4c/                        # md4c library (MIT license)
 qml/
@@ -83,6 +85,7 @@ qml/
     SplashOverlay.qml          # Startup splash with logo + spinner
     JsonlViewer.qml            # JSONL transcript viewer panel
     JsonlEntryCard.qml         # Entry card with role badge + preview
+    ExportDialog.qml           # Export format picker (PDF/HTML/DOCX)
 resources/
   icons/                       # Multi-size app icons (16-1024px)
   preview/
@@ -211,10 +214,18 @@ Content here...
 - JSONL worker isolation: generation tokens prevent stale worker signals from leaking
 - Drop URL path decoding: dropped image URLs decoded for %20 and unicode
 
+### Export
+- Export current document to HTML, PDF, or DOCX via Ctrl+Shift+E
+- **HTML** — standalone HTML5 with embedded dark theme CSS, relative images resolved to file:// URLs
+- **PDF** — pixel-perfect via QWebEnginePage::printToPdf() (offscreen Chromium, A4, 15mm margins)
+- **DOCX** — pandoc via QProcess (graceful degradation if not installed)
+- Export dialog with format radio buttons, output path picker, browse FileDialog, progress indicator
+- Default output path: same directory as source file, matching extension
+
 ### UI & Polish
 - Dark theme (Fusion style) with centralized Theme singleton
 - Forced English UI locale (QLocale::setDefault) — consistent button labels
-- 3-pane SplitView layout with persisted splitter widths
+- 3-pane SplitView layout with custom draggable handles (12px hit area) and persisted splitter widths
 - Startup splash overlay with app logo, spinner, and status text (fades out after scan)
 - Toast notifications for save, load errors, scan results, clipboard
 - Unsaved changes dialog (Save/Discard/Cancel on file switch)
@@ -223,9 +234,10 @@ Content here...
 - Keyboard shortcuts:
   - Ctrl+S (save), Ctrl+R (reload), Ctrl+E (cycle Edit/Split/Preview)
   - Ctrl+F (find), Ctrl+H (replace), Ctrl+Shift+F (global search)
-  - Ctrl+Shift+S / F5 (scan), Ctrl+, (settings)
+  - Ctrl+Shift+E (export), Ctrl+Shift+S / F5 (scan), Ctrl+, (settings)
   - Ctrl+B (bold), Ctrl+I (italic), Ctrl+Shift+K (inline code)
   - Ctrl+D (duplicate line), Tab/Shift+Tab (indent/outdent)
+  - Ctrl+W (close window), Ctrl+=/Ctrl+- (zoom), Ctrl+0 (reset zoom)
 - Window geometry persistence
 - Splitter width persistence (left nav + right pane)
 - Multi-size app icon (16-1024px PNGs + ICO)
