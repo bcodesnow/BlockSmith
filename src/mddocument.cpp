@@ -1,10 +1,10 @@
 #include "mddocument.h"
+#include "utils.h"
 
 #include <QFile>
 #include <QDir>
 #include <QTextStream>
 #include <QRegularExpression>
-#include <QStringConverter>
 #include <QSaveFile>
 
 MdDocument::MdDocument(QObject *parent)
@@ -26,26 +26,17 @@ void MdDocument::load(const QString &filePath)
     }
 
     // Detect encoding from BOM and configure stream accordingly
-    QByteArray bom = file.peek(4);
-    QString detectedEncoding = QStringLiteral("UTF-8");
-    auto streamEncoding = QStringConverter::Utf8;
+    bool hasBom = false;
+    auto streamEncoding = Utils::detectBomEncoding(file, hasBom);
 
-    if (bom.size() >= 3
-        && static_cast<unsigned char>(bom[0]) == 0xEF
-        && static_cast<unsigned char>(bom[1]) == 0xBB
-        && static_cast<unsigned char>(bom[2]) == 0xBF) {
-        detectedEncoding = QStringLiteral("UTF-8 BOM");
-        streamEncoding = QStringConverter::Utf8;
-    } else if (bom.size() >= 2
-               && static_cast<unsigned char>(bom[0]) == 0xFF
-               && static_cast<unsigned char>(bom[1]) == 0xFE) {
-        detectedEncoding = QStringLiteral("UTF-16 LE");
-        streamEncoding = QStringConverter::Utf16LE;
-    } else if (bom.size() >= 2
-               && static_cast<unsigned char>(bom[0]) == 0xFE
-               && static_cast<unsigned char>(bom[1]) == 0xFF) {
-        detectedEncoding = QStringLiteral("UTF-16 BE");
-        streamEncoding = QStringConverter::Utf16BE;
+    QString detectedEncoding = QStringLiteral("UTF-8");
+    if (hasBom) {
+        switch (streamEncoding) {
+        case QStringConverter::Utf8:    detectedEncoding = QStringLiteral("UTF-8 BOM"); break;
+        case QStringConverter::Utf16LE: detectedEncoding = QStringLiteral("UTF-16 LE"); break;
+        case QStringConverter::Utf16BE: detectedEncoding = QStringLiteral("UTF-16 BE"); break;
+        default: break;
+        }
     }
 
     QTextStream in(&file);

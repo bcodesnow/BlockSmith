@@ -3,7 +3,6 @@
 #include <QObject>
 #include <QQmlEngine>
 #include <QtQml/qqmlregistration.h>
-#include <QFutureWatcher>
 #include <atomic>
 
 #include "configmanager.h"

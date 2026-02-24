@@ -51,6 +51,10 @@ qt_add_qml_module(BlockSmith
         qml/components/ExportDialog.qml
         qml/components/QuickSwitcher.qml
         qml/components/OutlinePanel.qml
+        qml/components/EditorStatusBar.qml
+        qml/components/NavContextMenu.qml
+        qml/components/NavFooterBar.qml
+        qml/components/JsonlFilterBar.qml
     SOURCES
         src/configmanager.h src/configmanager.cpp
         src/md4crenderer.h src/md4crenderer.cpp
@@ -67,6 +71,7 @@ qt_add_qml_module(BlockSmith
         src/jsonlstore.h src/jsonlstore.cpp
         src/exportmanager.h src/exportmanager.cpp
         src/scrollbridge.h src/scrollbridge.cpp
+        src/utils.h src/utils.cpp
 )
 
 qt_add_resources(BlockSmith "icons"

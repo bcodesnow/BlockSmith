@@ -463,8 +463,14 @@ void JsonlStore::rebuildFiltered()
 
 void JsonlStore::stopWorker()
 {
-    if (m_workerThread && m_workerThread->isRunning()) {
-        m_workerThread->quit();
-        m_workerThread->wait(2000);
+    if (m_workerThread) {
+        if (m_workerThread->isRunning()) {
+            m_workerThread->quit();
+            if (!m_workerThread->wait(2000)) {
+                m_workerThread->terminate();
+                m_workerThread->wait();
+            }
+        }
+        m_workerThread = nullptr;
     }
 }

@@ -1,4 +1,5 @@
 #include "blockstore.h"
+#include "utils.h"
 
 #include <QFile>
 #include <QSaveFile>
@@ -6,7 +7,6 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QDir>
-#include <QRandomGenerator>
 
 BlockStore::BlockStore(const QString &dbPath, QObject *parent)
     : QAbstractListModel(parent)
@@ -219,13 +219,19 @@ QStringList BlockStore::allTags() const
 void BlockStore::load()
 {
     QFile file(m_dbPath);
-    if (!file.open(QIODevice::ReadOnly)) return;
+    if (!file.open(QIODevice::ReadOnly)) {
+        qWarning("BlockStore: failed to open %s", qPrintable(m_dbPath));
+        return;
+    }
 
     QJsonParseError err;
     QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &err);
     file.close();
 
-    if (err.error != QJsonParseError::NoError || !doc.isObject()) return;
+    if (err.error != QJsonParseError::NoError || !doc.isObject()) {
+        qWarning("BlockStore: JSON parse error in %s: %s", qPrintable(m_dbPath), qPrintable(err.errorString()));
+        return;
+    }
 
     QJsonObject root = doc.object();
     QJsonObject blocksObj = root["blocks"].toObject();
@@ -331,11 +337,7 @@ void BlockStore::rebuildFiltered()
 
 QString BlockStore::generateId() const
 {
-    auto *rng = QRandomGenerator::global();
-    QString id;
-    do {
-        quint32 val = rng->bounded(0x1000000u); // 24 bits = 6 hex chars
-        id = QString::number(val, 16).rightJustified(6, '0');
-    } while (m_blocks.contains(id));
-    return id;
+    return Utils::generateHexId(24, QString(), [this](const QString &id) {
+        return m_blocks.contains(id);
+    });
 }

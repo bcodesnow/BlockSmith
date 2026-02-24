@@ -16,18 +16,27 @@ Dialog {
     standardButtons: Dialog.Close
 
     property var results: []
+    property int selectedIndex: -1
 
     function focusSearch() {
         searchInput.forceActiveFocus()
         searchInput.selectAll()
     }
 
+    function acceptCurrent() {
+        if (selectedIndex >= 0 && selectedIndex < results.length) {
+            AppController.openFile(results[selectedIndex].filePath)
+            searchDialog.close()
+        }
+    }
+
     onOpened: focusSearch()
 
     Connections {
         target: AppController
-        function onSearchResultsReady(results) {
-            searchDialog.results = results
+        function onSearchResultsReady(r) {
+            searchDialog.results = r
+            searchDialog.selectedIndex = r.length > 0 ? 0 : -1
         }
     }
 
@@ -67,9 +76,25 @@ Dialog {
                     onTextChanged: {
                         if (text.length < 2) {
                             searchDialog.results = []
+                            searchDialog.selectedIndex = -1
                             searchTimer.stop()
                         } else {
                             searchTimer.restart()
+                        }
+                    }
+
+                    Keys.onPressed: function(event) {
+                        if (event.key === Qt.Key_Down) {
+                            if (searchDialog.results.length > 0 && searchDialog.selectedIndex < searchDialog.results.length - 1)
+                                searchDialog.selectedIndex++
+                            event.accepted = true
+                        } else if (event.key === Qt.Key_Up) {
+                            if (searchDialog.selectedIndex > 0)
+                                searchDialog.selectedIndex--
+                            event.accepted = true
+                        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                            searchDialog.acceptCurrent()
+                            event.accepted = true
                         }
                     }
                 }
@@ -93,16 +118,20 @@ Dialog {
 
         // Results list
         ListView {
+            id: resultsList
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
             model: searchDialog.results
+            currentIndex: searchDialog.selectedIndex
             spacing: 1
 
             delegate: Rectangle {
                 width: ListView.view.width
                 height: resultLayout.implicitHeight + 8
-                color: resultMa.containsMouse ? Theme.bgCardHov : Theme.bgPanel
+                color: index === searchDialog.selectedIndex
+                       ? Theme.bgSelection
+                       : (resultMa.containsMouse ? Theme.bgCardHov : Theme.bgPanel)
                 radius: 2
 
                 MouseArea {

@@ -84,6 +84,8 @@ Rectangle {
                     else
                         findBar.findNext(text, caseSensitiveBtn.checked)
                 }
+                Keys.onUpPressed: findBar.findPrev(text, caseSensitiveBtn.checked)
+                Keys.onDownPressed: findBar.findNext(text, caseSensitiveBtn.checked)
             }
 
             // Match counter

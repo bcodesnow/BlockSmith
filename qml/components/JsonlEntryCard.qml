@@ -26,22 +26,9 @@ Rectangle {
         height: parent.height - 2
         x: 1; y: 1
         radius: Theme.radius
-        color: roleColor(card.roleName)
+        color: Theme.roleColor(card.roleName)
         opacity: cardMa.containsMouse ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: 120 } }
-    }
-
-    // Role badge color
-    function roleColor(role) {
-        switch (role) {
-        case "user":       return Theme.accent
-        case "assistant":  return Theme.accentGreen
-        case "system":     return Theme.accentGold
-        case "tool":       return Theme.accentPurple
-        case "progress":   return Theme.textMuted
-        case "error":      return Theme.accentRed
-        default:           return Theme.textSecondary
-        }
     }
 
     // Short role label
@@ -89,10 +76,10 @@ Rectangle {
                 Layout.preferredWidth: roleBadgeLabel.implicitWidth + 12
                 Layout.preferredHeight: 18
                 radius: 9
-                color: Qt.rgba(roleColor(card.roleName).r,
-                               roleColor(card.roleName).g,
-                               roleColor(card.roleName).b, 0.2)
-                border.color: roleColor(card.roleName)
+                color: Qt.rgba(Theme.roleColor(card.roleName).r,
+                               Theme.roleColor(card.roleName).g,
+                               Theme.roleColor(card.roleName).b, 0.2)
+                border.color: Theme.roleColor(card.roleName)
                 border.width: 1
 
                 Label {
@@ -100,7 +87,7 @@ Rectangle {
                     anchors.centerIn: parent
                     text: card.roleLabel(card.roleName)
                     font.pixelSize: Theme.fontSizeS
-                    color: roleColor(card.roleName)
+                    color: Theme.roleColor(card.roleName)
                 }
             }
 

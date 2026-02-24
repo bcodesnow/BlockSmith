@@ -271,122 +271,17 @@ Rectangle {
                 }
             }
 
-            Menu {
+            NavContextMenu {
                 id: treeContextMenu
-                property string targetPath: ""
-                property int targetNodeType: -1
-
-                // nodeType: 0=project, 1=dir, 2=file
-                // For dirs/projects, resolve to dir path; for files, use parent dir
-                function targetDir() {
-                    if (targetNodeType === 2) {
-                        let p = targetPath.replace(/\\/g, "/")
-                        return p.substring(0, p.lastIndexOf("/"))
-                    }
-                    return targetPath
-                }
-
-                MenuItem {
-                    text: "Open"
-                    visible: treeContextMenu.targetNodeType === 2
-                    height: visible ? implicitHeight : 0
-                    onTriggered: AppController.openFile(treeContextMenu.targetPath)
-                }
-
-                MenuSeparator {
-                    visible: treeContextMenu.targetNodeType !== 2
-                    height: visible ? implicitHeight : 0
-                }
-
-                MenuItem {
-                    text: "New File..."
-                    visible: treeContextMenu.targetNodeType !== 2
-                    height: visible ? implicitHeight : 0
-                    onTriggered: navPanel.fileNewRequested(treeContextMenu.targetDir())
-                }
-
-                MenuItem {
-                    text: "New Folder..."
-                    visible: treeContextMenu.targetNodeType !== 2
-                    height: visible ? implicitHeight : 0
-                    onTriggered: navPanel.folderNewRequested(treeContextMenu.targetDir())
-                }
-
-                MenuSeparator {}
-
-                MenuItem {
-                    text: "Rename..."
-                    visible: treeContextMenu.targetNodeType !== 0
-                    height: visible ? implicitHeight : 0
-                    onTriggered: navPanel.fileRenameRequested(treeContextMenu.targetPath)
-                }
-
-                MenuItem {
-                    text: "Duplicate"
-                    visible: treeContextMenu.targetNodeType === 2
-                    height: visible ? implicitHeight : 0
-                    onTriggered: {
-                        let err = AppController.fileManager.duplicateFile(treeContextMenu.targetPath)
-                        if (err && err.length > 0)
-                            console.warn("Duplicate failed:", err)
-                    }
-                }
-
-                MenuItem {
-                    text: "Cut"
-                    visible: treeContextMenu.targetNodeType !== 0
-                    height: visible ? implicitHeight : 0
-                    onTriggered: navPanel.cutItemPath = treeContextMenu.targetPath
-                }
-
-                MenuItem {
-                    text: "Paste"
-                    visible: treeContextMenu.targetNodeType !== 2 && navPanel.cutItemPath.length > 0
-                    height: visible ? implicitHeight : 0
-                    onTriggered: {
-                        let err = AppController.fileManager.moveItem(
-                            navPanel.cutItemPath, treeContextMenu.targetDir())
-                        navPanel.cutItemPath = ""
-                        if (err && err.length > 0)
-                            console.warn("Paste failed:", err)
-                    }
-                }
-
-                MenuSeparator {
-                    visible: treeContextMenu.targetNodeType !== 0
-                    height: visible ? implicitHeight : 0
-                }
-
-                MenuItem {
-                    text: "Delete..."
-                    visible: treeContextMenu.targetNodeType !== 0
-                    height: visible ? implicitHeight : 0
-                    onTriggered: {
-                        deleteDialog.itemPath = treeContextMenu.targetPath
-                        let parts = treeContextMenu.targetPath.replace(/\\/g, "/").split("/")
-                        deleteDialog.itemName = parts[parts.length - 1]
-                        deleteDialog.open()
-                    }
-                }
-
-                MenuSeparator {}
-
-                MenuItem {
-                    text: "Reveal in Explorer"
-                    onTriggered: AppController.revealInExplorer(treeContextMenu.targetPath)
-                }
-
-                MenuItem {
-                    text: "Copy Path"
-                    onTriggered: AppController.copyToClipboard(treeContextMenu.targetPath)
-                }
-
-                MenuItem {
-                    text: "Copy Name"
-                    onTriggered: {
-                        let parts = treeContextMenu.targetPath.replace(/\\/g, "/").split("/")
-                        AppController.copyToClipboard(parts[parts.length - 1])
-                    }
+                cutItemPath: navPanel.cutItemPath
+                onFileNewRequested: function(dirPath) { navPanel.fileNewRequested(dirPath) }
+                onFolderNewRequested: function(dirPath) { navPanel.folderNewRequested(dirPath) }
+                onFileRenameRequested: function(itemPath) { navPanel.fileRenameRequested(itemPath) }
+                onCutPathChanged: function(newPath) { navPanel.cutItemPath = newPath }
+                onDeleteRequested: function(itemPath, itemName) {
+                    deleteDialog.itemPath = itemPath
+                    deleteDialog.itemName = itemName
+                    deleteDialog.open()
                 }
             }
 
@@ -437,107 +332,10 @@ Rectangle {
         }
 
         // Footer with buttons
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 44
-            color: Theme.bgHeader
-
-            RowLayout {
-                anchors.fill: parent
-                anchors.margins: 6
-                spacing: 6
-
-                Button {
-                    Layout.fillWidth: true
-                    flat: true
-                    palette.buttonText: Theme.textPrimary
-                    background: Rectangle {
-                        color: parent.hovered ? Theme.bgButtonHov : Theme.bgButton
-                        radius: Theme.radius
-                        border.color: Theme.borderHover
-                        border.width: 1
-                    }
-                    onClicked: AppController.scan()
-
-                    contentItem: Row {
-                        anchors.centerIn: parent
-                        spacing: 5
-                        Label {
-                            text: "\u21BB"
-                            font.pixelSize: 14
-                            color: Theme.textPrimary
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                        Label {
-                            text: "Scan"
-                            font.pixelSize: Theme.fontSizeM
-                            color: Theme.textPrimary
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                    }
-                }
-
-                Button {
-                    Layout.fillWidth: true
-                    flat: true
-                    palette.buttonText: Theme.textPrimary
-                    background: Rectangle {
-                        color: parent.hovered ? Theme.bgButtonHov : Theme.bgButton
-                        radius: Theme.radius
-                        border.color: Theme.borderHover
-                        border.width: 1
-                    }
-                    onClicked: navPanel.newProjectRequested()
-
-                    contentItem: Row {
-                        anchors.centerIn: parent
-                        spacing: 5
-                        Label {
-                            text: "+"
-                            font.pixelSize: 14
-                            font.bold: true
-                            color: Theme.textPrimary
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                        Label {
-                            text: "New"
-                            font.pixelSize: Theme.fontSizeM
-                            color: Theme.textPrimary
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                    }
-                }
-
-                Button {
-                    Layout.fillWidth: true
-                    flat: true
-                    palette.buttonText: Theme.textPrimary
-                    background: Rectangle {
-                        color: parent.hovered ? Theme.bgButtonHov : Theme.bgButton
-                        radius: Theme.radius
-                        border.color: Theme.borderHover
-                        border.width: 1
-                    }
-                    onClicked: navPanel.settingsRequested()
-
-                    contentItem: Row {
-                        anchors.centerIn: parent
-                        spacing: 5
-                        Label {
-                            text: "\u2699"
-                            font.pixelSize: 14
-                            color: Theme.textPrimary
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                        Label {
-                            text: "Settings"
-                            font.pixelSize: Theme.fontSizeM
-                            color: Theme.textPrimary
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                    }
-                }
-            }
+        NavFooterBar {
+            onScanClicked: AppController.scan()
+            onNewProjectClicked: navPanel.newProjectRequested()
+            onSettingsClicked: navPanel.settingsRequested()
         }
     }
 }

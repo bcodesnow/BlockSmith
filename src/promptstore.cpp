@@ -1,4 +1,5 @@
 #include "promptstore.h"
+#include "utils.h"
 
 #include <QFile>
 #include <QSaveFile>
@@ -6,7 +7,6 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QDir>
-#include <QRandomGenerator>
 #include <QGuiApplication>
 #include <QClipboard>
 
@@ -173,13 +173,19 @@ QStringList PromptStore::allCategories() const
 void PromptStore::load()
 {
     QFile file(m_dbPath);
-    if (!file.open(QIODevice::ReadOnly)) return;
+    if (!file.open(QIODevice::ReadOnly)) {
+        qWarning("PromptStore: failed to open %s", qPrintable(m_dbPath));
+        return;
+    }
 
     QJsonParseError err;
     QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &err);
     file.close();
 
-    if (err.error != QJsonParseError::NoError || !doc.isObject()) return;
+    if (err.error != QJsonParseError::NoError || !doc.isObject()) {
+        qWarning("PromptStore: JSON parse error in %s: %s", qPrintable(m_dbPath), qPrintable(err.errorString()));
+        return;
+    }
 
     QJsonObject root = doc.object();
     QJsonArray promptsArr = root["prompts"].toArray();
@@ -276,11 +282,7 @@ void PromptStore::rebuildFiltered()
 
 QString PromptStore::generateId() const
 {
-    auto *rng = QRandomGenerator::global();
-    QString id;
-    do {
-        quint32 val = rng->bounded(0x1000000u); // 24 bits = 6 hex chars
-        id = "p" + QString::number(val, 16).rightJustified(6, '0');
-    } while (m_prompts.contains(id));
-    return id;
+    return Utils::generateHexId(24, QStringLiteral("p"), [this](const QString &id) {
+        return m_prompts.contains(id);
+    });
 }

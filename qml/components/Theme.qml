@@ -79,6 +79,19 @@ QtObject {
     readonly property int headerHeight: 36
     readonly property int radius: 3
 
+    // Role badge color (shared across JsonlViewer, JsonlEntryCard)
+    function roleColor(role) {
+        switch (role) {
+        case "user":       return accent
+        case "assistant":  return accentGreen
+        case "system":     return accentGold
+        case "tool":       return accentPurple
+        case "progress":   return textMuted
+        case "error":      return accentRed
+        default:           return textSecondary
+        }
+    }
+
     // Preview CSS (shared across MdPreview, BlockEditorPopup, PromptEditorPopup)
     readonly property string previewCss:
         "<style>"

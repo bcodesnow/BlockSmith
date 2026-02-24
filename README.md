@@ -1,55 +1,57 @@
 # BlockSmith
 
-Manage reusable content blocks across CLAUDE.md and agent instruction files. One block, synced everywhere.
+A fast, native markdown editor for people who work with LLM agents.
 
-Built with C++17 / Qt 6 / QML.
+Edit CLAUDE.md, AGENTS.md, and any markdown file with a real editor — not a text box. Keep reusable content blocks in sync across every project. Browse Claude Code transcripts without leaving the app.
+
+Built with C++17, Qt 6, and zero Electron.
 
 ![BlockSmith](resources/screenshot.png)
 
-## Why
+## What it does
 
-Agent instruction files (CLAUDE.md, AGENTS.md) live in every project. Common sections — coding standards, tool configs, response style — drift out of sync. BlockSmith gives you a central registry to push, pull, diff, and sync blocks across all your projects.
+**Write markdown.** Split view with live preview, syntax highlighting, Mermaid diagrams, formatting toolbar, image paste/drop, scroll sync, export to PDF/HTML/DOCX.
 
-## Features
+**Sync blocks across projects.** Select text, wrap it as a block, push updates to every file that uses it. Pull changes back. Diff when they diverge. One source of truth for your coding standards, tool configs, agent instructions.
 
-- **Project discovery** — configurable search paths, trigger file detection (.git, CLAUDE.md, etc.), auto-scan on startup
-- **Tree navigation** — expand/collapse all, block usage highlighting, right-click context menu (Open, Reveal in Explorer, Copy Path)
-- **Markdown editor** — syntax highlighting, line numbers, block gutter markers with sync status, edit/preview toggle (Ctrl+E)
-- **Live preview** — rendered HTML via md4c
-- **Block system** — create blocks from editor selection, bidirectional push/pull sync, diff view for conflicts, tag-based filtering
-- **Prompt library** — categorized prompts, one-click clipboard copy, create from editor selection
-- **JSONL transcript viewer** — browse Claude Code conversation logs with role-based filtering, content previews for all API block types (text, tool_use, tool_result, thinking, images, web search, etc.), expand-to-raw-JSON, copy entries
-- **Claude Code JSONL integration** — optional `~/.claude` folder in project tree, .jsonl file detection
-- **Global search** — search across all project files (Ctrl+Shift+F)
-- **Find & Replace** — in-editor search with replace (Ctrl+F / Ctrl+H)
-- **New project scaffolding** — create projects with folder picker and trigger file selection
-- **Dark theme** — 3-pane layout, toast notifications, status bar with word/char/line count, keyboard shortcuts
+**Manage prompt libraries.** Store, categorize, and copy prompts. Build them in the editor, use them everywhere.
 
-## Block Format
+**Browse Claude Code logs.** Open `.jsonl` transcripts directly — role-based filtering, content previews for every API block type, expand to raw JSON.
+
+**Navigate fast.** Quick Switcher (Ctrl+P), document outline, global search (Ctrl+Shift+F), project tree with file management.
+
+## The block format
+
+Blocks live inside your markdown files as HTML comments — invisible in rendered output, portable across any tool:
 
 ```markdown
 <!-- block: code-style [id:a3f8b2] -->
-Your reusable content here...
+## Code Style
+- Use descriptive names
+- Keep functions under 40 lines
+- Write tests for edge cases
 <!-- /block:a3f8b2 -->
 ```
 
+Edit the block in BlockSmith's registry, push to all files. Or edit in a file and pull back. The sync engine handles the rest.
+
 ## Download
 
-Grab the latest release from [GitHub Releases](https://github.com/bcodesnow/BlockSmith/releases).
+Grab the latest build from [GitHub Releases](https://github.com/bcodesnow/BlockSmith/releases).
 
-## Build from Source
+## Build from source
 
-Requires Qt 6.10+, CMake 3.21+, C++17 compiler.
+Requires Qt 6.10+ (with WebEngine), CMake 3.21+, C++17 compiler.
 
 ```bash
-cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH="<your-qt-path>"
+cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="<your-qt-path>"
 cmake --build build
 ```
 
 ## Docs
 
-- [User manual — shortcuts, data storage, workflows](docs/user-manual.md)
-- [Architecture, project structure & data storage](docs/architecture.md)
+- [User manual](docs/user-manual.md) — shortcuts, settings, workflows
+- [Architecture](docs/architecture.md) — project structure, features, data format
 
 ## License
 
@@ -57,6 +59,4 @@ Copyright (C) 2026 Danube Mechatronics Kft.
 
 Authors: kb (kb@danube-mechatronics.com) & Claude (Anthropic)
 
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-
-See [LICENSE](LICENSE) for details.
+GPLv3 — see [LICENSE](LICENSE).

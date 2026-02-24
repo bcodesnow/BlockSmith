@@ -1,40 +1,12 @@
 #include "syncengine.h"
 #include "blockstore.h"
 #include "projecttreemodel.h"
+#include "utils.h"
 
 #include <QFile>
 #include <QSaveFile>
 #include <QTextStream>
 #include <QRegularExpression>
-#include <QStringConverter>
-
-// Detect encoding from BOM; returns Utf8 for files without a BOM
-static QStringConverter::Encoding detectEncoding(QFile &file, bool &hasBom)
-{
-    QByteArray bom = file.peek(4);
-    hasBom = false;
-
-    if (bom.size() >= 3
-        && static_cast<unsigned char>(bom[0]) == 0xEF
-        && static_cast<unsigned char>(bom[1]) == 0xBB
-        && static_cast<unsigned char>(bom[2]) == 0xBF) {
-        hasBom = true;
-        return QStringConverter::Utf8;
-    }
-    if (bom.size() >= 2
-        && static_cast<unsigned char>(bom[0]) == 0xFF
-        && static_cast<unsigned char>(bom[1]) == 0xFE) {
-        hasBom = true;
-        return QStringConverter::Utf16LE;
-    }
-    if (bom.size() >= 2
-        && static_cast<unsigned char>(bom[0]) == 0xFE
-        && static_cast<unsigned char>(bom[1]) == 0xFF) {
-        hasBom = true;
-        return QStringConverter::Utf16BE;
-    }
-    return QStringConverter::Utf8;
-}
 
 // Read file with BOM-aware encoding, stripping the BOM character
 static QString readFileContent(const QString &filePath)
@@ -44,7 +16,7 @@ static QString readFileContent(const QString &filePath)
         return {};
 
     bool hasBom = false;
-    auto encoding = detectEncoding(file, hasBom);
+    auto encoding = Utils::detectBomEncoding(file, hasBom);
 
     QTextStream in(&file);
     in.setEncoding(encoding);
@@ -201,7 +173,7 @@ bool SyncEngine::replaceBlockInFile(const QString &filePath, const QString &bloc
         return false;
 
     bool hasBom = false;
-    auto encoding = detectEncoding(readFile, hasBom);
+    auto encoding = Utils::detectBomEncoding(readFile, hasBom);
 
     QTextStream in(&readFile);
     in.setEncoding(encoding);
