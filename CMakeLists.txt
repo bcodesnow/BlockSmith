@@ -27,7 +27,7 @@ qt_add_qml_module(BlockSmith
         qml/components/SettingsDialog.qml
         qml/components/NavPanel.qml
         qml/components/MainContent.qml
-        qml/components/MdEditor.qml
+        qml/components/Editor.qml
         qml/components/MdPreview.qml
         qml/components/BlockCard.qml
         qml/components/BlockListPanel.qml
@@ -55,17 +55,19 @@ qt_add_qml_module(BlockSmith
         qml/components/NavContextMenu.qml
         qml/components/NavFooterBar.qml
         qml/components/JsonlFilterBar.qml
+        qml/components/LineNumberGutter.qml
+        qml/components/JsonToolbar.qml
     SOURCES
         src/configmanager.h src/configmanager.cpp
         src/md4crenderer.h src/md4crenderer.cpp
         src/appcontroller.h src/appcontroller.cpp
         src/projecttreemodel.h src/projecttreemodel.cpp
         src/projectscanner.h src/projectscanner.cpp
-        src/mddocument.h src/mddocument.cpp
+        src/document.h src/document.cpp
         src/blockstore.h src/blockstore.cpp
         src/promptstore.h src/promptstore.cpp
         src/syncengine.h src/syncengine.cpp
-        src/mdsyntaxhighlighter.h src/mdsyntaxhighlighter.cpp
+        src/syntaxhighlighter.h src/syntaxhighlighter.cpp
         src/filemanager.h src/filemanager.cpp
         src/imagehandler.h src/imagehandler.cpp
         src/jsonlstore.h src/jsonlstore.cpp

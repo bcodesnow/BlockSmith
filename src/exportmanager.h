@@ -19,10 +19,13 @@ public:
 
     // Export the current markdown content to various formats
     // lightBackground: true = print-friendly white theme, false = dark theme
+    // fontSize: "small", "medium" (default), "large"
     Q_INVOKABLE void exportHtml(const QString &markdown, const QString &outputPath,
-                                const QString &docDir, bool lightBackground = false);
+                                const QString &docDir, bool lightBackground = false,
+                                const QString &fontSize = QStringLiteral("medium"));
     Q_INVOKABLE void exportPdf(const QString &markdown, const QString &outputPath,
-                               const QString &docDir, bool lightBackground = false);
+                               const QString &docDir, bool lightBackground = false,
+                               const QString &fontSize = QStringLiteral("medium"));
     Q_INVOKABLE void exportDocx(const QString &mdFilePath, const QString &outputPath);
 
     // Check if pandoc is installed
@@ -38,7 +41,7 @@ signals:
 
 private:
     QString buildStandaloneHtml(const QString &markdown, const QString &docDir,
-                                bool lightBackground) const;
+                                bool lightBackground, const QString &fontSize) const;
     QString findPandoc() const;
 
     Md4cRenderer *m_renderer;

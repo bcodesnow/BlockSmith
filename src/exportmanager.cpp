@@ -14,17 +14,33 @@
 #include <QPageSize>
 #include <QMarginsF>
 
-// Dark theme CSS — matches resources/preview/index.html
-static const char *kDarkCss = R"(
+// Font size presets: body / code
+static int bodyFontSize(const QString &size)
+{
+    if (size == QLatin1String("small"))  return 11;
+    if (size == QLatin1String("large"))  return 16;
+    return 13; // medium (default)
+}
+
+static int codeFontSize(const QString &size)
+{
+    if (size == QLatin1String("small"))  return 10;
+    if (size == QLatin1String("large"))  return 14;
+    return 12; // medium (default)
+}
+
+// CSS template with %1 = body font size, %2 = code font size
+// Dark theme — matches resources/preview/index.html
+static const char *kDarkCssTpl = R"(
   body {
     background: #1e1e1e; color: #d4d4d4;
-    font-family: Segoe UI, sans-serif; font-size: 13px;
+    font-family: Segoe UI, sans-serif; font-size: %1px;
     padding: 24px 32px; margin: 0; max-width: 900px; margin: 0 auto;
   }
   h1, h2, h3, h4 { color: #e0e0e0; margin-top: 12px; }
   code {
     background: #333; padding: 2px 4px;
-    font-family: Consolas, monospace; border-radius: 3px; font-size: 12px;
+    font-family: Consolas, monospace; border-radius: 3px; font-size: %2px;
   }
   pre {
     background: #2a2a2a; padding: 10px; border-radius: 4px;
@@ -47,17 +63,17 @@ static const char *kDarkCss = R"(
   input[type="checkbox"] { margin-right: 4px; }
 )";
 
-// Light theme CSS — print-friendly white background
-static const char *kLightCss = R"(
+// Light theme — print-friendly white background
+static const char *kLightCssTpl = R"(
   body {
     background: #fff; color: #222;
-    font-family: Segoe UI, sans-serif; font-size: 13px;
+    font-family: Segoe UI, sans-serif; font-size: %1px;
     padding: 24px 32px; margin: 0; max-width: 900px; margin: 0 auto;
   }
   h1, h2, h3, h4 { color: #111; margin-top: 12px; }
   code {
     background: #f0f0f0; padding: 2px 4px;
-    font-family: Consolas, monospace; border-radius: 3px; font-size: 12px;
+    font-family: Consolas, monospace; border-radius: 3px; font-size: %2px;
   }
   pre {
     background: #f6f6f6; padding: 10px; border-radius: 4px;
@@ -88,7 +104,8 @@ ExportManager::ExportManager(Md4cRenderer *renderer, QObject *parent)
 
 QString ExportManager::buildStandaloneHtml(const QString &markdown,
                                            const QString &docDir,
-                                           bool lightBackground) const
+                                           bool lightBackground,
+                                           const QString &fontSize) const
 {
     QString body = m_renderer->render(markdown);
 
@@ -102,19 +119,23 @@ QString ExportManager::buildStandaloneHtml(const QString &markdown,
         body.replace(imgRx, QStringLiteral("src=\"") + fileUrl + QStringLiteral("\\1\""));
     }
 
-    const char *css = lightBackground ? kLightCss : kDarkCss;
+    const char *cssTpl = lightBackground ? kLightCssTpl : kDarkCssTpl;
+    QString css = QString::fromLatin1(cssTpl)
+                      .arg(bodyFontSize(fontSize))
+                      .arg(codeFontSize(fontSize));
 
     return QStringLiteral("<!DOCTYPE html>\n<html>\n<head>\n"
                           "<meta charset=\"utf-8\">\n"
                           "<style>%1</style>\n"
                           "</head>\n<body>\n%2\n</body>\n</html>")
-        .arg(QLatin1String(css), body);
+        .arg(css, body);
 }
 
 void ExportManager::exportHtml(const QString &markdown, const QString &outputPath,
-                               const QString &docDir, bool lightBackground)
+                               const QString &docDir, bool lightBackground,
+                               const QString &fontSize)
 {
-    QString html = buildStandaloneHtml(markdown, docDir, lightBackground);
+    QString html = buildStandaloneHtml(markdown, docDir, lightBackground, fontSize);
 
     QSaveFile file(outputPath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
@@ -137,9 +158,10 @@ void ExportManager::exportHtml(const QString &markdown, const QString &outputPat
 }
 
 void ExportManager::exportPdf(const QString &markdown, const QString &outputPath,
-                              const QString &docDir, bool lightBackground)
+                              const QString &docDir, bool lightBackground,
+                              const QString &fontSize)
 {
-    QString html = buildStandaloneHtml(markdown, docDir, lightBackground);
+    QString html = buildStandaloneHtml(markdown, docDir, lightBackground, fontSize);
 
     // Create an offscreen QWebEnginePage for rendering
     auto *page = new QWebEnginePage(this);

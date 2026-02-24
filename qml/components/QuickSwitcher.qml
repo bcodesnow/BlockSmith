@@ -17,12 +17,10 @@ Popup {
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     padding: 0
 
-    property var allFiles: []
     property var filteredResults: []
     property int selectedIndex: 0
 
     function openSwitcher() {
-        allFiles = AppController.getAllFiles()
         filterInput.text = ""
         selectedIndex = 0
         updateResults()
@@ -35,77 +33,8 @@ Popup {
         filteredResults = []
     }
 
-    // Fuzzy match: returns score >= 0 on match, -1 on no match
-    function fuzzyScore(query, text) {
-        let lq = query.toLowerCase()
-        let lt = text.toLowerCase()
-
-        // Exact substring match gets highest base score
-        let subIdx = lt.indexOf(lq)
-        if (subIdx >= 0)
-            return 1000 - subIdx
-
-        // Character-by-character: all query chars must appear in order
-        let score = 0
-        let qi = 0
-        let lastMatchIdx = -1
-        for (let ti = 0; ti < lt.length && qi < lq.length; ti++) {
-            if (lt[ti] === lq[qi]) {
-                score += 10
-                if (lastMatchIdx === ti - 1) score += 5
-                if (ti === 0 || lt[ti - 1] === '/' || lt[ti - 1] === '\\') score += 8
-                lastMatchIdx = ti
-                qi++
-            }
-        }
-        return qi === lq.length ? score : -1
-    }
-
     function updateResults() {
-        let query = filterInput.text.trim()
-
-        if (query.length === 0) {
-            let recent = AppController.configManager.recentFiles
-            let results = []
-            for (let i = 0; i < recent.length; i++) {
-                let fp = recent[i]
-                let parts = fp.replace(/\\/g, '/').split('/')
-                results.push({
-                    filePath: fp,
-                    fileName: parts[parts.length - 1],
-                    dirPath: parts.slice(0, -1).join('/'),
-                    score: 10000 - i,
-                    isRecent: true
-                })
-            }
-            filteredResults = results
-            selectedIndex = results.length > 0 ? 0 : -1
-            return
-        }
-
-        let results = []
-        for (let i = 0; i < allFiles.length; i++) {
-            let fp = allFiles[i]
-            let parts = fp.replace(/\\/g, '/').split('/')
-            let fileName = parts[parts.length - 1]
-            let score = fuzzyScore(query, fileName)
-            if (score < 0) {
-                score = fuzzyScore(query, fp)
-                if (score >= 0) score = Math.max(0, score - 100)
-            }
-            if (score >= 0) {
-                results.push({
-                    filePath: fp,
-                    fileName: fileName,
-                    dirPath: parts.slice(0, -1).join('/'),
-                    score: score,
-                    isRecent: false
-                })
-            }
-        }
-
-        results.sort(function(a, b) { return b.score - a.score })
-        filteredResults = results.slice(0, 20)
+        filteredResults = AppController.fuzzyFilterFiles(filterInput.text)
         selectedIndex = filteredResults.length > 0 ? 0 : -1
     }
 

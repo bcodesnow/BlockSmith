@@ -20,7 +20,7 @@ AppController::AppController(QObject *parent)
     , m_md4cRenderer(new Md4cRenderer(this))
     , m_projectTreeModel(new ProjectTreeModel(this))
     , m_projectScanner(new ProjectScanner(m_configManager, m_projectTreeModel, this))
-    , m_currentDocument(new MdDocument(this))
+    , m_currentDocument(new Document(this))
     , m_blockStore(new BlockStore(
         QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + "/blocks.db.json", this))
     , m_promptStore(new PromptStore(
@@ -31,12 +31,14 @@ AppController::AppController(QObject *parent)
     , m_jsonlStore(new JsonlStore(this))
     , m_exportManager(new ExportManager(m_md4cRenderer, this))
 {
+    m_currentDocument->setBlockStore(m_blockStore);
+
     connect(m_projectScanner, &ProjectScanner::scanComplete,
             this, [this](int count) {
                 m_syncEngine->rebuildIndex();
                 emit scanComplete(count);
             });
-    connect(m_currentDocument, &MdDocument::saved,
+    connect(m_currentDocument, &Document::saved,
             m_syncEngine, &SyncEngine::rebuildIndex);
     connect(m_fileManager, &FileManager::fileOperationComplete,
             this, [this]() {
@@ -85,7 +87,7 @@ ConfigManager *AppController::configManager() const { return m_configManager; }
 Md4cRenderer *AppController::md4cRenderer() const { return m_md4cRenderer; }
 ProjectTreeModel *AppController::projectTreeModel() const { return m_projectTreeModel; }
 ProjectScanner *AppController::projectScanner() const { return m_projectScanner; }
-MdDocument *AppController::currentDocument() const { return m_currentDocument; }
+Document *AppController::currentDocument() const { return m_currentDocument; }
 BlockStore *AppController::blockStore() const { return m_blockStore; }
 PromptStore *AppController::promptStore() const { return m_promptStore; }
 SyncEngine *AppController::syncEngine() const { return m_syncEngine; }
@@ -169,6 +171,91 @@ QStringList AppController::getAllFiles() const
     };
     collect(m_projectTreeModel->rootNode());
     return files;
+}
+
+static int fuzzyScore(const QString &query, const QString &text)
+{
+    const QString lq = query.toLower();
+    const QString lt = text.toLower();
+
+    // Exact substring match gets highest base score
+    int subIdx = lt.indexOf(lq);
+    if (subIdx >= 0)
+        return 1000 - subIdx;
+
+    // Character-by-character: all query chars must appear in order
+    int score = 0;
+    int qi = 0;
+    int lastMatchIdx = -1;
+    for (int ti = 0; ti < lt.length() && qi < lq.length(); ti++) {
+        if (lt[ti] == lq[qi]) {
+            score += 10;
+            if (lastMatchIdx == ti - 1) score += 5;  // consecutive bonus
+            if (ti == 0 || lt[ti - 1] == '/' || lt[ti - 1] == '\\') score += 8;  // word boundary
+            lastMatchIdx = ti;
+            qi++;
+        }
+    }
+    return qi == lq.length() ? score : -1;
+}
+
+QVariantList AppController::fuzzyFilterFiles(const QString &query) const
+{
+    const QString trimmed = query.trimmed();
+    QVariantList results;
+
+    if (trimmed.isEmpty()) {
+        // Return recent files
+        const QStringList recent = m_configManager->recentFiles();
+        for (int i = 0; i < recent.size(); i++) {
+            const QString &fp = recent[i];
+            int lastSep = fp.lastIndexOf('/');
+            if (lastSep < 0) lastSep = fp.lastIndexOf('\\');
+            QVariantMap entry;
+            entry[QStringLiteral("filePath")] = fp;
+            entry[QStringLiteral("fileName")] = fp.mid(lastSep + 1);
+            entry[QStringLiteral("dirPath")] = QString(fp.left(lastSep)).replace('\\', '/');
+            entry[QStringLiteral("score")] = 10000 - i;
+            entry[QStringLiteral("isRecent")] = true;
+            results.append(entry);
+        }
+        return results;
+    }
+
+    // Fuzzy filter all files
+    const QStringList allFiles = getAllFiles();
+    struct ScoredEntry { QString filePath; QString fileName; QString dirPath; int score; };
+    QVector<ScoredEntry> scored;
+
+    for (const QString &fp : allFiles) {
+        QString normalized = QString(fp).replace('\\', '/');
+        int lastSep = normalized.lastIndexOf('/');
+        QString fileName = normalized.mid(lastSep + 1);
+        int s = fuzzyScore(trimmed, fileName);
+        if (s < 0) {
+            s = fuzzyScore(trimmed, normalized);
+            if (s >= 0) s = qMax(0, s - 100);
+        }
+        if (s >= 0) {
+            scored.append({fp, fileName, normalized.left(lastSep), s});
+        }
+    }
+
+    std::sort(scored.begin(), scored.end(), [](const ScoredEntry &a, const ScoredEntry &b) {
+        return a.score > b.score;
+    });
+
+    int limit = qMin(scored.size(), 20);
+    for (int i = 0; i < limit; i++) {
+        QVariantMap entry;
+        entry[QStringLiteral("filePath")] = scored[i].filePath;
+        entry[QStringLiteral("fileName")] = scored[i].fileName;
+        entry[QStringLiteral("dirPath")] = scored[i].dirPath;
+        entry[QStringLiteral("score")] = scored[i].score;
+        entry[QStringLiteral("isRecent")] = false;
+        results.append(entry);
+    }
+    return results;
 }
 
 void AppController::revealInExplorer(const QString &path) const

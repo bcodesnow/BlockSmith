@@ -24,12 +24,12 @@ Project tree     |  Markdown editor/preview|  Blocks / Prompts tabs
 | ConfigManager | Search paths, ignore patterns, trigger files, window geometry, settings |
 | ProjectScanner | Walks search paths, finds projects by trigger files |
 | ProjectTreeModel | QAbstractItemModel for tree view navigation |
-| MdDocument | File loading, block parsing, content management |
+| Document | File loading, block parsing, content management |
 | BlockStore | Block registry, QAbstractListModel |
 | PromptStore | Prompt library, QAbstractListModel |
 | SyncEngine | Push/pull/diff blocks across files |
 | Md4cRenderer | md4c markdown-to-HTML wrapper |
-| MdSyntaxHighlighter | QSyntaxHighlighter for markdown editing |
+| SyntaxHighlighter | Unified QSyntaxHighlighter with Markdown/JSON/PlainText modes |
 | FileManager | File operations (create, rename, delete, duplicate, move) |
 | ImageHandler | Clipboard image paste, drag-drop copy, image path utilities |
 | JsonlStore | JSONL transcript viewer — threaded parser, filtered list model |
@@ -47,10 +47,10 @@ src/
   promptstore.h / .cpp         # Prompt library, list model
   projectscanner.h / .cpp      # Walks search paths, finds projects
   projecttreemodel.h / .cpp    # Tree model for nav panel
-  mddocument.h / .cpp          # File loading, block parsing
+  document.h / .cpp             # File loading, block parsing
   syncengine.h / .cpp          # Push/pull/diff blocks across files
   md4crenderer.h / .cpp        # md4c markdown-to-HTML wrapper
-  mdsyntaxhighlighter.h / .cpp # QSyntaxHighlighter for markdown
+  syntaxhighlighter.h / .cpp   # Unified QSyntaxHighlighter (Markdown/JSON/PlainText modes)
   filemanager.h / .cpp         # File create/rename/delete/duplicate/move
   imagehandler.h / .cpp        # Clipboard/file image operations
   jsonlstore.h / .cpp          # JSONL transcript viewer (threaded parser + list model)
@@ -63,7 +63,7 @@ qml/
     Theme.qml                  # Singleton — shared design tokens
     NavPanel.qml               # Left pane — tree + file management context menu
     MainContent.qml            # Center — editor/preview + find bar + toolbar toggle
-    MdEditor.qml               # TextArea with toolbar, gutter, syntax highlighting
+    Editor.qml                 # TextArea with toolbar, gutter, syntax highlighting
     MdToolbar.qml              # Markdown formatting toolbar
     MdPreview.qml              # Lightweight HTML preview (popups)
     MdPreviewWeb.qml           # WebEngine preview with mermaid support
@@ -88,6 +88,11 @@ qml/
     ExportDialog.qml           # Export format picker (PDF/HTML/DOCX)
     QuickSwitcher.qml          # Fuzzy file finder popup (Ctrl+P)
     OutlinePanel.qml           # Document heading outline panel
+    EditorStatusBar.qml        # Cursor position, encoding, stats
+    NavContextMenu.qml         # Right-click context menu for nav tree
+    NavFooterBar.qml           # Footer bar for nav panel
+    JsonlFilterBar.qml         # JSONL filter bar
+    LineNumberGutter.qml       # Line number gutter component
 resources/
   icons/                       # Multi-size app icons (16-1024px)
   preview/
@@ -124,6 +129,7 @@ Content here...
 ### Project Discovery & Navigation
 - Configurable search paths with ignore patterns and scan depth
 - Trigger file detection (CLAUDE.md, AGENTS.md, .git, etc.)
+- Indexes .md, .jsonl, and .json files within discovered projects
 - Tree view with expand/collapse all, project/directory/file icons
 - Block usage highlighting in tree (files containing blocks are marked)
 - File management context menu: New File, New Folder, Rename, Duplicate, Cut, Paste, Delete
@@ -152,6 +158,13 @@ Content here...
 - Image drag-and-drop from file explorer with visual drop overlay
 - Relative image paths resolved to file:// URLs in preview
 - Right-click context menu: Cut, Copy, Paste, Select All, Add as Block, Create Prompt
+
+### JSON Editor
+- Opens `.json` files from the project tree in the same editor
+- Syntax highlighting (keys=blue, strings=green, numbers=orange, booleans/null=purple)
+- Format JSON button — prettifies minified JSON via QJsonDocument
+- Edit-only mode (no preview/split)
+- Highlighter swap: only one QSyntaxHighlighter per document, switched imperatively on file change
 
 ### Block System
 - Block registry with JSON persistence
@@ -193,7 +206,7 @@ Content here...
 
 ### Claude Code Integration
 - Optional `~/.claude` folder added to project tree via Settings > Integrations toggle
-- Recursively indexes .md, .jsonl, .json files from the Claude internal folder
+- Recursively indexes .md, .jsonl, .json files from the Claude Code folder
 - Auto-rescan when integration setting changes
 
 ### Navigation
@@ -227,6 +240,8 @@ Content here...
 - **PDF** — pixel-perfect via QWebEnginePage::printToPdf() (offscreen Chromium, A4, 15mm margins)
 - **DOCX** — pandoc via QProcess (graceful degradation if not installed)
 - Export dialog with format radio buttons, output path picker, browse FileDialog, progress indicator
+- Font size selector: Small / Medium / Large (applies to PDF and HTML body + code)
+- Open after export checkbox — launches exported file with system default app
 - Default output path: same directory as source file, matching extension
 
 ### UI & Polish

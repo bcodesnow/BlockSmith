@@ -1,4 +1,5 @@
-#include "mddocument.h"
+#include "document.h"
+#include "blockstore.h"
 #include "utils.h"
 
 #include <QFile>
@@ -6,21 +7,23 @@
 #include <QTextStream>
 #include <QRegularExpression>
 #include <QSaveFile>
+#include <QJsonDocument>
+#include <QDebug>
 
-MdDocument::MdDocument(QObject *parent)
+Document::Document(QObject *parent)
     : QObject(parent)
 {
     connect(&m_watcher, &QFileSystemWatcher::fileChanged,
-            this, &MdDocument::onFileChanged);
+            this, &Document::onFileChanged);
     connect(&m_autoSaveTimer, &QTimer::timeout,
-            this, &MdDocument::onAutoSaveTimer);
+            this, &Document::onAutoSaveTimer);
 }
 
-void MdDocument::load(const QString &filePath)
+void Document::load(const QString &filePath)
 {
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        qWarning("MdDocument: could not open %s", qPrintable(filePath));
+        qWarning("Document: could not open %s", qPrintable(filePath));
         emit loadFailed(tr("Cannot open file: %1").arg(filePath));
         return;
     }
@@ -63,14 +66,17 @@ void MdDocument::load(const QString &filePath)
     parseBlocks();
     watchFile(m_filePath);
 
+    qDebug() << "[DOC] load() content length:" << m_rawContent.length() << "path:" << m_filePath;
     emit filePathChanged();
+    qDebug() << "[DOC] filePathChanged done";
     emit rawContentChanged();
+    qDebug() << "[DOC] rawContentChanged done";
     emit modifiedChanged();
     if (encChanged)
         emit encodingChanged();
 }
 
-void MdDocument::save()
+void Document::save()
 {
     if (m_filePath.isEmpty())
         return;
@@ -81,7 +87,7 @@ void MdDocument::save()
     QSaveFile file(m_filePath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         m_ignoreNextChange = false;
-        qWarning("MdDocument: could not write %s", qPrintable(m_filePath));
+        qWarning("Document: could not write %s", qPrintable(m_filePath));
         emit saveFailed(tr("Cannot write file: %1").arg(m_filePath));
         return;
     }
@@ -94,7 +100,7 @@ void MdDocument::save()
 
     if (!file.commit()) {
         m_ignoreNextChange = false;
-        qWarning("MdDocument: atomic save failed for %s", qPrintable(m_filePath));
+        qWarning("Document: atomic save failed for %s", qPrintable(m_filePath));
         emit saveFailed(tr("Save failed: %1").arg(m_filePath));
         return;
     }
@@ -110,7 +116,7 @@ void MdDocument::save()
     emit saved();
 }
 
-void MdDocument::saveTo(const QString &newPath)
+void Document::saveTo(const QString &newPath)
 {
     unwatchFile();
     m_filePath = newPath;
@@ -119,7 +125,7 @@ void MdDocument::saveTo(const QString &newPath)
     watchFile(m_filePath);
 }
 
-void MdDocument::clear()
+void Document::clear()
 {
     unwatchFile();
     m_filePath.clear();
@@ -137,21 +143,38 @@ void MdDocument::clear()
     emit encodingChanged();
 }
 
-void MdDocument::reload()
+void Document::reload()
 {
     if (!m_filePath.isEmpty())
         load(m_filePath);
 }
 
-QString MdDocument::filePath() const { return m_filePath; }
+QString Document::filePath() const { return m_filePath; }
 
-QString MdDocument::rawContent() const { return m_rawContent; }
-
-void MdDocument::setRawContent(const QString &content)
+Document::FileType Document::fileType() const
 {
-    if (m_rawContent == content)
-        return;
+    if (m_filePath.endsWith(QLatin1String(".json"), Qt::CaseInsensitive))
+        return Json;
+    if (m_filePath.endsWith(QLatin1String(".md"), Qt::CaseInsensitive)
+        || m_filePath.endsWith(QLatin1String(".markdown"), Qt::CaseInsensitive))
+        return Markdown;
+    return PlainText;
+}
 
+bool Document::isJson() const { return fileType() == Json; }
+
+bool Document::supportsPreview() const { return fileType() == Markdown; }
+
+QString Document::rawContent() const { return m_rawContent; }
+
+void Document::setRawContent(const QString &content)
+{
+    if (m_rawContent == content) {
+        qDebug() << "[DOC] setRawContent SKIPPED (same), len:" << content.length();
+        return;
+    }
+
+    qDebug() << "[DOC] setRawContent CHANGED, old:" << m_rawContent.length() << "new:" << content.length();
     m_rawContent = content;
     m_modified = (m_rawContent != m_savedContent);
 
@@ -161,16 +184,16 @@ void MdDocument::setRawContent(const QString &content)
     emit modifiedChanged();
 }
 
-bool MdDocument::modified() const { return m_modified; }
+bool Document::modified() const { return m_modified; }
 
-QString MdDocument::encoding() const { return m_encoding; }
+QString Document::encoding() const { return m_encoding; }
 
-QList<MdDocument::BlockSegment> MdDocument::blocks() const
+QList<Document::BlockSegment> Document::blocks() const
 {
     return m_blocks;
 }
 
-QVariantList MdDocument::blockList() const
+QVariantList Document::blockList() const
 {
     QVariantList list;
     for (const auto &b : m_blocks) {
@@ -185,8 +208,8 @@ QVariantList MdDocument::blockList() const
     return list;
 }
 
-void MdDocument::wrapSelectionAsBlock(int startPos, int endPos,
-                                       const QString &blockId, const QString &blockName)
+void Document::wrapSelectionAsBlock(int startPos, int endPos,
+                                     const QString &blockId, const QString &blockName)
 {
     if (startPos < 0 || endPos < startPos || endPos > m_rawContent.length())
         return;
@@ -208,8 +231,8 @@ void MdDocument::wrapSelectionAsBlock(int startPos, int endPos,
     emit modifiedChanged();
 }
 
-void MdDocument::insertBlock(int position, const QString &blockId,
-                              const QString &blockName, const QString &content)
+void Document::insertBlock(int position, const QString &blockId,
+                            const QString &blockName, const QString &content)
 {
     if (position < 0) position = m_rawContent.length();
 
@@ -225,7 +248,7 @@ void MdDocument::insertBlock(int position, const QString &blockId,
     emit modifiedChanged();
 }
 
-void MdDocument::setAutoSave(bool enabled, int intervalSecs)
+void Document::setAutoSave(bool enabled, int intervalSecs)
 {
     if (enabled) {
         m_autoSaveTimer.setInterval(intervalSecs * 1000);
@@ -236,7 +259,7 @@ void MdDocument::setAutoSave(bool enabled, int intervalSecs)
     }
 }
 
-void MdDocument::onAutoSaveTimer()
+void Document::onAutoSaveTimer()
 {
     if (m_modified && !m_filePath.isEmpty()) {
         save();
@@ -246,7 +269,7 @@ void MdDocument::onAutoSaveTimer()
     }
 }
 
-void MdDocument::watchFile(const QString &path)
+void Document::watchFile(const QString &path)
 {
     if (path.isEmpty())
         return;
@@ -254,13 +277,13 @@ void MdDocument::watchFile(const QString &path)
         m_watcher.addPath(path);
 }
 
-void MdDocument::unwatchFile()
+void Document::unwatchFile()
 {
     if (!m_watcher.files().isEmpty())
         m_watcher.removePaths(m_watcher.files());
 }
 
-void MdDocument::onFileChanged(const QString &path)
+void Document::onFileChanged(const QString &path)
 {
     Q_UNUSED(path)
 
@@ -288,7 +311,7 @@ void MdDocument::onFileChanged(const QString &path)
     watchFile(m_filePath);
 }
 
-void MdDocument::parseBlocks()
+void Document::parseBlocks()
 {
     m_blocks.clear();
 
@@ -306,4 +329,98 @@ void MdDocument::parseBlocks()
         seg.endPos = static_cast<int>(match.capturedEnd());
         m_blocks.append(seg);
     }
+}
+
+void Document::setBlockStore(BlockStore *store)
+{
+    m_blockStore = store;
+}
+
+QVariantList Document::findMatches(const QString &text, bool caseSensitive) const
+{
+    QVariantList results;
+    if (text.isEmpty() || m_rawContent.isEmpty())
+        return results;
+
+    // Escape for literal matching
+    QString escaped = QRegularExpression::escape(text);
+    QRegularExpression::PatternOptions opts = QRegularExpression::NoPatternOption;
+    if (!caseSensitive)
+        opts |= QRegularExpression::CaseInsensitiveOption;
+
+    QRegularExpression rx(escaped, opts);
+    auto it = rx.globalMatch(m_rawContent);
+    while (it.hasNext()) {
+        auto m = it.next();
+        QVariantMap hit;
+        hit[QStringLiteral("start")] = static_cast<int>(m.capturedStart());
+        hit[QStringLiteral("end")] = static_cast<int>(m.capturedEnd());
+        results.append(hit);
+    }
+    return results;
+}
+
+QVariantList Document::computeBlockRanges() const
+{
+    QVariantList ranges;
+    if (m_rawContent.isEmpty())
+        return ranges;
+
+    static const QRegularExpression openRx(
+        QStringLiteral(R"(<!--\s*block:\s*(.+?)\s*\[id:([a-f0-9]{6})\]\s*-->)"));
+
+    const QStringList lines = m_rawContent.split('\n');
+    QString curId, curName;
+    int curStartLine = 0;
+    QStringList contentLines;
+    bool inBlock = false;
+
+    for (int i = 0; i < lines.size(); i++) {
+        const QString &line = lines[i];
+
+        if (!inBlock) {
+            auto m = openRx.match(line);
+            if (m.hasMatch()) {
+                curName = m.captured(1);
+                curId = m.captured(2);
+                curStartLine = i + 1;  // 1-based
+                contentLines.clear();
+                inBlock = true;
+            }
+        } else {
+            QRegularExpression closeRx(QStringLiteral("<!--\\s*/block:") + curId + QStringLiteral("\\s*-->"));
+            if (closeRx.match(line).hasMatch()) {
+                QString content = contentLines.join('\n');
+                QString status = QStringLiteral("local");
+                if (m_blockStore) {
+                    auto storeBlock = m_blockStore->blockById(curId);
+                    if (storeBlock) {
+                        status = (storeBlock->content == content)
+                                     ? QStringLiteral("synced")
+                                     : QStringLiteral("diverged");
+                    }
+                }
+                QVariantMap entry;
+                entry[QStringLiteral("startLine")] = curStartLine;
+                entry[QStringLiteral("endLine")] = i + 1;
+                entry[QStringLiteral("id")] = curId;
+                entry[QStringLiteral("name")] = curName;
+                entry[QStringLiteral("status")] = status;
+                ranges.append(entry);
+                inBlock = false;
+            } else {
+                contentLines.append(line);
+            }
+        }
+    }
+    return ranges;
+}
+
+QString Document::prettifyJson() const
+{
+    QJsonParseError err;
+    QJsonDocument doc = QJsonDocument::fromJson(m_rawContent.toUtf8(), &err);
+    if (err.error != QJsonParseError::NoError)
+        return QString(); // invalid JSON — return empty to signal failure
+    return QString::fromUtf8(doc.toJson(QJsonDocument::Indented));
 }

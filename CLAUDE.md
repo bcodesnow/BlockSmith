@@ -15,6 +15,8 @@ A Qt6/QML desktop application for managing reusable content blocks across CLAUDE
 - Do not write bloated code
 - Do not overpollute CLAUDE.md - this should just focus on orientation and guidelines
 - **After context compaction:** Do not act on assumptions from the summary. Read the summary to understand context, then ask the user what they want to do next. Present what you learned and ask for direction.
+- **Do NOT auto-build** — only build when explicitly asked or after asking permission. Do not waste tokens on speculative builds.
+- Think twice before making changes. Do not flail — understand the problem first, then make one precise fix.
 <!-- /block:1d67c7 -->
 
 ## Build Environment
@@ -42,7 +44,7 @@ cmake --build build
 
 - **3-pane SplitView layout**: NavPanel (left), MainContent (center), RightPane (right)
 - **QML module**: `BlockSmith`, loaded via `loadFromModule("BlockSmith", "Main")`
-- **C++ backend**: AppController singleton exposes ConfigManager, ProjectTreeModel, ProjectScanner, MdDocument, BlockStore, PromptStore, SyncEngine, MdSyntaxHighlighter
+- **C++ backend**: AppController singleton exposes ConfigManager, ProjectTreeModel, ProjectScanner, Document, BlockStore, PromptStore, SyncEngine, SyntaxHighlighter
 - **Config**: `QStandardPaths::AppConfigLocation` (Windows: `AppData/Local/BlockSmith`)
 - **Block format**: `<!-- block: name [id:hexid] -->\ncontent\n<!-- /block:hexid -->`
 

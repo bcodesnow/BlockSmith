@@ -10,7 +10,7 @@ Dialog {
     parent: Overlay.overlay
     anchors.centerIn: parent
     width: 500
-    height: 310
+    height: 340
 
     modal: true
     title: "Export Document"
@@ -46,6 +46,8 @@ Dialog {
             dialog.exporting = false
             dialog.close()
             toast.show("Exported to " + outputPath)
+            if (openAfterCheck.checked)
+                Qt.openUrlExternally("file:///" + outputPath.replace(/\\/g, "/"))
         }
         function onExportError(message) {
             dialog.exporting = false
@@ -177,11 +179,42 @@ Dialog {
         }
 
         // Options
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Theme.sp16
+
+            CheckBox {
+                id: lightBgCheck
+                text: "Light background (print-friendly)"
+                checked: true
+                enabled: !dialog.exporting && selectedFormat !== "docx"
+                palette.windowText: Theme.textPrimary
+            }
+
+            Label {
+                text: "Font size:"
+                font.pixelSize: Theme.fontSizeM
+                color: selectedFormat === "docx" ? Theme.textMuted : Theme.textSecondary
+            }
+
+            ComboBox {
+                id: fontSizeCombo
+                model: ["Small", "Medium", "Large"]
+                currentIndex: 1
+                enabled: !dialog.exporting && selectedFormat !== "docx"
+                implicitWidth: 100
+                palette.buttonText: Theme.textPrimary
+                palette.window: Theme.bgPanel
+                palette.button: Theme.bgButton
+                palette.highlight: Theme.accent
+            }
+        }
+
         CheckBox {
-            id: lightBgCheck
-            text: "Light background (print-friendly)"
+            id: openAfterCheck
+            text: "Open file after export"
             checked: true
-            enabled: !dialog.exporting && selectedFormat !== "docx"
+            enabled: !dialog.exporting
             palette.windowText: Theme.textPrimary
         }
 
@@ -235,10 +268,12 @@ Dialog {
                         AppController.currentDocument.filePath)
                     let out = outputField.text
 
+                    let fs = fontSizeCombo.currentText.toLowerCase()
+
                     if (selectedFormat === "pdf") {
-                        AppController.exportManager.exportPdf(md, out, docDir, lightBgCheck.checked)
+                        AppController.exportManager.exportPdf(md, out, docDir, lightBgCheck.checked, fs)
                     } else if (selectedFormat === "html") {
-                        AppController.exportManager.exportHtml(md, out, docDir, lightBgCheck.checked)
+                        AppController.exportManager.exportHtml(md, out, docDir, lightBgCheck.checked, fs)
                     } else if (selectedFormat === "docx") {
                         AppController.exportManager.exportDocx(
                             AppController.currentDocument.filePath, out)

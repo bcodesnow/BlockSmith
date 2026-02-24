@@ -9,7 +9,7 @@ Rectangle {
 
     enum ViewMode { Edit, Preview, Split }
     property int viewMode: MainContent.ViewMode.Edit
-    property int editorCursorPosition: mdEditor.cursorPosition
+    property int editorCursorPosition: editor.cursorPosition
 
     // Is a JSONL file currently loaded?
     readonly property bool isJsonlActive: AppController.jsonlStore.filePath !== ""
@@ -20,7 +20,7 @@ Rectangle {
     // Current editor line (1-based), used by outline panel
     readonly property int currentLine: {
         if (viewMode === MainContent.ViewMode.Preview) return 0
-        let pos = mdEditor.cursorPosition
+        let pos = editor.cursorPosition
         let content = AppController.currentDocument.rawContent
         if (!content || content.length === 0) return 0
         return content.substring(0, pos).split("\n").length
@@ -61,16 +61,7 @@ Rectangle {
             return
         }
 
-        let content = mdEditor.textArea.text
-        let matches = []
-        let escaped = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-        let rx = new RegExp(escaped, caseSensitive ? "g" : "gi")
-        let m
-
-        while ((m = rx.exec(content)) !== null) {
-            matches.push({ start: m.index, end: m.index + m[0].length })
-        }
-
+        let matches = AppController.currentDocument.findMatches(text, caseSensitive)
         findMatches = matches
         findReplaceBar.matchCount = matches.length
 
@@ -81,7 +72,7 @@ Rectangle {
         }
 
         // Find the match closest to current cursor
-        let cursorPos = mdEditor.textArea.cursorPosition
+        let cursorPos = editor.textArea.cursorPosition
         let bestIdx = 0
 
         if (direction === "next") {
@@ -111,10 +102,10 @@ Rectangle {
     function selectMatch(idx) {
         if (idx < 0 || idx >= findMatches.length) return
         let match = findMatches[idx]
-        mdEditor.textArea.select(match.start, match.end)
+        editor.textArea.select(match.start, match.end)
         // Scroll to match
-        let rect = mdEditor.textArea.positionToRectangle(match.start)
-        mdEditor.ensureVisible(rect.y)
+        let rect = editor.textArea.positionToRectangle(match.start)
+        editor.ensureVisible(rect.y)
     }
 
     function findNext(text, caseSensitive) {
@@ -140,8 +131,8 @@ Rectangle {
     function replaceOne(findText, replaceText, caseSensitive) {
         if (findMatchIndex < 0 || findMatchIndex >= findMatches.length) return
         let match = findMatches[findMatchIndex]
-        mdEditor.textArea.remove(match.start, match.end)
-        mdEditor.textArea.insert(match.start, replaceText)
+        editor.textArea.remove(match.start, match.end)
+        editor.textArea.insert(match.start, replaceText)
         // Re-search
         performFind(findText, caseSensitive, "next")
     }
@@ -152,8 +143,8 @@ Rectangle {
         // Replace in reverse order to preserve positions
         for (let i = findMatches.length - 1; i >= 0; i--) {
             let match = findMatches[i]
-            mdEditor.textArea.remove(match.start, match.end)
-            mdEditor.textArea.insert(match.start, replaceText)
+            editor.textArea.remove(match.start, match.end)
+            editor.textArea.insert(match.start, replaceText)
         }
         performFind(findText, caseSensitive, "next")
     }
@@ -222,9 +213,9 @@ Rectangle {
                     }
                 }
 
-                // Edit / Split / Preview toggle
+                // Edit / Split / Preview toggle (hidden for JSONL and non-previewable files)
                 Rectangle {
-                    visible: !mainContent.isJsonlActive
+                    visible: !mainContent.isJsonlActive && AppController.currentDocument.supportsPreview
                     Layout.preferredWidth: modeRow.implicitWidth + 4
                     Layout.preferredHeight: 24
                     color: Theme.bgPanel
@@ -259,7 +250,7 @@ Rectangle {
                     width: 26; height: 24; radius: Theme.radius
                     color: toolbarToggleMa.containsMouse ? Theme.bgButtonHov : "transparent"
                     visible: mainContent.editorVisible
-                    ToolTip.text: AppController.configManager.markdownToolbarVisible ? "Hide toolbar" : "Show toolbar"
+                    ToolTip.text: AppController.configManager.editorToolbarVisible ? "Hide toolbar" : "Show toolbar"
                     ToolTip.visible: toolbarToggleMa.containsMouse
                     ToolTip.delay: 400
 
@@ -267,7 +258,7 @@ Rectangle {
                         anchors.centerIn: parent
                         text: "\u2261"
                         font.pixelSize: 16
-                        color: AppController.configManager.markdownToolbarVisible ? Theme.textPrimary : Theme.textMuted
+                        color: AppController.configManager.editorToolbarVisible ? Theme.textPrimary : Theme.textMuted
                     }
                     MouseArea {
                         id: toolbarToggleMa
@@ -275,7 +266,7 @@ Rectangle {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            AppController.configManager.markdownToolbarVisible = !AppController.configManager.markdownToolbarVisible
+                            AppController.configManager.editorToolbarVisible = !AppController.configManager.editorToolbarVisible
                         }
                     }
                 }
@@ -406,7 +397,20 @@ Rectangle {
                 fileChangedBanner.visible = true
             }
             function onFilePathChanged() {
+                console.log("[QML] onFilePathChanged, path:", AppController.currentDocument.filePath,
+                            "splitView.visible:", editorSplitView.visible,
+                            "editor.text.length:", editor.textArea.text.length)
                 fileChangedBanner.visible = false
+                // Non-previewable files (JSON, plain text): force Edit-only view
+                if (!AppController.currentDocument.supportsPreview)
+                    mainContent.viewMode = MainContent.ViewMode.Edit
+            }
+            function onRawContentChanged() {
+                console.log("[QML] onRawContentChanged, rawContent.length:",
+                            AppController.currentDocument.rawContent.length,
+                            "editor.text.length:", editor.textArea.text.length,
+                            "editor.visible:", editor.visible,
+                            "splitView.visible:", editorSplitView.visible)
             }
         }
 
@@ -452,19 +456,25 @@ Rectangle {
                     }
                 }
 
-                MdEditor {
-                    id: mdEditor
+                Editor {
+                    id: editor
                     visible: mainContent.viewMode !== MainContent.ViewMode.Preview
                     SplitView.fillWidth: mainContent.viewMode === MainContent.ViewMode.Edit
                     SplitView.preferredWidth: editorSplitView.width / 2
                     SplitView.minimumWidth: 200
                     text: AppController.currentDocument.rawContent
                     readOnly: false
-                    toolbarVisible: mainContent.editorVisible && AppController.configManager.markdownToolbarVisible
+                    toolbarVisible: mainContent.editorVisible && AppController.configManager.editorToolbarVisible
+
                     textArea.onTextChanged: {
-                        if (textArea.text !== AppController.currentDocument.rawContent) {
+                        console.log("[QML] onTextChanged, textArea.text.length:", textArea.text.length,
+                                    "rawContent.length:", AppController.currentDocument.rawContent.length)
+                        // Guard: don't let an empty TextArea (initializing during layout)
+                        // clobber model content that was just loaded
+                        if (textArea.text.length === 0 && AppController.currentDocument.rawContent.length > 0)
+                            return
+                        if (textArea.text !== AppController.currentDocument.rawContent)
                             AppController.currentDocument.rawContent = textArea.text
-                        }
                     }
                     onAddBlockRequested: function(selectedText, selStart, selEnd) {
                         addBlockDialog.selectedText = selectedText
@@ -511,8 +521,8 @@ Rectangle {
                     scrollSyncGuard.syncing = true
 
                     // Calculate which source line is at the top of the visible area
-                    let pos = mdEditor.textArea.positionAt(0, mdEditor.scrollFlickable.contentY)
-                    let content = mdEditor.textArea.text
+                    let pos = editor.textArea.positionAt(0, editor.scrollFlickable.contentY)
+                    let content = editor.textArea.text
                     let lineNum = content.substring(0, pos).split("\n").length
                     mdPreview.scrollToLine(lineNum)
 
@@ -522,7 +532,7 @@ Rectangle {
 
             // Editor scroll -> preview (debounced)
             Connections {
-                target: mdEditor.scrollFlickable
+                target: editor.scrollFlickable
                 enabled: mainContent.viewMode === MainContent.ViewMode.Split
                 function onContentYChanged() {
                     editorScrollSyncTimer.restart()
@@ -536,7 +546,7 @@ Rectangle {
                 function onPreviewScrolled(percent) {
                     if (scrollSyncGuard.syncing) return
                     scrollSyncGuard.syncing = true
-                    let ef = mdEditor.scrollFlickable
+                    let ef = editor.scrollFlickable
                     if (!ef) return
                     let maxY = Math.max(1, ef.contentHeight - ef.height)
                     ef.contentY = Math.max(0, Math.min(percent * maxY, maxY))
@@ -555,7 +565,7 @@ Rectangle {
                     }
 
                     // Fallback: text-search for the heading in the editor
-                    let content = mdEditor.textArea.text
+                    let content = editor.textArea.text
                     let lines = content.split("\n")
                     for (let i = 0; i < lines.length; i++) {
                         // Match markdown heading lines: # text, ## text, etc.
@@ -569,7 +579,7 @@ Rectangle {
             }
 
             function scrollEditorToLine(lineNum) {
-                let content = mdEditor.textArea.text
+                let content = editor.textArea.text
                 let lines = content.split("\n")
                 if (lineNum < 1 || lineNum > lines.length) return
 
@@ -583,11 +593,11 @@ Rectangle {
                 scrollSyncGuard.syncing = true
 
                 // Move cursor to that line
-                mdEditor.textArea.cursorPosition = offset
+                editor.textArea.cursorPosition = offset
 
                 // Scroll the editor to make that line visible
-                let rect = mdEditor.textArea.positionToRectangle(offset)
-                mdEditor.ensureVisible(rect.y)
+                let rect = editor.textArea.positionToRectangle(offset)
+                editor.ensureVisible(rect.y)
 
                 scrollSyncTimer.restart()
             }
@@ -597,7 +607,7 @@ Rectangle {
         EditorStatusBar {
             visible: AppController.currentDocument.filePath !== "" && !mainContent.isJsonlActive
             viewMode: mainContent.viewMode
-            editorCursorPosition: mdEditor.cursorPosition
+            editorCursorPosition: editor.cursorPosition
         }
     }
 }

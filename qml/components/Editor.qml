@@ -124,7 +124,7 @@ Item {
         textArea.select(lineStart, lineStart + result.length)
     }
 
-    // Handle Enter: auto-continue lists
+    // Handle Enter: auto-continue lists (markdown only)
     function handleEnter() {
         let pos = textArea.cursorPosition
         let lineStart = lineStartOf(pos)
@@ -195,11 +195,18 @@ Item {
         }
     }
 
-    // Syntax highlighter
-    MdSyntaxHighlighter {
-        id: syntaxHighlighter
+    // Unified syntax highlighter — mode switches declaratively, no document swap needed
+    SyntaxHighlighter {
+        id: highlighter
         document: textArea.textDocument
         enabled: AppController.configManager.syntaxHighlightEnabled
+        mode: {
+            switch (AppController.currentDocument.fileType) {
+            case Document.Markdown: return SyntaxHighlighter.Markdown
+            case Document.Json:     return SyntaxHighlighter.Json
+            default:                  return SyntaxHighlighter.PlainText
+            }
+        }
     }
 
     FontMetrics {
@@ -257,7 +264,7 @@ Item {
     Timer {
         id: blockRangesTimer
         interval: 100
-        onTriggered: editorRoot.blockRanges = editorRoot.computeBlockRanges()
+        onTriggered: editorRoot.blockRanges = AppController.currentDocument.computeBlockRanges()
     }
 
     onBlockStoreRevisionChanged: blockRangesTimer.restart()
@@ -268,156 +275,53 @@ Item {
         function onTextChanged() { blockRangesTimer.restart() }
     }
 
-    function computeBlockRanges() {
-        let t = textArea.text || ""
-        if (t.length === 0) return []
-
-        let lines = t.split("\n")
-        let ranges = []
-        let cur = null
-        let contentLines = []
-
-        for (let i = 0; i < lines.length; i++) {
-            let line = lines[i]
-
-            if (!cur) {
-                let m = line.match(/<!--\s*block:\s*(.+?)\s*\[id:([a-f0-9]{6})\]\s*-->/)
-                if (m) {
-                    cur = { name: m[1], id: m[2], startLine: i + 1 }
-                    contentLines = []
-                }
-            } else {
-                let closeRx = new RegExp("<!--\\s*/block:" + cur.id + "\\s*-->")
-                if (closeRx.test(line)) {
-                    let content = contentLines.join("\n")
-                    let storeBlock = AppController.blockStore.getBlock(cur.id)
-                    let status = "local"
-                    if (storeBlock && storeBlock.id) {
-                        status = (storeBlock.content === content) ? "synced" : "diverged"
-                    }
-                    ranges.push({
-                        startLine: cur.startLine,
-                        endLine: i + 1,
-                        id: cur.id,
-                        name: cur.name,
-                        status: status
-                    })
-                    cur = null
-                } else {
-                    contentLines.push(line)
-                }
-            }
-        }
-        return ranges
-    }
-
-    // Lookup: given a 1-based line number, return block info or null
-    function blockAtLine(lineNum) {
-        let r = editorRoot.blockRanges
-        for (let i = 0; i < r.length; i++) {
-            if (lineNum >= r[i].startLine && lineNum <= r[i].endLine)
-                return r[i]
-        }
-        return null
-    }
-
-    // Markdown formatting toolbar
-    MdToolbar {
-        id: mdToolbar
+    // Toolbar — Loader picks the right component based on file type
+    Loader {
+        id: toolbarLoader
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        visible: editorRoot.toolbarVisible
-        targetArea: textArea
-    }
-
-    // Line number gutter
-    Rectangle {
-        id: gutter
-        anchors.left: parent.left
-        anchors.top: mdToolbar.visible ? mdToolbar.bottom : parent.top
-        anchors.bottom: parent.bottom
-        width: {
-            let lineCount = Math.max(1, (textArea.text || "").split("\n").length)
-            let digits = Math.max(3, lineCount.toString().length)
-            return digits * fm.averageCharacterWidth + 20 // font-scaled digit width + padding for block strip
-        }
-        color: Theme.bgGutter
-        clip: true
-        z: 2
-
-        // Right border
-        Rectangle {
-            anchors.right: parent.right
-            width: 1
-            height: parent.height
-            color: Theme.bgHeader
-        }
-
-        Column {
-            id: lineNumberCol
-            y: -scrollView.contentItem.contentY + textArea.topPadding
-
-            Repeater {
-                model: Math.max(1, (textArea.text || "").split("\n").length)
-
-                delegate: Item {
-                    width: gutter.width - 4
-                    height: editorRoot.lineHeights[index] || fm.lineSpacing
-
-                    // Block region indicator strip (left edge)
-                    Rectangle {
-                        id: blockStrip
-                        width: 4
-                        height: parent.height
-                        anchors.left: parent.left
-
-                        property var blockInfo: editorRoot.blockAtLine(index + 1)
-
-                        color: {
-                            if (!blockInfo) return "transparent"
-                            if (blockInfo.status === "synced") return Theme.accentGreen
-                            if (blockInfo.status === "diverged") return Theme.accentOrange
-                            return Theme.accent // local
-                        }
-
-                        ToolTip.text: blockInfo
-                            ? blockInfo.name + " [" + blockInfo.id + "] — " + blockInfo.status
-                            : ""
-                        ToolTip.visible: blockInfo ? stripMa.containsMouse : false
-                        ToolTip.delay: 400
-
-                        MouseArea {
-                            id: stripMa
-                            anchors.fill: parent
-                            hoverEnabled: true
-                        }
-                    }
-
-                    Label {
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: index + 1
-                        font: textArea.font
-                        color: (index + 1) === gutter.currentLine ? Theme.textBright : Theme.textSecondary
-                    }
-                }
+        active: editorRoot.toolbarVisible
+        sourceComponent: {
+            switch (AppController.currentDocument.fileType) {
+            case Document.Markdown: return mdToolbarComponent
+            case Document.Json:     return jsonToolbarComponent
+            default:                  return null
             }
         }
+    }
 
-        // Current line (computed once, not per-delegate)
-        property int currentLine: {
-            let pos = textArea.cursorPosition
-            let t = textArea.text || ""
-            return t.substring(0, pos).split("\n").length
-        }
+    Component {
+        id: mdToolbarComponent
+        MdToolbar { targetArea: textArea }
+    }
+
+    Component {
+        id: jsonToolbarComponent
+        JsonToolbar { }
+    }
+
+    property Item activeToolbar: toolbarLoader.item
+
+    // Line number gutter
+    LineNumberGutter {
+        id: gutter
+        anchors.left: parent.left
+        anchors.top: toolbarLoader.active && toolbarLoader.item ? toolbarLoader.bottom : parent.top
+        anchors.bottom: parent.bottom
+        textArea: textArea
+        lineHeights: editorRoot.lineHeights
+        blockRanges: editorRoot.blockRanges
+        fontMetrics: fm
+        scrollY: scrollView.contentItem.contentY
+        textTopPadding: textArea.topPadding
     }
 
     ScrollView {
         id: scrollView
         anchors.left: gutter.right
         anchors.right: parent.right
-        anchors.top: mdToolbar.visible ? mdToolbar.bottom : parent.top
+        anchors.top: toolbarLoader.active && toolbarLoader.item ? toolbarLoader.bottom : parent.top
         anchors.bottom: parent.bottom
 
         // Current line highlight
@@ -483,6 +387,8 @@ Item {
             }
 
             Keys.onPressed: function(event) {
+                let isMd = AppController.currentDocument.fileType === Document.Markdown
+
                 // Intercept Ctrl+V when clipboard has an image
                 if (event.key === Qt.Key_V && (event.modifiers & Qt.ControlModifier)) {
                     if (AppController.imageHandler.clipboardHasImage()) {
@@ -498,20 +404,23 @@ Item {
                     editorRoot.handleTab(true)
                     event.accepted = true
                 } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                    if (!(event.modifiers & Qt.ShiftModifier)
+                    if (isMd && !(event.modifiers & Qt.ShiftModifier)
                         && !(event.modifiers & Qt.ControlModifier)) {
                         editorRoot.handleEnter()
                         event.accepted = true
                     }
-                } else if (event.key === Qt.Key_B && (event.modifiers & Qt.ControlModifier)) {
-                    mdToolbar.wrapSelection("**", "**")
+                } else if (isMd && event.key === Qt.Key_B && (event.modifiers & Qt.ControlModifier)) {
+                    if (toolbarLoader.item && toolbarLoader.item.wrapSelection)
+                        toolbarLoader.item.wrapSelection("**", "**")
                     event.accepted = true
-                } else if (event.key === Qt.Key_I && (event.modifiers & Qt.ControlModifier)) {
-                    mdToolbar.wrapSelection("*", "*")
+                } else if (isMd && event.key === Qt.Key_I && (event.modifiers & Qt.ControlModifier)) {
+                    if (toolbarLoader.item && toolbarLoader.item.wrapSelection)
+                        toolbarLoader.item.wrapSelection("*", "*")
                     event.accepted = true
-                } else if (event.key === Qt.Key_K && (event.modifiers & Qt.ControlModifier)
+                } else if (isMd && event.key === Qt.Key_K && (event.modifiers & Qt.ControlModifier)
                            && (event.modifiers & Qt.ShiftModifier)) {
-                    mdToolbar.wrapSelection("`", "`")
+                    if (toolbarLoader.item && toolbarLoader.item.wrapSelection)
+                        toolbarLoader.item.wrapSelection("`", "`")
                     event.accepted = true
                 } else if (event.key === Qt.Key_D && (event.modifiers & Qt.ControlModifier)) {
                     editorRoot.duplicateLine()

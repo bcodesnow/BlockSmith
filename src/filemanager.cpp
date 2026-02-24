@@ -1,5 +1,5 @@
 #include "filemanager.h"
-#include "mddocument.h"
+#include "document.h"
 #include "configmanager.h"
 
 #include <QFile>
@@ -7,7 +7,7 @@
 #include <QFileInfo>
 #include <QTextStream>
 
-FileManager::FileManager(MdDocument *document, ConfigManager *config,
+FileManager::FileManager(Document *document, ConfigManager *config,
                          QObject *parent)
     : QObject(parent)
     , m_document(document)

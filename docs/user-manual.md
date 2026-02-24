@@ -113,6 +113,10 @@ The formatting toolbar sits above the editor and provides quick-access markdown 
 - **Duplicate line** — Ctrl+D duplicates the current line
 - **Block status markers** — colored strips in the gutter show block sync status (green=synced, orange=diverged, blue=local)
 - **Find & Replace** — undo-safe operations, scroll-to-match, case sensitivity toggle
+- **External change detection** — a file watcher monitors the open file for changes made by other editors or tools:
+  - If the document has no unsaved edits, it reloads silently
+  - If the document has unsaved edits, a banner appears: *"File changed on disk."* with **Reload** (discard local edits) and **Ignore** (keep editing) buttons
+  - If the file is deleted from disk, a banner appears: *"File was deleted from disk."* with a **Close** button
 
 ## Image Handling
 
@@ -196,6 +200,17 @@ The **Outline** tab in the right pane shows the heading structure of the current
 - **Live updates** — the outline refreshes as you type (300ms debounce)
 - **Code block aware** — headings inside fenced code blocks are excluded
 
+## JSON Editor
+
+BlockSmith supports editing `.json` files directly. Click any `.json` file in the project tree to open it.
+
+- **Syntax highlighting** — keys (blue), string values (green), numbers (orange), booleans/null (purple), brackets (muted)
+- **Format JSON** — click the toolbar button to prettify minified or compact JSON (uses Qt's QJsonDocument for valid JSON formatting)
+- **Edit-only mode** — Split and Preview modes are disabled for JSON files; the Edit/Split/Preview toggle is hidden
+- **Save** — Ctrl+S works as normal; encoding and file watcher behave the same as for markdown files
+
+If the JSON is invalid, the Format button shows a toast: "Invalid JSON — cannot format".
+
 ## JSONL Transcript Viewer
 
 BlockSmith includes a built-in viewer for `.jsonl` transcript files — the format used by Claude Code to log conversations. Click any `.jsonl` file in the project tree to open it.
@@ -239,10 +254,13 @@ Export the current markdown document to PDF, HTML, or DOCX via **Ctrl+Shift+E**.
 1. Open a markdown file
 2. Press **Ctrl+Shift+E** (or use the menu)
 3. Select format: PDF (default), HTML, or DOCX
-4. Review the output path (defaults to same directory as source, with matching extension)
-5. Optionally browse to a different output location
-6. Click **Export**
-7. A spinner shows during export; toast notification on completion
+4. Choose font size: Small, Medium (default), or Large
+5. Review the output path (defaults to same directory as source, with matching extension)
+6. Optionally browse to a different output location
+7. Toggle "Open file after export" (enabled by default)
+8. Click **Export**
+9. A spinner shows during export; toast notification on completion
+10. If "Open file after export" is checked, the file opens in your system's default app
 
 ### Notes
 

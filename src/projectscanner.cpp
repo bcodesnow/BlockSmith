@@ -246,7 +246,7 @@ void ProjectScanner::collectMdFiles(const QString &dirPath, TreeNode *parentNode
         }
     }
 
-    const auto files = dir.entryInfoList({"*.md", "*.jsonl"}, QDir::Files, QDir::Name);
+    const auto files = dir.entryInfoList({"*.md", "*.jsonl", "*.json"}, QDir::Files, QDir::Name);
     for (const QFileInfo &file : files) {
         bool isTrigger = false;
         for (const QString &trigger : triggers) {

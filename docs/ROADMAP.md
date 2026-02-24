@@ -37,21 +37,21 @@ Small fixes that improve polish without new features. **Completed 2026-02-21.**
 Features that prevent data loss and keep content fresh. **Completed 2026-02-21.**
 
 ### 8.1 File Watcher
-- Add QFileSystemWatcher to MdDocument — watch the currently open file
+- Add QFileSystemWatcher to Document — watch the currently open file
 - On external change: emit `fileChangedExternally()` signal
 - QML shows a non-modal banner: "File changed on disk. [Reload] [Ignore]"
 - If document is unmodified: auto-reload silently
 - If document has unsaved changes: show the banner, let user decide
 - Watch/unwatch on file open/close
-- **Files:** src/mddocument.h/.cpp (QFileSystemWatcher member, signals), qml/components/MainContent.qml (banner UI)
+- **Files:** src/document.h/.cpp (QFileSystemWatcher member, signals), qml/components/MainContent.qml (banner UI)
 
 ### 8.2 Auto-Save
 - ConfigManager: `autoSaveEnabled` (bool, default false), `autoSaveInterval` (int, default 30 seconds)
-- Timer in MdDocument: if enabled + document modified, call save()
+- Timer in Document: if enabled + document modified, call save()
 - Save on window focus loss (QGuiApplication::applicationStateChanged → Inactive)
 - Status bar: subtle "Auto-saved" flash via existing toast or inline label
 - Settings dialog: checkbox + interval spinner
-- **Files:** src/configmanager.h/.cpp (2 properties), src/mddocument.h/.cpp (QTimer, focus slot), qml/components/SettingsDialog.qml (UI), qml/components/MainContent.qml (status indicator)
+- **Files:** src/configmanager.h/.cpp (2 properties), src/document.h/.cpp (QTimer, focus slot), qml/components/SettingsDialog.qml (UI), qml/components/MainContent.qml (status indicator)
 
 ---
 
@@ -62,7 +62,7 @@ Critical correctness and startup-flow fixes discovered in the 2026-02-21 full re
 ### 8.5.1 Save-Safe File Switching
 - Prevent navigation when save fails in the unsaved-changes flow
 - Only call file switch after a confirmed successful save
-- **Files:** qml/Main.qml, src/mddocument.h/.cpp
+- **Files:** qml/Main.qml, src/document.h/.cpp
 
 ### 8.5.2 Dirty-Buffer Protection During Rename/Move
 - If currently opened file is modified, block rename/move or require Save/Discard/Cancel
@@ -83,7 +83,7 @@ Critical correctness and startup-flow fixes discovered in the 2026-02-21 full re
 ### 8.5.5 Truthful Auto-Save State
 - Emit auto-save success only when `save()` actually commits
 - Keep status indicator aligned with real save outcome
-- **Files:** src/mddocument.h/.cpp, src/appcontroller.cpp, qml/components/MainContent.qml
+- **Files:** src/document.h/.cpp, src/appcontroller.cpp, qml/components/MainContent.qml
 
 ### 8.5.6 Deleted-File Banner Action
 - Make "Close" actually close/clear the current document when file is missing
@@ -91,7 +91,7 @@ Critical correctness and startup-flow fixes discovered in the 2026-02-21 full re
 
 ### 8.5.7 Drop URL Path Decoding
 - Decode dropped file URL paths before copy (spaces/unicode-safe)
-- **Files:** qml/components/MdEditor.qml
+- **Files:** qml/components/Editor.qml
 
 ---
 

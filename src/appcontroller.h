@@ -9,7 +9,7 @@
 #include "md4crenderer.h"
 #include "projecttreemodel.h"
 #include "projectscanner.h"
-#include "mddocument.h"
+#include "document.h"
 #include "blockstore.h"
 #include "promptstore.h"
 #include "syncengine.h"
@@ -28,7 +28,7 @@ class AppController : public QObject
     Q_PROPERTY(Md4cRenderer* md4cRenderer READ md4cRenderer CONSTANT)
     Q_PROPERTY(ProjectTreeModel* projectTreeModel READ projectTreeModel CONSTANT)
     Q_PROPERTY(ProjectScanner* projectScanner READ projectScanner CONSTANT)
-    Q_PROPERTY(MdDocument* currentDocument READ currentDocument CONSTANT)
+    Q_PROPERTY(Document* currentDocument READ currentDocument CONSTANT)
     Q_PROPERTY(BlockStore* blockStore READ blockStore CONSTANT)
     Q_PROPERTY(PromptStore* promptStore READ promptStore CONSTANT)
     Q_PROPERTY(SyncEngine* syncEngine READ syncEngine CONSTANT)
@@ -47,7 +47,7 @@ public:
     Md4cRenderer *md4cRenderer() const;
     ProjectTreeModel *projectTreeModel() const;
     ProjectScanner *projectScanner() const;
-    MdDocument *currentDocument() const;
+    Document *currentDocument() const;
     BlockStore *blockStore() const;
     PromptStore *promptStore() const;
     SyncEngine *syncEngine() const;
@@ -65,6 +65,7 @@ public:
 
     Q_INVOKABLE void forceOpenFile(const QString &path);
     Q_INVOKABLE QStringList getAllFiles() const;
+    Q_INVOKABLE QVariantList fuzzyFilterFiles(const QString &query) const;
 
 signals:
     void scanComplete(int projectCount);
@@ -82,7 +83,7 @@ private:
     Md4cRenderer *m_md4cRenderer = nullptr;
     ProjectTreeModel *m_projectTreeModel = nullptr;
     ProjectScanner *m_projectScanner = nullptr;
-    MdDocument *m_currentDocument = nullptr;
+    Document *m_currentDocument = nullptr;
     BlockStore *m_blockStore = nullptr;
     PromptStore *m_promptStore = nullptr;
     SyncEngine *m_syncEngine = nullptr;

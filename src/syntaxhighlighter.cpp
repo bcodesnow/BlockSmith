@@ -1,17 +1,18 @@
-#include "mdsyntaxhighlighter.h"
+#include "syntaxhighlighter.h"
 
-MdSyntaxHighlighter::MdSyntaxHighlighter(QObject *parent)
+SyntaxHighlighter::SyntaxHighlighter(QObject *parent)
     : QSyntaxHighlighter(parent)
 {
-    setupFormats();
+    setupMdFormats();
+    setupJsonFormats();
 }
 
-QQuickTextDocument *MdSyntaxHighlighter::quickDocument() const
+QQuickTextDocument *SyntaxHighlighter::quickDocument() const
 {
     return m_quickDocument;
 }
 
-void MdSyntaxHighlighter::setQuickDocument(QQuickTextDocument *doc)
+void SyntaxHighlighter::setQuickDocument(QQuickTextDocument *doc)
 {
     if (m_quickDocument == doc)
         return;
@@ -26,9 +27,9 @@ void MdSyntaxHighlighter::setQuickDocument(QQuickTextDocument *doc)
     emit quickDocumentChanged();
 }
 
-bool MdSyntaxHighlighter::enabled() const { return m_enabled; }
+bool SyntaxHighlighter::enabled() const { return m_enabled; }
 
-void MdSyntaxHighlighter::setEnabled(bool enabled)
+void SyntaxHighlighter::setEnabled(bool enabled)
 {
     if (m_enabled == enabled)
         return;
@@ -36,12 +37,39 @@ void MdSyntaxHighlighter::setEnabled(bool enabled)
     m_enabled = enabled;
     emit enabledChanged();
 
-    // Re-highlight when toggled
     if (document())
         rehighlight();
 }
 
-void MdSyntaxHighlighter::setupFormats()
+SyntaxHighlighter::Mode SyntaxHighlighter::mode() const { return m_mode; }
+
+void SyntaxHighlighter::setMode(Mode mode)
+{
+    if (m_mode == mode)
+        return;
+
+    m_mode = mode;
+    emit modeChanged();
+
+    if (document())
+        rehighlight();
+}
+
+void SyntaxHighlighter::highlightBlock(const QString &text)
+{
+    if (!m_enabled)
+        return;
+
+    switch (m_mode) {
+    case Markdown: highlightMarkdown(text); break;
+    case Json:     highlightJson(text);     break;
+    case PlainText: break;
+    }
+}
+
+// --- Markdown highlighting ---
+
+void SyntaxHighlighter::setupMdFormats()
 {
     // H1: bright blue, bold
     m_h1Format.setForeground(QColor("#6cb6ff"));
@@ -92,7 +120,7 @@ void MdSyntaxHighlighter::setupFormats()
     m_hrFormat.setForeground(QColor("#666"));
 
     // Build rule list (order matters — later rules can override earlier ones)
-    m_rules = {
+    m_mdRules = {
         // Headings (must be at start of line)
         { QRegularExpression(R"(^#{1}\s.+$)"),  m_h1Format },
         { QRegularExpression(R"(^#{2}\s.+$)"),   m_h2Format },
@@ -128,10 +156,8 @@ void MdSyntaxHighlighter::setupFormats()
     };
 }
 
-void MdSyntaxHighlighter::highlightBlock(const QString &text)
+void SyntaxHighlighter::highlightMarkdown(const QString &text)
 {
-    if (!m_enabled) return;
-
     // Check if we're inside a code fence
     // State: 0 = normal, 1 = inside code fence
     int prevState = previousBlockState();
@@ -158,11 +184,100 @@ void MdSyntaxHighlighter::highlightBlock(const QString &text)
     setCurrentBlockState(0);
 
     // Apply rules
-    for (const auto &rule : m_rules) {
+    for (const auto &rule : m_mdRules) {
         auto it = rule.pattern.globalMatch(text);
         while (it.hasNext()) {
             auto match = it.next();
             setFormat(match.capturedStart(), match.capturedLength(), rule.format);
         }
+    }
+}
+
+// --- JSON highlighting ---
+
+void SyntaxHighlighter::setupJsonFormats()
+{
+    // Keys: blue
+    m_keyFormat.setForeground(QColor("#6cb6ff"));
+
+    // String values: green
+    m_stringFormat.setForeground(QColor("#a5d6a7"));
+
+    // Numbers: orange
+    m_numberFormat.setForeground(QColor("#e0c060"));
+
+    // Booleans and null: purple
+    m_boolNullFormat.setForeground(QColor("#c594c5"));
+    m_boolNullFormat.setFontWeight(QFont::Bold);
+
+    // Braces, brackets, colons: muted
+    m_bracketFormat.setForeground(QColor("#888"));
+}
+
+void SyntaxHighlighter::highlightJson(const QString &text)
+{
+    int i = 0;
+    const int len = text.length();
+    bool expectingValue = false;
+
+    while (i < len) {
+        QChar ch = text[i];
+
+        // Skip whitespace
+        if (ch.isSpace()) { ++i; continue; }
+
+        // Structural characters
+        if (ch == '{' || ch == '}' || ch == '[' || ch == ']' || ch == ',') {
+            setFormat(i, 1, m_bracketFormat);
+            if (ch == '{') expectingValue = false; // next string is a key
+            ++i;
+            continue;
+        }
+
+        // Colon separator
+        if (ch == ':') {
+            setFormat(i, 1, m_bracketFormat);
+            expectingValue = true;
+            ++i;
+            continue;
+        }
+
+        // Strings (keys or values)
+        if (ch == '"') {
+            int start = i;
+            ++i;
+            while (i < len) {
+                if (text[i] == '\\') { i += 2; continue; }
+                if (text[i] == '"') { ++i; break; }
+                ++i;
+            }
+            setFormat(start, i - start, expectingValue ? m_stringFormat : m_keyFormat);
+            continue;
+        }
+
+        // Numbers
+        if (ch == '-' || ch.isDigit()) {
+            int start = i;
+            ++i;
+            while (i < len && (text[i].isDigit() || text[i] == '.' || text[i] == 'e'
+                               || text[i] == 'E' || text[i] == '+' || text[i] == '-'))
+                ++i;
+            setFormat(start, i - start, m_numberFormat);
+            expectingValue = false;
+            continue;
+        }
+
+        // Booleans and null
+        if (text.mid(i, 4) == QLatin1String("true")) {
+            setFormat(i, 4, m_boolNullFormat); i += 4; expectingValue = false; continue;
+        }
+        if (text.mid(i, 5) == QLatin1String("false")) {
+            setFormat(i, 5, m_boolNullFormat); i += 5; expectingValue = false; continue;
+        }
+        if (text.mid(i, 4) == QLatin1String("null")) {
+            setFormat(i, 4, m_boolNullFormat); i += 4; expectingValue = false; continue;
+        }
+
+        ++i;
     }
 }

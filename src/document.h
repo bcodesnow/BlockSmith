@@ -9,7 +9,9 @@
 #include <QTimer>
 #include <QtQml/qqmlregistration.h>
 
-class MdDocument : public QObject
+class BlockStore;
+
+class Document : public QObject
 {
     Q_OBJECT
     QML_ELEMENT
@@ -19,8 +21,14 @@ class MdDocument : public QObject
     Q_PROPERTY(QString rawContent READ rawContent WRITE setRawContent NOTIFY rawContentChanged)
     Q_PROPERTY(bool modified READ modified NOTIFY modifiedChanged)
     Q_PROPERTY(QString encoding READ encoding NOTIFY encodingChanged)
+    Q_PROPERTY(FileType fileType READ fileType NOTIFY filePathChanged)
+    Q_PROPERTY(bool isJson READ isJson NOTIFY filePathChanged)
+    Q_PROPERTY(bool supportsPreview READ supportsPreview NOTIFY filePathChanged)
 
 public:
+    enum FileType { Markdown, Json, PlainText };
+    Q_ENUM(FileType)
+
     struct BlockSegment {
         QString id;
         QString name;
@@ -29,7 +37,7 @@ public:
         int endPos;
     };
 
-    explicit MdDocument(QObject *parent = nullptr);
+    explicit Document(QObject *parent = nullptr);
 
     void load(const QString &filePath);
     Q_INVOKABLE void save();
@@ -37,6 +45,10 @@ public:
     Q_INVOKABLE void reload();
 
     QString filePath() const;
+    FileType fileType() const;
+    bool isJson() const;
+    bool supportsPreview() const;
+
     QString rawContent() const;
     void setRawContent(const QString &content);
     bool modified() const;
@@ -50,6 +62,11 @@ public:
                                   const QString &blockName, const QString &content);
 
     Q_INVOKABLE void clear();
+
+    Q_INVOKABLE QVariantList findMatches(const QString &text, bool caseSensitive) const;
+    Q_INVOKABLE QVariantList computeBlockRanges() const;
+    Q_INVOKABLE QString prettifyJson() const;
+    void setBlockStore(BlockStore *store);
 
     void setAutoSave(bool enabled, int intervalSecs);
 
@@ -87,4 +104,5 @@ private:
     bool m_ignoreNextChange = false; // suppress watcher after our own save
 
     QTimer m_autoSaveTimer;
+    BlockStore *m_blockStore = nullptr;
 };

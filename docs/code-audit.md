@@ -17,7 +17,7 @@ Code audit of the full BlockSmith codebase (~4,950 C++ LOC across 31 files, 29 Q
 | File | Lines | Limit | Over by |
 |------|-------|-------|---------|
 | MainContent.qml | 723 | 300 | 423 |
-| MdEditor.qml | 633 | 300 | 333 |
+| Editor.qml | 633 | 300 | 333 |
 | NavPanel.qml | 543 | 300 | 243 |
 | SettingsDialog.qml | 421 | 300 | 121 |
 | Main.qml | 392 | 300 | 92 |
@@ -30,7 +30,7 @@ AppController owns 12 subsystems, wires all signal chains, manages search thread
 ### High: Duplicated Code
 
 - **ID generation** — Nearly identical in BlockStore and PromptStore
-- **BOM detection** — Duplicated between SyncEngine and MdDocument
+- **BOM detection** — Duplicated between SyncEngine and Document
 - **QML button styling** — Same pattern copy-pasted across 6+ QML files (~50+ lines)
 - **Editor popups** — BlockEditorPopup and PromptEditorPopup share identical layout structure
 - **roleColor()** — Defined in both JsonlEntryCard and JsonlViewer
@@ -46,14 +46,14 @@ BlockStore and PromptStore `load()` methods silently return on file open failure
 ### Medium: JS Logic in QML That Belongs in C++
 
 - Find/replace regex engine (MainContent.qml, 100+ lines)
-- Block range parsing (MdEditor.qml, 41 lines, runs on every keystroke)
+- Block range parsing (Editor.qml, 41 lines, runs on every keystroke)
 - Fuzzy matching (QuickSwitcher.qml, 24 lines)
 - Line calculation using `.substring().split("\n").length` on every access
 
 ### Medium: Coupling Issues
 
 - AppController.h includes all 12 subsystem headers (forward declarations not viable — Qt 6.10 MOC requires full includes for Q_PROPERTY pointer types; splitting AppController is the real fix)
-- FileManager directly manipulates MdDocument internals
+- FileManager directly manipulates Document internals
 - SyncEngine does raw file I/O instead of going through an abstraction
 
 ### Low: Cleanup
@@ -81,7 +81,7 @@ BlockStore and PromptStore `load()` methods silently return on file open failure
 |--------|--------|
 | Fix JsonlStore worker thread leak | Done |
 | Extract `utils.h/cpp` (generateHexId + detectBomEncoding) | Done |
-| Deduplicate BlockStore/PromptStore/SyncEngine/MdDocument | Done |
+| Deduplicate BlockStore/PromptStore/SyncEngine/Document | Done |
 | Add arrow key navigation to SearchDialog | Done |
 | Extract EditorStatusBar.qml from MainContent.qml | Done |
 | Extract NavContextMenu.qml from NavPanel.qml | Done |
@@ -99,7 +99,7 @@ BlockStore and PromptStore `load()` methods silently return on file open failure
 |----------|--------|--------|
 | Refactor | Extract shared `StyledButton.qml` / `EditorPopupBase.qml` components | 2-3 hrs |
 | Move | Find/replace engine + block range parsing to C++ backend | 3-4 hrs |
-| Refactor | Split MdEditor.qml (extract gutter, block ranges, image helpers) | 2-3 hrs |
+| Refactor | Split Editor.qml (extract gutter, block ranges, image helpers) | 2-3 hrs |
 | Refactor | Split SettingsDialog.qml (extract tab components, reusable TextArea) | 1-2 hrs |
 | Refactor | Split Main.qml (extract shortcuts, toast connections, dialogs) | 1-2 hrs |
 | Consider | Split AppController into domain managers (DocumentManager, BlockManager, ProjectManager, SearchManager) | 2-3 days |

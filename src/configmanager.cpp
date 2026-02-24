@@ -115,13 +115,13 @@ void ConfigManager::setScanDepth(int depth)
     }
 }
 
-bool ConfigManager::markdownToolbarVisible() const { return m_markdownToolbarVisible; }
+bool ConfigManager::editorToolbarVisible() const { return m_editorToolbarVisible; }
 
 void ConfigManager::setMarkdownToolbarVisible(bool visible)
 {
-    if (m_markdownToolbarVisible != visible) {
-        m_markdownToolbarVisible = visible;
-        emit markdownToolbarVisibleChanged();
+    if (m_editorToolbarVisible != visible) {
+        m_editorToolbarVisible = visible;
+        emit editorToolbarVisibleChanged();
     }
 }
 
@@ -298,8 +298,10 @@ void ConfigManager::load()
     if (root.contains("scanDepth"))
         m_scanDepth = root["scanDepth"].toInt(0);
 
-    if (root.contains("markdownToolbarVisible"))
-        m_markdownToolbarVisible = root["markdownToolbarVisible"].toBool(true);
+    if (root.contains("editorToolbarVisible"))
+        m_editorToolbarVisible = root["editorToolbarVisible"].toBool(true);
+    else if (root.contains("markdownToolbarVisible"))  // backward compat
+        m_editorToolbarVisible = root["markdownToolbarVisible"].toBool(true);
 
     if (root.contains("imageSubfolder"))
         m_imageSubfolder = root["imageSubfolder"].toString("images");
@@ -370,7 +372,7 @@ void ConfigManager::save()
     root["autoScanOnStartup"] = m_autoScanOnStartup;
     root["syntaxHighlightEnabled"] = m_syntaxHighlightEnabled;
     root["scanDepth"] = m_scanDepth;
-    root["markdownToolbarVisible"] = m_markdownToolbarVisible;
+    root["editorToolbarVisible"] = m_editorToolbarVisible;
     root["imageSubfolder"] = m_imageSubfolder;
     root["statusBarWordCount"] = m_statusBarWordCount;
     root["statusBarCharCount"] = m_statusBarCharCount;

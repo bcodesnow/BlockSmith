@@ -19,7 +19,7 @@ class ConfigManager : public QObject
     Q_PROPERTY(bool autoScanOnStartup READ autoScanOnStartup WRITE setAutoScanOnStartup NOTIFY autoScanOnStartupChanged)
     Q_PROPERTY(bool syntaxHighlightEnabled READ syntaxHighlightEnabled WRITE setSyntaxHighlightEnabled NOTIFY syntaxHighlightEnabledChanged)
     Q_PROPERTY(int scanDepth READ scanDepth WRITE setScanDepth NOTIFY scanDepthChanged)
-    Q_PROPERTY(bool markdownToolbarVisible READ markdownToolbarVisible WRITE setMarkdownToolbarVisible NOTIFY markdownToolbarVisibleChanged)
+    Q_PROPERTY(bool editorToolbarVisible READ editorToolbarVisible WRITE setMarkdownToolbarVisible NOTIFY editorToolbarVisibleChanged)
     Q_PROPERTY(QString imageSubfolder READ imageSubfolder WRITE setImageSubfolder NOTIFY imageSubfolderChanged)
     Q_PROPERTY(bool statusBarWordCount READ statusBarWordCount WRITE setStatusBarWordCount NOTIFY statusBarWordCountChanged)
     Q_PROPERTY(bool statusBarCharCount READ statusBarCharCount WRITE setStatusBarCharCount NOTIFY statusBarCharCountChanged)
@@ -60,7 +60,7 @@ public:
     int scanDepth() const;
     void setScanDepth(int depth);
 
-    bool markdownToolbarVisible() const;
+    bool editorToolbarVisible() const;
     void setMarkdownToolbarVisible(bool visible);
 
     QString imageSubfolder() const;
@@ -108,7 +108,7 @@ signals:
     void autoScanOnStartupChanged();
     void syntaxHighlightEnabledChanged();
     void scanDepthChanged();
-    void markdownToolbarVisibleChanged();
+    void editorToolbarVisibleChanged();
     void imageSubfolderChanged();
     void statusBarWordCountChanged();
     void statusBarCharCountChanged();
@@ -135,7 +135,7 @@ private:
     bool m_autoScanOnStartup = true;
     bool m_syntaxHighlightEnabled = true;
     int m_scanDepth = 0; // 0 = unlimited
-    bool m_markdownToolbarVisible = true;
+    bool m_editorToolbarVisible = true;
     QString m_imageSubfolder = QStringLiteral("images");
     bool m_statusBarWordCount = true;
     bool m_statusBarCharCount = true;

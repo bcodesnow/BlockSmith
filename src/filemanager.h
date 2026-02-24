@@ -3,7 +3,7 @@
 #include <QObject>
 #include <QtQml/qqmlregistration.h>
 
-class MdDocument;
+class Document;
 class ConfigManager;
 
 class FileManager : public QObject
@@ -13,7 +13,7 @@ class FileManager : public QObject
     QML_UNCREATABLE("Use via AppController.fileManager")
 
 public:
-    explicit FileManager(MdDocument *document, ConfigManager *config,
+    explicit FileManager(Document *document, ConfigManager *config,
                          QObject *parent = nullptr);
 
     Q_INVOKABLE QString createFile(const QString &parentDir, const QString &fileName);
@@ -29,6 +29,6 @@ signals:
 private:
     bool isProjectRoot(const QString &path) const;
 
-    MdDocument *m_document = nullptr;
+    Document *m_document = nullptr;
     ConfigManager *m_config = nullptr;
 };
