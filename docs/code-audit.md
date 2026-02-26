@@ -5,9 +5,9 @@
 
 ## Summary
 
-Code audit of the full BlockSmith codebase (~4,950 C++ LOC across 31 files, 38 QML components).
+Code audit of the full BlockSmith codebase (~5,100 C++ LOC across 33 files, 38 QML components).
 
-**Overall grade: B+** — Functional, no dead code, good Qt patterns. Main weakness is AppController doing too much.
+**Overall grade: A-** — Functional, no dead code, good Qt patterns. Domain managers extracted, clean separation of concerns.
 
 ---
 
@@ -35,14 +35,11 @@ Code audit of the full BlockSmith codebase (~4,950 C++ LOC across 31 files, 38 Q
 | Fuzzy matching in QML (QuickSwitcher) | Already in C++ (`AppController::fuzzyFilterFiles`) |
 | Block range parsing in QML (Editor) | Already in C++ (`Document::computeBlockRanges`) |
 | Find/replace engine in QML | Properly split: FindReplaceController.qml + Document::findMatches in C++. Replace ops must stay in QML to preserve TextArea undo stack. |
+| AppController god object | Extracted NavigationManager (nav history + file opening) and SearchManager (async search + fuzzy filtering). AppController is now a thin facade with forwarding calls. |
 
 ---
 
 ## Remaining Findings
-
-### AppController God Object
-
-Owns 12+ subsystems. Splitting into domain managers (DocumentManager, BlockManager, ProjectManager) is the real fix. Forward declarations don't work — Qt 6.10 MOC requires full includes for Q_PROPERTY pointer types.
 
 ### Other
 
@@ -57,5 +54,4 @@ All remaining items are tracked in [ROADMAP.md Phase 12 — Code Quality](ROADMA
 
 | Action | Effort |
 |--------|--------|
-| Split AppController into domain managers | 2-3 days |
 | Add `Result<T>` error propagation pattern | 1-2 hrs |

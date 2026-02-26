@@ -21,6 +21,8 @@ Project tree     |  Markdown editor/preview|  Blocks / Prompts tabs
 
 | Class | Role |
 |-------|------|
+| NavigationManager | Browser-style back/forward navigation, file opening, history |
+| SearchManager | Async file content search, fuzzy file filtering |
 | ConfigManager | Search paths, ignore patterns, trigger files, window geometry, settings |
 | ProjectScanner | Walks search paths, finds projects by trigger files |
 | ProjectTreeModel | QAbstractItemModel for tree view navigation |
@@ -54,7 +56,9 @@ To add a new format: add extension check in `fileType()`, add enum values, add h
 CMakeLists.txt
 src/
   main.cpp
-  appcontroller.h / .cpp      # QML singleton, owns all managers
+  appcontroller.h / .cpp      # QML singleton facade, owns all managers
+  navigationmanager.h / .cpp   # Browser-style nav history, file opening
+  searchmanager.h / .cpp       # Async file search, fuzzy file filtering
   configmanager.h / .cpp       # Search paths, settings persistence
   blockstore.h / .cpp          # Block registry, list model
   promptstore.h / .cpp         # Prompt library, list model

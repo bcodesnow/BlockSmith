@@ -3,7 +3,6 @@
 #include <QObject>
 #include <QQmlEngine>
 #include <QtQml/qqmlregistration.h>
-#include <atomic>
 
 #include "configmanager.h"
 #include "md4crenderer.h"
@@ -17,6 +16,8 @@
 #include "imagehandler.h"
 #include "jsonlstore.h"
 #include "exportmanager.h"
+#include "navigationmanager.h"
+#include "searchmanager.h"
 
 class AppController : public QObject
 {
@@ -98,15 +99,7 @@ private:
     ImageHandler *m_imageHandler = nullptr;
     JsonlStore *m_jsonlStore = nullptr;
     ExportManager *m_exportManager = nullptr;
+    NavigationManager *m_navigationManager = nullptr;
+    SearchManager *m_searchManager = nullptr;
     QStringList m_highlightedFiles;
-    std::shared_ptr<std::atomic<bool>> m_searchCancel;
-
-    // Navigation history (browser-style back/forward)
-    QStringList m_navHistory;
-    int m_navIndex = -1;
-    bool m_navigating = false;  // guard: suppress push during goBack/goForward
-    bool m_pendingNavJump = false;
-    int m_pendingNavIndex = -1;
-    void navPush(const QString &path);
-    void openPathNoChecks(const QString &path);
 };

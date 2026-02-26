@@ -1,7 +1,7 @@
 # BlockSmith Roadmap
 
 **Updated:** 2026-02-26
-**Baseline:** Phases 1-11 complete, Phase 12.1 + 12.2 complete. Fully functional markdown/JSON/YAML/JSONL editor with block sync, prompt library, export, navigation, file management, dark/light themes, font selection, word wrap toggle, and undo/redo toolbar.
+**Baseline:** Phases 1-12 complete. Fully functional markdown/JSON/YAML/JSONL editor with block sync, prompt library, export, navigation, file management, dark/light themes, font selection, word wrap toggle, and undo/redo toolbar.
 
 ---
 
@@ -21,9 +21,11 @@ Address remaining findings from code audit (see [code-audit.md](code-audit.md)).
 - Block range parsing already in C++ (`Document::computeBlockRanges`) — no work needed
 - Find/replace properly split: FindReplaceController.qml + Document::findMatches in C++. Replace ops stay in QML to preserve TextArea undo stack.
 
-### 12.3 Architecture
-- Split AppController into domain managers (DocumentManager, BlockManager, ProjectManager)
-- Add `Result<T>` pattern for error propagation instead of silent returns
+### 12.3 Architecture — Complete
+- Extracted NavigationManager (browser-style nav history + file opening) from AppController
+- Extracted SearchManager (async file search + fuzzy filtering) from AppController
+- AppController reduced to thin facade with forwarding calls (~260 LOC, down from ~515)
+- `Result<T>` pattern deferred — low priority, current error handling adequate
 
 ---
 

@@ -100,6 +100,8 @@ qt_add_qml_module(BlockSmith
         src/jsonlstore.h src/jsonlstore.cpp
         src/exportmanager.h src/exportmanager.cpp
         src/scrollbridge.h src/scrollbridge.cpp
+        src/navigationmanager.h src/navigationmanager.cpp
+        src/searchmanager.h src/searchmanager.cpp
         src/utils.h src/utils.cpp
 )
 
