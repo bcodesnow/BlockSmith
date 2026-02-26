@@ -45,8 +45,23 @@ WebEngineView {
     onLoadingChanged: function(info) {
         if (info.status === WebEngineView.LoadSucceededStatus) {
             _pageReady = true
+            pushTheme()
             pushContent()
         }
+    }
+
+    // React to theme changes
+    Connections {
+        target: AppController.configManager
+        function onThemeModeChanged() {
+            previewWeb.pushTheme()
+            previewWeb.pushContent()
+        }
+    }
+
+    function pushTheme() {
+        if (!_pageReady) return
+        runJavaScript("setTheme(" + (Theme.isDark ? "true" : "false") + ")")
     }
 
     onMarkdownChanged: previewTimer.restart()

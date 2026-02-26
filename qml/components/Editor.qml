@@ -57,17 +57,8 @@ Item {
         }
     }
 
-    function isImageUrl(url) {
-        let lower = url.toString().toLowerCase()
-        return lower.endsWith(".png") || lower.endsWith(".jpg")
-            || lower.endsWith(".jpeg") || lower.endsWith(".gif")
-            || lower.endsWith(".svg") || lower.endsWith(".webp")
-            || lower.endsWith(".bmp")
-    }
-
     // --- Editing helpers ---
 
-    // Get the line start offset for a given cursor position
     function lineStartOf(pos) {
         let t = textArea.text
         let i = pos - 1
@@ -75,7 +66,6 @@ Item {
         return i + 1
     }
 
-    // Get the line end offset for a given cursor position
     function lineEndOf(pos) {
         let t = textArea.text
         let i = pos
@@ -83,19 +73,16 @@ Item {
         return i
     }
 
-    // Handle Tab indent / Shift+Tab outdent
     function handleTab(shift) {
         let selStart = textArea.selectionStart
         let selEnd = textArea.selectionEnd
         let hasSelection = selStart !== selEnd
 
         if (!hasSelection && !shift) {
-            // Simple tab: insert 4 spaces
             textArea.insert(textArea.cursorPosition, "    ")
             return
         }
 
-        // Multi-line indent/outdent
         let lineStart = lineStartOf(selStart)
         let lineEnd = lineEndOf(selEnd > selStart ? selEnd - 1 : selEnd)
         let block = textArea.text.substring(lineStart, lineEnd)
@@ -103,7 +90,6 @@ Item {
         let newLines = []
 
         if (shift) {
-            // Outdent: remove up to 4 leading spaces
             for (let i = 0; i < lines.length; i++) {
                 let line = lines[i]
                 let remove = 0
@@ -111,7 +97,6 @@ Item {
                 newLines.push(line.substring(remove))
             }
         } else {
-            // Indent: add 4 spaces
             for (let i = 0; i < lines.length; i++) {
                 newLines.push("    " + lines[i])
             }
@@ -120,17 +105,14 @@ Item {
         let result = newLines.join("\n")
         textArea.remove(lineStart, lineEnd)
         textArea.insert(lineStart, result)
-        // Re-select the modified region
         textArea.select(lineStart, lineStart + result.length)
     }
 
-    // Handle Enter: auto-continue lists (markdown only)
     function handleEnter() {
         let pos = textArea.cursorPosition
         let lineStart = lineStartOf(pos)
         let lineText = textArea.text.substring(lineStart, pos)
 
-        // Match list prefixes: "- ", "* ", "+ ", "1. ", "- [ ] ", "- [x] "
         let listMatch = lineText.match(/^(\s*)([-*+])\s(\[[ x]\]\s)?/)
         let orderedMatch = lineText.match(/^(\s*)(\d+)\.\s/)
 
@@ -141,12 +123,10 @@ Item {
             let content = lineText.substring(listMatch[0].length)
 
             if (content.trim().length === 0) {
-                // Empty list item — remove it
                 textArea.remove(lineStart, pos)
                 return
             }
 
-            // Continue list with same prefix
             let prefix = indent + bullet + " " + (checkbox ? "[ ] " : "")
             textArea.insert(pos, "\n" + prefix)
             textArea.cursorPosition = pos + 1 + prefix.length
@@ -159,7 +139,6 @@ Item {
             let content = lineText.substring(orderedMatch[0].length)
 
             if (content.trim().length === 0) {
-                // Empty list item — remove it
                 textArea.remove(lineStart, pos)
                 return
             }
@@ -170,12 +149,10 @@ Item {
             return
         }
 
-        // Default: just insert newline
         textArea.insert(pos, "\n")
         textArea.cursorPosition = pos + 1
     }
 
-    // Duplicate current line (Ctrl+D)
     function duplicateLine() {
         let pos = textArea.cursorPosition
         let start = lineStartOf(pos)
@@ -195,15 +172,17 @@ Item {
         }
     }
 
-    // Unified syntax highlighter — mode switches declaratively, no document swap needed
+    // Unified syntax highlighter
     SyntaxHighlighter {
         id: highlighter
         document: textArea.textDocument
         enabled: AppController.configManager.syntaxHighlightEnabled
+        isDarkTheme: AppController.configManager.themeMode === "dark"
         mode: {
-            switch (AppController.currentDocument.fileType) {
-            case Document.Markdown: return SyntaxHighlighter.Markdown
-            case Document.Json:     return SyntaxHighlighter.Json
+            switch (AppController.currentDocument.syntaxMode) {
+            case Document.SyntaxMarkdown: return SyntaxHighlighter.Markdown
+            case Document.SyntaxJson:     return SyntaxHighlighter.Json
+            case Document.SyntaxYaml:     return SyntaxHighlighter.Yaml
             default:                  return SyntaxHighlighter.PlainText
             }
         }
@@ -250,7 +229,7 @@ Item {
         return heights
     }
 
-    // Revision counter — bumped when block store changes, forces blockRanges re-eval
+    // Block store revision tracking
     property int blockStoreRevision: 0
     Connections {
         target: AppController.blockStore
@@ -258,7 +237,6 @@ Item {
         function onCountChanged() { editorRoot.blockStoreRevision++ }
     }
 
-    // Block line ranges computed by scanning the text directly (debounced)
     property var blockRanges: []
 
     Timer {
@@ -275,7 +253,7 @@ Item {
         function onTextChanged() { blockRangesTimer.restart() }
     }
 
-    // Toolbar — Loader picks the right component based on file type
+    // Toolbar loader
     Loader {
         id: toolbarLoader
         anchors.left: parent.left
@@ -283,9 +261,10 @@ Item {
         anchors.top: parent.top
         active: editorRoot.toolbarVisible
         sourceComponent: {
-            switch (AppController.currentDocument.fileType) {
-            case Document.Markdown: return mdToolbarComponent
-            case Document.Json:     return jsonToolbarComponent
+            switch (AppController.currentDocument.toolbarKind) {
+            case Document.ToolbarMarkdown: return mdToolbarComponent
+            case Document.ToolbarJson:     return jsonToolbarComponent
+            case Document.ToolbarYaml:     return yamlToolbarComponent
             default:                  return null
             }
         }
@@ -299,6 +278,11 @@ Item {
     Component {
         id: jsonToolbarComponent
         JsonToolbar { }
+    }
+
+    Component {
+        id: yamlToolbarComponent
+        YamlToolbar { }
     }
 
     property Item activeToolbar: toolbarLoader.item
@@ -329,16 +313,15 @@ Item {
             id: currentLineHighlight
             width: scrollView.width
             height: {
-                // Use wrap-aware line height when available
                 let lineIdx = gutter.currentLine - 1
                 return editorRoot.lineHeights[lineIdx] || fm.lineSpacing
             }
             y: {
-                void(scrollView.contentItem.contentY)  // re-eval on scroll
+                void(scrollView.contentItem.contentY)
                 let rect = textArea.positionToRectangle(textArea.cursorPosition)
                 return textArea.mapToItem(scrollView, 0, rect.y).y
             }
-            color: Qt.rgba(1, 1, 1, 0.08)
+            color: Theme.isDark ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.06)
             z: -1
         }
 
@@ -346,7 +329,7 @@ Item {
             id: textArea
             font.family: Theme.fontMono
             font.pixelSize: Theme.fontSizeLZoomed
-            wrapMode: TextArea.Wrap
+            wrapMode: AppController.configManager.wordWrap ? TextArea.Wrap : TextArea.NoWrap
             tabStopDistance: 28
             selectByMouse: true
             placeholderText: "Select a file to begin editing."
@@ -375,7 +358,6 @@ Item {
                     PauseAnimation { duration: 350 }
                 }
 
-                // Reset cursor visibility on focus gain so it's never stuck invisible
                 Connections {
                     target: textArea
                     function onActiveFocusChanged() {
@@ -387,9 +369,8 @@ Item {
             }
 
             Keys.onPressed: function(event) {
-                let isMd = AppController.currentDocument.fileType === Document.Markdown
+                let isMd = AppController.currentDocument.syntaxMode === Document.SyntaxMarkdown
 
-                // Intercept Ctrl+V when clipboard has an image
                 if (event.key === Qt.Key_V && (event.modifiers & Qt.ControlModifier)) {
                     if (AppController.imageHandler.clipboardHasImage()) {
                         editorRoot.pasteImage()
@@ -426,7 +407,6 @@ Item {
                     editorRoot.duplicateLine()
                     event.accepted = true
                 } else if (!(event.modifiers & Qt.ControlModifier)) {
-                    // Auto-close brackets and backticks
                     let pairs = { '(': ')', '[': ']', '{': '}', '`': '`' }
                     let ch = event.text
                     if (ch in pairs) {
@@ -452,91 +432,21 @@ Item {
                 onTapped: contextMenu.popup()
             }
 
-            Menu {
+            EditorContextMenu {
                 id: contextMenu
-
-                MenuItem {
-                    text: "Cut"
-                    enabled: textArea.selectedText.length > 0
-                    onTriggered: textArea.cut()
+                textArea: textArea
+                onAddBlockRequested: function(selectedText, selStart, selEnd) {
+                    editorRoot.addBlockRequested(selectedText, selStart, selEnd)
                 }
-                MenuItem {
-                    text: "Copy"
-                    enabled: textArea.selectedText.length > 0
-                    onTriggered: textArea.copy()
-                }
-                MenuItem {
-                    text: "Paste"
-                    onTriggered: textArea.paste()
-                }
-                MenuItem {
-                    text: "Select All"
-                    onTriggered: textArea.selectAll()
-                }
-
-                MenuSeparator {}
-
-                MenuItem {
-                    text: "Add as Block"
-                    enabled: textArea.selectedText.length > 0
-                    onTriggered: {
-                        editorRoot.addBlockRequested(
-                            textArea.selectedText,
-                            textArea.selectionStart,
-                            textArea.selectionEnd)
-                    }
-                }
-                MenuItem {
-                    text: "Create Prompt from Selection"
-                    enabled: textArea.selectedText.length > 0
-                    onTriggered: {
-                        editorRoot.createPromptRequested(textArea.selectedText)
-                    }
+                onCreatePromptRequested: function(selectedText) {
+                    editorRoot.createPromptRequested(selectedText)
                 }
             }
         }
     }
 
-    // Drop overlay + DropArea for image drag-drop
-    DropArea {
+    ImageDropZone {
         anchors.fill: parent
-        keys: ["text/uri-list"]
-
-        onEntered: function(drag) {
-            let dominated = false
-            for (let i = 0; i < drag.urls.length; i++) {
-                if (editorRoot.isImageUrl(drag.urls[i])) { dominated = true; break }
-            }
-            drag.accepted = dominated
-            dropOverlay.visible = dominated
-        }
-
-        onExited: dropOverlay.visible = false
-
-        onDropped: function(drop) {
-            dropOverlay.visible = false
-            for (let i = 0; i < drop.urls.length; i++) {
-                if (editorRoot.isImageUrl(drop.urls[i]))
-                    editorRoot.dropImage(drop.urls[i])
-            }
-        }
-    }
-
-    Rectangle {
-        id: dropOverlay
-        anchors.fill: parent
-        visible: false
-        color: Qt.rgba(0.42, 0.61, 0.82, 0.15)
-        border.color: Theme.accent
-        border.width: 2
-        radius: 4
-        z: 10
-
-        Label {
-            anchors.centerIn: parent
-            text: "Drop image here"
-            color: Theme.accent
-            font.pixelSize: 16
-        }
+        onImageDropped: function(fileUrl) { editorRoot.dropImage(fileUrl) }
     }
 }

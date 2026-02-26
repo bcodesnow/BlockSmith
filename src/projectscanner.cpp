@@ -39,8 +39,8 @@ void ProjectScanner::scan()
     // application lifetime (owned by AppController).
     ProjectScanner *ctx = this;
 
-    QtConcurrent::run([ctx, searchPaths, ignorePatterns, triggerFiles,
-                       maxDepth, includeClaudeCode, claudePath, cancel]() {
+    (void)QtConcurrent::run([ctx, searchPaths, ignorePatterns, triggerFiles,
+                             maxDepth, includeClaudeCode, claudePath, cancel]() {
         // Build shadow tree on background thread (pure file I/O, no model signals)
         auto *shadowRoot = new TreeNode("root", "", TreeNode::Directory);
         int projectCount = 0;
@@ -208,7 +208,8 @@ void ProjectScanner::collectAllFiles(const QString &dirPath, TreeNode *parentNod
         }
     }
 
-    const auto files = dir.entryInfoList({"*.md", "*.jsonl", "*.json"}, QDir::Files, QDir::Name);
+    const auto files = dir.entryInfoList({"*.md", "*.markdown", "*.jsonl", "*.json", "*.yaml", "*.yml"},
+                                         QDir::Files, QDir::Name);
     for (const QFileInfo &file : files) {
         auto *fileNode = new TreeNode(
             file.fileName(), file.absoluteFilePath(),
@@ -246,7 +247,8 @@ void ProjectScanner::collectMdFiles(const QString &dirPath, TreeNode *parentNode
         }
     }
 
-    const auto files = dir.entryInfoList({"*.md", "*.jsonl", "*.json"}, QDir::Files, QDir::Name);
+    const auto files = dir.entryInfoList({"*.md", "*.markdown", "*.jsonl", "*.json", "*.yaml", "*.yml"},
+                                         QDir::Files, QDir::Name);
     for (const QFileInfo &file : files) {
         bool isTrigger = false;
         for (const QString &trigger : triggers) {

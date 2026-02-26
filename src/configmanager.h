@@ -19,7 +19,7 @@ class ConfigManager : public QObject
     Q_PROPERTY(bool autoScanOnStartup READ autoScanOnStartup WRITE setAutoScanOnStartup NOTIFY autoScanOnStartupChanged)
     Q_PROPERTY(bool syntaxHighlightEnabled READ syntaxHighlightEnabled WRITE setSyntaxHighlightEnabled NOTIFY syntaxHighlightEnabledChanged)
     Q_PROPERTY(int scanDepth READ scanDepth WRITE setScanDepth NOTIFY scanDepthChanged)
-    Q_PROPERTY(bool editorToolbarVisible READ editorToolbarVisible WRITE setMarkdownToolbarVisible NOTIFY editorToolbarVisibleChanged)
+    Q_PROPERTY(bool editorToolbarVisible READ editorToolbarVisible WRITE setEditorToolbarVisible NOTIFY editorToolbarVisibleChanged)
     Q_PROPERTY(QString imageSubfolder READ imageSubfolder WRITE setImageSubfolder NOTIFY imageSubfolderChanged)
     Q_PROPERTY(bool statusBarWordCount READ statusBarWordCount WRITE setStatusBarWordCount NOTIFY statusBarWordCountChanged)
     Q_PROPERTY(bool statusBarCharCount READ statusBarCharCount WRITE setStatusBarCharCount NOTIFY statusBarCharCountChanged)
@@ -32,6 +32,13 @@ class ConfigManager : public QObject
     Q_PROPERTY(bool autoSaveEnabled READ autoSaveEnabled WRITE setAutoSaveEnabled NOTIFY autoSaveEnabledChanged)
     Q_PROPERTY(int autoSaveInterval READ autoSaveInterval WRITE setAutoSaveInterval NOTIFY autoSaveIntervalChanged)
     Q_PROPERTY(QStringList recentFiles READ recentFiles WRITE setRecentFiles NOTIFY recentFilesChanged)
+    Q_PROPERTY(bool searchIncludeMarkdown READ searchIncludeMarkdown WRITE setSearchIncludeMarkdown NOTIFY searchIncludeMarkdownChanged)
+    Q_PROPERTY(bool searchIncludeJson READ searchIncludeJson WRITE setSearchIncludeJson NOTIFY searchIncludeJsonChanged)
+    Q_PROPERTY(bool searchIncludeYaml READ searchIncludeYaml WRITE setSearchIncludeYaml NOTIFY searchIncludeYamlChanged)
+    Q_PROPERTY(bool searchIncludeJsonl READ searchIncludeJsonl WRITE setSearchIncludeJsonl NOTIFY searchIncludeJsonlChanged)
+    Q_PROPERTY(QString themeMode READ themeMode WRITE setThemeMode NOTIFY themeModeChanged)
+    Q_PROPERTY(QString editorFontFamily READ editorFontFamily WRITE setEditorFontFamily NOTIFY editorFontFamilyChanged)
+    Q_PROPERTY(bool wordWrap READ wordWrap WRITE setWordWrap NOTIFY wordWrapChanged)
 
 public:
     explicit ConfigManager(QObject *parent = nullptr);
@@ -61,7 +68,7 @@ public:
     void setScanDepth(int depth);
 
     bool editorToolbarVisible() const;
-    void setMarkdownToolbarVisible(bool visible);
+    void setEditorToolbarVisible(bool visible);
 
     QString imageSubfolder() const;
     void setImageSubfolder(const QString &subfolder);
@@ -96,6 +103,27 @@ public:
     void setRecentFiles(const QStringList &files);
     Q_INVOKABLE void addRecentFile(const QString &filePath);
 
+    bool searchIncludeMarkdown() const;
+    void setSearchIncludeMarkdown(bool enabled);
+
+    bool searchIncludeJson() const;
+    void setSearchIncludeJson(bool enabled);
+
+    bool searchIncludeYaml() const;
+    void setSearchIncludeYaml(bool enabled);
+
+    bool searchIncludeJsonl() const;
+    void setSearchIncludeJsonl(bool enabled);
+
+    QString themeMode() const;
+    void setThemeMode(const QString &mode);
+
+    QString editorFontFamily() const;
+    void setEditorFontFamily(const QString &family);
+
+    bool wordWrap() const;
+    void setWordWrap(bool enabled);
+
     Q_INVOKABLE void load();
     Q_INVOKABLE void save();
 
@@ -121,6 +149,13 @@ signals:
     void autoSaveEnabledChanged();
     void autoSaveIntervalChanged();
     void recentFilesChanged();
+    void searchIncludeMarkdownChanged();
+    void searchIncludeJsonChanged();
+    void searchIncludeYamlChanged();
+    void searchIncludeJsonlChanged();
+    void themeModeChanged();
+    void editorFontFamilyChanged();
+    void wordWrapChanged();
     void saveFailed(const QString &message);
 
 private:
@@ -148,4 +183,11 @@ private:
     bool m_autoSaveEnabled = false;
     int m_autoSaveInterval = 30;
     QStringList m_recentFiles;
+    bool m_searchIncludeMarkdown = true;
+    bool m_searchIncludeJson = true;
+    bool m_searchIncludeYaml = true;
+    bool m_searchIncludeJsonl = false;
+    QString m_themeMode = QStringLiteral("dark");
+    QString m_editorFontFamily = QStringLiteral("Consolas");
+    bool m_wordWrap = true;
 };

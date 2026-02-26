@@ -8,7 +8,9 @@
 #include <QRegularExpression>
 #include <QSaveFile>
 #include <QJsonDocument>
-#include <QDebug>
+#include <yaml-cpp/yaml.h>
+#include <yaml-cpp/emittermanip.h>
+#include <vector>
 
 Document::Document(QObject *parent)
     : QObject(parent)
@@ -66,11 +68,8 @@ void Document::load(const QString &filePath)
     parseBlocks();
     watchFile(m_filePath);
 
-    qDebug() << "[DOC] load() content length:" << m_rawContent.length() << "path:" << m_filePath;
-    emit filePathChanged();
-    qDebug() << "[DOC] filePathChanged done";
     emit rawContentChanged();
-    qDebug() << "[DOC] rawContentChanged done";
+    emit filePathChanged();
     emit modifiedChanged();
     if (encChanged)
         emit encodingChanged();
@@ -155,26 +154,61 @@ Document::FileType Document::fileType() const
 {
     if (m_filePath.endsWith(QLatin1String(".json"), Qt::CaseInsensitive))
         return Json;
+    if (m_filePath.endsWith(QLatin1String(".yaml"), Qt::CaseInsensitive)
+        || m_filePath.endsWith(QLatin1String(".yml"), Qt::CaseInsensitive))
+        return Yaml;
     if (m_filePath.endsWith(QLatin1String(".md"), Qt::CaseInsensitive)
         || m_filePath.endsWith(QLatin1String(".markdown"), Qt::CaseInsensitive))
         return Markdown;
     return PlainText;
 }
 
+QString Document::formatId() const
+{
+    switch (fileType()) {
+    case Markdown: return QStringLiteral("markdown");
+    case Json:     return QStringLiteral("json");
+    case Yaml:     return QStringLiteral("yaml");
+    default:       return QStringLiteral("plaintext");
+    }
+}
+
+Document::SyntaxMode Document::syntaxMode() const
+{
+    switch (fileType()) {
+    case Markdown: return SyntaxMarkdown;
+    case Json:     return SyntaxJson;
+    case Yaml:     return SyntaxYaml;
+    default:       return SyntaxPlainText;
+    }
+}
+
+Document::ToolbarKind Document::toolbarKind() const
+{
+    switch (fileType()) {
+    case Markdown: return ToolbarMarkdown;
+    case Json:     return ToolbarJson;
+    case Yaml:     return ToolbarYaml;
+    default:       return ToolbarNone;
+    }
+}
+
+Document::PreviewKind Document::previewKind() const
+{
+    return fileType() == Markdown ? PreviewMarkdown : PreviewNone;
+}
+
 bool Document::isJson() const { return fileType() == Json; }
 
-bool Document::supportsPreview() const { return fileType() == Markdown; }
+bool Document::supportsPreview() const { return previewKind() != PreviewNone; }
 
 QString Document::rawContent() const { return m_rawContent; }
 
 void Document::setRawContent(const QString &content)
 {
-    if (m_rawContent == content) {
-        qDebug() << "[DOC] setRawContent SKIPPED (same), len:" << content.length();
+    if (m_rawContent == content)
         return;
-    }
 
-    qDebug() << "[DOC] setRawContent CHANGED, old:" << m_rawContent.length() << "new:" << content.length();
     m_rawContent = content;
     m_modified = (m_rawContent != m_savedContent);
 
@@ -390,7 +424,9 @@ QVariantList Document::computeBlockRanges() const
         } else {
             QRegularExpression closeRx(QStringLiteral("<!--\\s*/block:") + curId + QStringLiteral("\\s*-->"));
             if (closeRx.match(line).hasMatch()) {
+                // Join and strip \r remnants from CRLF split-by-\n
                 QString content = contentLines.join('\n');
+                content.remove(QLatin1Char('\r'));
                 QString status = QStringLiteral("local");
                 if (m_blockStore) {
                     auto storeBlock = m_blockStore->blockById(curId);
@@ -423,4 +459,31 @@ QString Document::prettifyJson() const
     if (err.error != QJsonParseError::NoError)
         return QString(); // invalid JSON — return empty to signal failure
     return QString::fromUtf8(doc.toJson(QJsonDocument::Indented));
+}
+
+QString Document::prettifyYaml() const
+{
+    try {
+        std::vector<YAML::Node> docs = YAML::LoadAll(m_rawContent.toStdString());
+        if (docs.empty())
+            return QString();
+
+        YAML::Emitter emitter;
+        emitter.SetIndent(2);
+        if (docs.size() == 1) {
+            emitter << docs.front();
+        } else {
+            for (size_t i = 0; i < docs.size(); i++) {
+                emitter << YAML::BeginDoc << docs[i];
+                if (i + 1 < docs.size())
+                    emitter << YAML::Newline;
+            }
+        }
+
+        if (!emitter.good())
+            return QString();
+        return QString::fromStdString(emitter.c_str());
+    } catch (const YAML::Exception &) {
+        return QString(); // invalid YAML — return empty to signal failure
+    }
 }

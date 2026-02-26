@@ -62,11 +62,33 @@
   ::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
   ::-webkit-scrollbar-thumb:hover { background: #666; }
   ::-webkit-scrollbar-corner { background: #1e1e1e; }
+
+  /* Light theme overrides */
+  body.light { background: #f5f5f5; color: #1e1e1e; }
+  body.light h1, body.light h2, body.light h3, body.light h4 { color: #1e1e1e; }
+  body.light code { background: #eff1f3; }
+  body.light pre { background: #f6f8fa; }
+  body.light a { color: #0969da; }
+  body.light blockquote { border-left-color: #d0d7de; color: #57606a; }
+  body.light th, body.light td { border-color: #d0d7de; }
+  body.light th { background: #f6f8fa; color: #1e1e1e; }
+  body.light tr:nth-child(even) { background: #f6f8fa; }
+  body.light hr { border-top-color: #d0d7de; }
+  body.light .mermaid-error { background: #f6f8fa; border-left-color: #c62828; color: #c62828; }
+  body.light ::-webkit-scrollbar-track { background: #f5f5f5; }
+  body.light ::-webkit-scrollbar-thumb { background: #c0c0c0; }
+  body.light ::-webkit-scrollbar-thumb:hover { background: #aaa; }
+  body.light ::-webkit-scrollbar-corner { background: #f5f5f5; }
 </style>
 <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
 <script src="mermaid.min.js"></script>
 <script>
   mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+
+  function setTheme(isDark) {
+    document.body.classList.toggle('light', !isDark);
+    mermaid.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'default' });
+  }
   var renderCounter = 0;
   var bridge = null;
   var isSyncing = false;

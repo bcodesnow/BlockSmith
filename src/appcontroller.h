@@ -37,6 +37,8 @@ class AppController : public QObject
     Q_PROPERTY(JsonlStore* jsonlStore READ jsonlStore CONSTANT)
     Q_PROPERTY(ExportManager* exportManager READ exportManager CONSTANT)
     Q_PROPERTY(QStringList highlightedFiles READ highlightedFiles NOTIFY highlightedFilesChanged)
+    Q_PROPERTY(bool canGoBack READ canGoBack NOTIFY navHistoryChanged)
+    Q_PROPERTY(bool canGoForward READ canGoForward NOTIFY navHistoryChanged)
 
 public:
     explicit AppController(QObject *parent = nullptr);
@@ -64,6 +66,10 @@ public:
     Q_INVOKABLE QString createProject(const QString &folderPath, const QString &triggerFileName);
 
     Q_INVOKABLE void forceOpenFile(const QString &path);
+    Q_INVOKABLE void goBack();
+    Q_INVOKABLE void goForward();
+    bool canGoBack() const;
+    bool canGoForward() const;
     Q_INVOKABLE QStringList getAllFiles() const;
     Q_INVOKABLE QVariantList fuzzyFilterFiles(const QString &query) const;
 
@@ -72,6 +78,7 @@ signals:
     void highlightedFilesChanged();
     void unsavedChangesWarning(const QString &pendingPath);
     void searchResultsReady(const QVariantList &results);
+    void navHistoryChanged();
 
 public slots:
     void scan();
@@ -93,4 +100,13 @@ private:
     ExportManager *m_exportManager = nullptr;
     QStringList m_highlightedFiles;
     std::shared_ptr<std::atomic<bool>> m_searchCancel;
+
+    // Navigation history (browser-style back/forward)
+    QStringList m_navHistory;
+    int m_navIndex = -1;
+    bool m_navigating = false;  // guard: suppress push during goBack/goForward
+    bool m_pendingNavJump = false;
+    int m_pendingNavIndex = -1;
+    void navPush(const QString &path);
+    void openPathNoChecks(const QString &path);
 };

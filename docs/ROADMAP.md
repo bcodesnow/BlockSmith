@@ -1,202 +1,199 @@
 # BlockSmith Roadmap
 
-**Date:** 2026-02-23
-**Baseline:** All 6 phases complete + JSONL viewer, scroll sync, zoom, robustness audit
+**Updated:** 2026-02-26
+**Baseline:** Phases 1-11 complete, Phase 12.1 + 12.2 complete. Fully functional markdown/JSON/YAML/JSONL editor with block sync, prompt library, export, navigation, file management, dark/light themes, font selection, word wrap toggle, and undo/redo toolbar.
 
 ---
 
-## Phase 7 — Housekeeping & Quick Wins ✓
+## Phase 12 — Code Quality
 
-Small fixes that improve polish without new features. **Completed 2026-02-21.**
+Address remaining findings from code audit (see [code-audit.md](code-audit.md)).
 
-### 7.1 Locale Fix
-- Force English UI locale for `Dialog.Cancel` / `Dialog.Save` button text
-- Add `QLocale::setDefault(QLocale::English)` before QGuiApplication in main.cpp
-- Alternatively: set `LC_ALL=C` or use custom button text in QML dialogs
-- **Files:** src/main.cpp (1 line)
+### 12.1 QML Refactoring — Complete
+- Extracted `EditorPopupBase.qml` shared component (BlockEditorPopup + PromptEditorPopup)
+- Split SettingsDialog.qml into SettingsProjectsTab, SettingsEditorTab, SettingsIntegrationsTab
+- Split MainContent.qml — extracted EditorHeader, FileChangedBanner
+- Split Editor.qml — extracted EditorContextMenu, ImageDropZone
+- Split Main.qml — extracted UnsavedChangesDialog
 
-### 7.2 Splitter Size Persistence
-- Save SplitView preferred widths to ConfigManager on window close
-- Restore on startup
-- **Properties:** `splitLeftWidth`, `splitRightWidth` (ints, pixels)
-- **Files:** src/configmanager.h/.cpp (2 properties + load/save), qml/Main.qml (bind SplitView.preferredWidth, save onClosing)
+### 12.2 Move Logic to C++ — Complete
+- Fuzzy matching already in C++ (`AppController::fuzzyFilterFiles`) — no work needed
+- Block range parsing already in C++ (`Document::computeBlockRanges`) — no work needed
+- Find/replace properly split: FindReplaceController.qml + Document::findMatches in C++. Replace ops stay in QML to preserve TextArea undo stack.
 
-### 7.3 data-source-line Injection (Scroll Sync Phase 4)
-- Post-process md4c HTML output to inject `data-source-line="N"` on block-level elements
-- Add `renderWithLineMap()` to Md4cRenderer — regex-based tag annotation with forward line matching
-- Switch MdPreviewWeb.pushContent() to use it
-- JS `scrollToLine()` already exists and handles the attributes
-- **Result:** Accurate cursor-to-preview sync instead of percentage fallback
-- **Files:** src/md4crenderer.h/.cpp, qml/components/MdPreviewWeb.qml
-- **Design:** Implemented — bidirectional scroll sync with data-source-line mapping
+### 12.3 Architecture
+- Split AppController into domain managers (DocumentManager, BlockManager, ProjectManager)
+- Add `Result<T>` pattern for error propagation instead of silent returns
 
 ---
 
-## Phase 8 — File Safety ✓
+## Phase 13 — Multi-Tab Editor
 
-Features that prevent data loss and keep content fresh. **Completed 2026-02-21.**
+Open multiple files simultaneously in a tab bar.
 
-### 8.1 File Watcher
-- Add QFileSystemWatcher to Document — watch the currently open file
-- On external change: emit `fileChangedExternally()` signal
-- QML shows a non-modal banner: "File changed on disk. [Reload] [Ignore]"
-- If document is unmodified: auto-reload silently
-- If document has unsaved changes: show the banner, let user decide
-- Watch/unwatch on file open/close
-- **Files:** src/document.h/.cpp (QFileSystemWatcher member, signals), qml/components/MainContent.qml (banner UI)
+### 13.1 Tab Bar
+- TabBar above the editor area with closable tabs
+- Each tab holds its own Document instance + editor state (cursor, scroll, undo)
+- Middle-click or X button to close tab
+- Ctrl+Tab / Ctrl+Shift+Tab to cycle tabs
+- Drag-to-reorder tabs
 
-### 8.2 Auto-Save
-- ConfigManager: `autoSaveEnabled` (bool, default false), `autoSaveInterval` (int, default 30 seconds)
-- Timer in Document: if enabled + document modified, call save()
-- Save on window focus loss (QGuiApplication::applicationStateChanged → Inactive)
-- Status bar: subtle "Auto-saved" flash via existing toast or inline label
-- Settings dialog: checkbox + interval spinner
-- **Files:** src/configmanager.h/.cpp (2 properties), src/document.h/.cpp (QTimer, focus slot), qml/components/SettingsDialog.qml (UI), qml/components/MainContent.qml (status indicator)
+### 13.2 State Management
+- Refactor Document to support multiple instances
+- Each tab tracks: file path, dirty state, cursor position, scroll offset, undo stack
+- Tab tooltip shows full file path
+- Dirty indicator (dot) on tab label
 
----
-
-## Phase 8.5 — Reliability Hardening ✓
-
-Critical correctness and startup-flow fixes discovered in the 2026-02-21 full review. **Completed 2026-02-21.**
-
-### 8.5.1 Save-Safe File Switching
-- Prevent navigation when save fails in the unsaved-changes flow
-- Only call file switch after a confirmed successful save
-- **Files:** qml/Main.qml, src/document.h/.cpp
-
-### 8.5.2 Dirty-Buffer Protection During Rename/Move
-- If currently opened file is modified, block rename/move or require Save/Discard/Cancel
-- Avoid silent reload that discards unsaved in-memory edits
-- **Files:** src/filemanager.cpp, qml/components/FileOperationDialog.qml, qml/Main.qml
-
-### 8.5.3 Async Scan + Index Pipeline
-- Move project scan and index rebuild off the UI thread
-- Keep splash/progress responsive and cancellable
-- Emit stage progress: scanning, indexing, complete
-- **Files:** src/projectscanner.h/.cpp, src/appcontroller.h/.cpp, qml/Main.qml, qml/components/SplashOverlay.qml
-
-### 8.5.4 JSONL Worker Isolation
-- Add cancellation token / generation id per load
-- Drop stale `chunkReady` / `finished` signals from previous worker runs
-- **Files:** src/jsonlstore.h/.cpp
-
-### 8.5.5 Truthful Auto-Save State
-- Emit auto-save success only when `save()` actually commits
-- Keep status indicator aligned with real save outcome
-- **Files:** src/document.h/.cpp, src/appcontroller.cpp, qml/components/MainContent.qml
-
-### 8.5.6 Deleted-File Banner Action
-- Make "Close" actually close/clear the current document when file is missing
-- **Files:** qml/components/MainContent.qml
-
-### 8.5.7 Drop URL Path Decoding
-- Decode dropped file URL paths before copy (spaces/unicode-safe)
-- **Files:** qml/components/Editor.qml
+### 13.3 Integration
+- Quick Switcher (Ctrl+P) switches to existing tab if file is already open
+- Nav tree click switches to existing tab or opens new one
+- Close tab shows Save/Discard/Cancel if dirty
+- Ctrl+W closes current tab (already exists for single file)
 
 ---
 
-## Phase 9 — Navigation & Productivity ✓
+## Phase 14 — Editor Enhancements
 
-Features that speed up daily workflows. **Completed 2026-02-23.**
+Quality-of-life improvements for daily editing.
 
-### 9.1 Quick Switcher (Ctrl+P)
-- Popup dialog with fuzzy-match text field
-- Source: all files from AppController::getAllFiles() (tree walk, .md + .jsonl + .json)
-- Fuzzy matching: score by substring position + consecutive chars (JS, no external lib)
-- ListView of results, keyboard navigable (Up/Down/Enter/Esc)
-- Opens file on Enter, closes on Esc
-- Recent files: last 10 opened files in ConfigManager, shown when query is empty
-- **Files:** qml/components/QuickSwitcher.qml (new), qml/Main.qml, src/configmanager.h/.cpp, src/appcontroller.h/.cpp
+### 14.1 Markdown Table Editor
+- Detect cursor inside markdown table
+- Tab to next cell, Shift+Tab to previous
+- Toolbar buttons: add row, add column, delete row, delete column
+- Auto-align pipe characters on edit
 
-### 9.2 Outline Panel
-- New "Outline" tab in RightPane (alongside Blocks / Prompts)
-- Parses headings from current document (regex: `^#{1,6}\s+(.*)`, skips fenced code blocks)
-- Indented heading list showing H1-H6 nesting
-- Click to scroll editor to that heading
-- Current heading highlighted based on cursor position (accent left bar)
-- **Files:** qml/components/OutlinePanel.qml (new), qml/components/RightPane.qml, qml/components/MainContent.qml
+### 14.2 Spell Checking
+- Integrate Hunspell or Windows spell check API
+- Red squiggly underlines on misspelled words
+- Right-click suggestions
+- ConfigManager: `spellCheckEnabled`, `spellCheckLanguage`
 
----
-
-## Phase 10 — Export System ✓
-
-Generate standalone output files from markdown documents. **Completed 2026-02-22.**
-
-### 10.1 HTML Export
-- Standalone .html with embedded CSS (dark theme, matches preview)
-- md4c renders markdown → HTML, wrapped in full HTML5 document template with inline styles
-- Relative image paths resolved to absolute `file:///` URLs using document directory
-- Atomic write via QSaveFile
-- **Files:** src/exportmanager.h/.cpp
-
-### 10.2 PDF Export
-- QWebEnginePage::printToPdf() — offscreen Chromium renderer for pixel-perfect output
-- A4 page size, 15mm margins (QPageLayout)
-- Loads the same standalone HTML as HTML export, renders via WebEngine
-- Async: loadFinished → printToPdf → pdfPrintingFinished signal chain
-- **Files:** src/exportmanager.h/.cpp
-
-### 10.3 DOCX Export (Pandoc)
-- Shells out to pandoc via QProcess (async)
-- Gracefully degrades: if pandoc not found, radio button disabled with "(pandoc not found)" label
-- **Files:** src/exportmanager.h/.cpp
-
-### 10.4 Export Dialog
-- Format picker: PDF (default) / HTML / DOCX radio buttons
-- Output path TextField pre-filled with default path, browse button opens FileDialog
-- BusyIndicator during export, error label for failures
-- Keyboard shortcut: Ctrl+Shift+E
-- **Files:** qml/components/ExportDialog.qml (new), qml/Main.qml (Shortcut + instance)
+### 14.3 Minimap
+- VS Code-style minimap scrollbar (scaled-down document view)
+- Click/drag to navigate
+- Toggle on/off in Settings
 
 ---
 
-## Phase 11 — Theme System
+## Phase 15 — Block System Enhancements
 
-### 11.1 Light Theme
-- Create Theme color sets as JS objects (dark, light)
-- ConfigManager: `theme` (string, "dark" / "light", default "dark")
-- Theme.qml switches color properties based on active theme
-- Preview CSS: generate matching light/dark stylesheet
-- **Files:** qml/components/Theme.qml (refactor to support sets), src/configmanager.h/.cpp (theme property), resources/preview/index.html (light CSS variant)
+Make blocks more powerful and visible.
 
-### 11.2 Theme Switcher
-- Settings dropdown for theme selection
-- Ctrl+K Ctrl+T shortcut (chord) to toggle themes
-- **Files:** qml/components/SettingsDialog.qml, qml/Main.qml
+### 15.1 Block Versioning
+- Track block content history (last N versions with timestamps)
+- Revert to previous version from block editor popup
+- Store in blocks.db.json as `history` array
 
-### 11.3 Editor Font Selection
-- ConfigManager: `editorFontFamily` (string, default "Consolas")
-- Settings dropdown listing monospace system fonts
-- Theme.fontMono binds to config value
-- **Files:** src/configmanager.h/.cpp, qml/components/Theme.qml, qml/components/SettingsDialog.qml
+### 15.2 Block Templates
+- Parameterized blocks with `{{variable}}` placeholders
+- Prompt for variable values on insert
+- Template variables defined in block metadata
+
+### 15.3 Cross-Project Block Sync
+- Push/pull blocks across different project directories
+- Block registry acts as single source of truth
+- Sync status visible per-project in block cards
+
+### 15.4 Block Dependency Graph
+- Visualize which files use which blocks
+- Clickable graph (files → blocks relationships)
+- Could use mermaid rendering (already bundled)
+
+---
+
+## Phase 16 — Git Integration
+
+Source control awareness within the app.
+
+### 16.1 Tree Status Indicators
+- Show git status icons in project tree (modified, untracked, staged)
+- Run `git status --porcelain` on scan and refresh
+- Color-coded: green=added, orange=modified, red=deleted, grey=untracked
+
+### 16.2 Diff View
+- Side-by-side or inline diff for modified files
+- Gutter diff markers (green/red strips for added/removed lines)
+- Compare with HEAD or staged version
+
+### 16.3 Basic Git Operations
+- Commit from within the app (message input + file selection)
+- Stage/unstage files from context menu
+- Branch display in status bar
+
+---
+
+## Phase 17 — Advanced Features
+
+Bigger features for power users.
+
+### 17.1 YAML Front Matter
+- Parse YAML front matter (`---` delimited) in markdown files
+- Display metadata in a collapsible header or sidebar section
+- Exclude from preview body, include in export
+
+### 17.2 Multiple Cursors
+- Ctrl+Click to add cursors
+- Ctrl+D to select next occurrence (like VS Code)
+- All cursors type/delete simultaneously
+
+### 17.3 Drag-and-Drop Reorder
+- Drag headings in the Outline panel to reorder document sections
+- Drag blocks in the right pane to reorder
+- Visual drop indicators
+
+### 17.4 Math / KaTeX Support
+- Render `$...$` inline and `$$...$$` block math in preview
+- Bundle KaTeX.min.js alongside mermaid.min.js
+- Syntax highlighting for math blocks in editor
+
+---
+
+## Phase 18 — Distribution & Platform
+
+Ship it.
+
+### 18.1 Windows Installer
+- NSIS or WiX installer with Start Menu shortcut, uninstaller
+- Or: portable .zip distribution
+- File association for .md files (optional, opt-in)
+
+### 18.2 Cross-Platform Builds
+- CI pipeline (GitHub Actions) for Windows, Linux, macOS
+- Platform-specific packaging (AppImage, DMG)
+- Test matrix across platforms
+
+### 18.3 Auto-Updater
+- Check for new versions on startup (configurable)
+- Download + install flow or link to release page
+- Version display in Settings / About
+
+---
+
+## Phase 19 — Extensibility
+
+### 19.1 Plugin System
+- User-defined toolbar actions or block processors
+- Script-based (JS or Python) plugin loading
+- Plugin settings in config
+
+### 19.2 Custom Themes
+- User-created theme files (JSON color definitions)
+- Theme import/export
+- Community theme sharing
 
 ---
 
 ## Summary
 
-| Phase | Name | Items | Effort | Dependencies |
-|-------|------|-------|--------|-------------|
-| **7** | Housekeeping | Locale, splitter persist, scroll sync accuracy | Small | ✓ Done |
-| **8** | File Safety | File watcher, auto-save | Medium | ✓ Done |
-| **8.5** | Reliability Hardening | Data-loss guards, async scan/index, JSONL worker isolation | Medium | ✓ Done |
-| **9** | Navigation | Quick switcher, outline panel | Medium | ✓ Done |
-| **10** | Export | HTML, PDF, DOCX, dialog | Medium-Large | ✓ Done |
-| **11** | Themes | Light theme, switcher, font selection | Medium | None |
+| Phase | Name | Effort | Priority |
+|-------|------|--------|----------|
+| **12** | Code Quality | Medium | High — technical debt |
+| **13** | Multi-Tab Editor | Large | High — major UX upgrade |
+| **14** | Editor Enhancements | Medium | Medium |
+| **15** | Block System Enhancements | Medium | Medium |
+| **16** | Git Integration | Medium-Large | Medium |
+| **17** | Advanced Features | Large | Low-Medium |
+| **18** | Distribution & Platform | Medium | Low (when ready to ship) |
+| **19** | Extensibility | Large | Future |
 
-Phase 11 (Themes) is the only remaining planned phase.
-Phase 11 touches many files (Theme.qml ripple) — plan carefully.
-
----
-
-## Out of Scope (Tier 2+ / Future)
-
-Not planned for near-term:
-- Multi-tab editor
-- Table editor
-- Math/KaTeX
-- Presentation mode
-- Spell check
-- WikiLinks / graph view
-- Git integration
-- AI features
-- Auto-updater
+Phases 12-13 are the natural next steps. The rest can be tackled in any order based on interest.

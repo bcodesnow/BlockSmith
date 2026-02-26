@@ -24,16 +24,29 @@ Project tree     |  Markdown editor/preview|  Blocks / Prompts tabs
 | ConfigManager | Search paths, ignore patterns, trigger files, window geometry, settings |
 | ProjectScanner | Walks search paths, finds projects by trigger files |
 | ProjectTreeModel | QAbstractItemModel for tree view navigation |
-| Document | File loading, block parsing, content management |
+| Document | File loading, block parsing, content management, format detection |
 | BlockStore | Block registry, QAbstractListModel |
 | PromptStore | Prompt library, QAbstractListModel |
 | SyncEngine | Push/pull/diff blocks across files |
 | Md4cRenderer | md4c markdown-to-HTML wrapper |
-| SyntaxHighlighter | Unified QSyntaxHighlighter with Markdown/JSON/PlainText modes |
+| SyntaxHighlighter | Unified QSyntaxHighlighter with Markdown/JSON/YAML/PlainText modes |
 | FileManager | File operations (create, rename, delete, duplicate, move) |
 | ImageHandler | Clipboard image paste, drag-drop copy, image path utilities |
 | JsonlStore | JSONL transcript viewer — threaded parser, filtered list model |
 | ExportManager | Export to HTML, PDF (WebEngine), DOCX (pandoc) |
+
+### Document Format Detection
+
+`Document` exposes format-aware enums derived from the file extension:
+
+| Enum | Values | Purpose |
+|------|--------|---------|
+| `FileType` | `Markdown`, `Json`, `Yaml`, `PlainText` | Core format identification |
+| `SyntaxMode` | `SyntaxPlainText`, `SyntaxMarkdown`, `SyntaxJson`, `SyntaxYaml` | Drives `SyntaxHighlighter.mode` |
+| `ToolbarKind` | `ToolbarNone`, `ToolbarMarkdown`, `ToolbarJson`, `ToolbarYaml` | Drives toolbar Loader in Editor.qml |
+| `PreviewKind` | `PreviewNone`, `PreviewMarkdown` | Determines whether preview pane is available |
+
+To add a new format: add extension check in `fileType()`, add enum values, add highlighter mode in `SyntaxHighlighter`, add toolbar/preview Components as needed.
 
 ## Project Structure
 
@@ -50,53 +63,66 @@ src/
   document.h / .cpp             # File loading, block parsing
   syncengine.h / .cpp          # Push/pull/diff blocks across files
   md4crenderer.h / .cpp        # md4c markdown-to-HTML wrapper
-  syntaxhighlighter.h / .cpp   # Unified QSyntaxHighlighter (Markdown/JSON/PlainText modes)
+  syntaxhighlighter.h / .cpp   # Unified QSyntaxHighlighter (Markdown/JSON/YAML/PlainText modes)
   filemanager.h / .cpp         # File create/rename/delete/duplicate/move
   imagehandler.h / .cpp        # Clipboard/file image operations
   jsonlstore.h / .cpp          # JSONL transcript viewer (threaded parser + list model)
   exportmanager.h / .cpp       # Export to HTML, PDF, DOCX
 third_party/
   md4c/                        # md4c library (MIT license)
+  yaml-cpp (FetchContent)      # YAML parser/emitter (MIT license, fetched via CMake)
 qml/
   Main.qml                     # ApplicationWindow, 3-pane layout
   components/
-    Theme.qml                  # Singleton — shared design tokens
+    Theme.qml                  # Singleton — shared design tokens (dark/light)
     NavPanel.qml               # Left pane — tree + file management context menu
-    MainContent.qml            # Center — editor/preview + find bar + toolbar toggle
+    NavContextMenu.qml         # Right-click context menu for nav tree
+    NavFooterBar.qml           # Footer bar for nav panel
+    MainContent.qml            # Center — editor/preview + find bar + scroll sync
+    EditorHeader.qml           # File path, view mode toggle, undo/redo, save
+    FileChangedBanner.qml      # External file change/delete notification banner
     Editor.qml                 # TextArea with toolbar, gutter, syntax highlighting
+    EditorContextMenu.qml      # Right-click menu: Cut/Copy/Paste/Add Block/Create Prompt
+    ImageDropZone.qml          # Drag-and-drop image overlay
     MdToolbar.qml              # Markdown formatting toolbar
+    JsonToolbar.qml            # JSON format toolbar
+    YamlToolbar.qml            # YAML format toolbar
     MdPreview.qml              # Lightweight HTML preview (popups)
     MdPreviewWeb.qml           # WebEngine preview with mermaid support
     RightPane.qml              # TabBar: Blocks / Prompts / Outline
     BlockListPanel.qml         # Block list with search + tag filter
     BlockCard.qml              # Block card with insert button
-    BlockEditorPopup.qml       # Modal block editor
+    BlockEditorPopup.qml       # Modal block editor (extends EditorPopupBase)
     BlockDiffPopup.qml         # Diff view for conflicts
     AddBlockDialog.qml         # Create block from selection
     PromptListPanel.qml        # Prompt list by category
     PromptCard.qml             # Prompt card with copy button
-    PromptEditorPopup.qml      # Modal prompt editor
-    SettingsDialog.qml         # App configuration
+    PromptEditorPopup.qml      # Modal prompt editor (extends EditorPopupBase)
+    EditorPopupBase.qml        # Shared base for Block/Prompt editor popups
+    SettingsDialog.qml         # App configuration (tabbed)
+    SettingsProjectsTab.qml    # Settings: search paths, ignore patterns, scan options
+    SettingsEditorTab.qml      # Settings: theme, font, syntax, word wrap, auto-save
+    SettingsIntegrationsTab.qml # Settings: Claude Code folder toggle
     SearchDialog.qml           # Global file search
-    FindReplaceBar.qml         # In-editor find/replace
+    FindReplaceBar.qml         # In-editor find/replace UI
+    FindReplaceController.qml  # Find/replace logic (QtObject controller)
     NewProjectDialog.qml       # Create new project
     FileOperationDialog.qml    # New file/folder, rename dialog
+    UnsavedChangesDialog.qml   # Save/Discard/Cancel on file switch
     Toast.qml                  # Notification overlay
     SplashOverlay.qml          # Startup splash with logo + spinner
     JsonlViewer.qml            # JSONL transcript viewer panel
     JsonlEntryCard.qml         # Entry card with role badge + preview
+    JsonlFilterBar.qml         # JSONL filter bar
     ExportDialog.qml           # Export format picker (PDF/HTML/DOCX)
     QuickSwitcher.qml          # Fuzzy file finder popup (Ctrl+P)
     OutlinePanel.qml           # Document heading outline panel
     EditorStatusBar.qml        # Cursor position, encoding, stats
-    NavContextMenu.qml         # Right-click context menu for nav tree
-    NavFooterBar.qml           # Footer bar for nav panel
-    JsonlFilterBar.qml         # JSONL filter bar
     LineNumberGutter.qml       # Line number gutter component
 resources/
   icons/                       # Multi-size app icons (16-1024px)
   preview/
-    index.html                 # WebEngine preview template (dark theme CSS)
+    index.html                 # WebEngine preview template (dark/light theme CSS)
     mermaid.min.js             # Mermaid diagram renderer (~2MB)
 ```
 
@@ -109,7 +135,7 @@ All data stored in `QStandardPaths::AppConfigLocation`:
 
 | File | Purpose |
 |------|---------|
-| `config.json` | Search paths, ignore patterns, trigger files, window geometry, toolbar visibility, image subfolder, status bar toggles, splitter widths, auto-save settings, zoom level |
+| `config.json` | Search paths, ignore patterns, trigger files, window geometry, toolbar visibility, image subfolder, status bar toggles, splitter widths, auto-save settings, search format toggles (md/json/yaml/jsonl), zoom level, theme mode, editor font, word wrap |
 | `blocks.db.json` | Block registry |
 | `prompts.db.json` | Prompt library |
 
@@ -129,7 +155,7 @@ Content here...
 ### Project Discovery & Navigation
 - Configurable search paths with ignore patterns and scan depth
 - Trigger file detection (CLAUDE.md, AGENTS.md, .git, etc.)
-- Indexes .md, .jsonl, and .json files within discovered projects
+- Indexes .md, .markdown, .jsonl, .json, .yaml, and .yml files within discovered projects
 - Tree view with expand/collapse all, project/directory/file icons
 - Block usage highlighting in tree (files containing blocks are marked)
 - File management context menu: New File, New Folder, Rename, Duplicate, Cut, Paste, Delete
@@ -165,6 +191,13 @@ Content here...
 - Format JSON button — prettifies minified JSON via QJsonDocument
 - Edit-only mode (no preview/split)
 - Highlighter swap: only one QSyntaxHighlighter per document, switched imperatively on file change
+
+### YAML Editor
+- Opens `.yaml` and `.yml` files from the project tree in the same editor
+- Syntax highlighting (keys=blue, values=green, numbers=orange, booleans/null=purple, comments=grey italic, anchors/aliases=cyan, tags=purple)
+- Format YAML button — parses and re-emits via yaml-cpp (validates + prettifies)
+- Edit-only mode (no preview/split)
+- Supports YAML anchors (`&name`), aliases (`*name`), tags (`!!type`), and document markers (`---`, `...`)
 
 ### Block System
 - Block registry with JSON persistence
@@ -206,16 +239,17 @@ Content here...
 
 ### Claude Code Integration
 - Optional `~/.claude` folder added to project tree via Settings > Integrations toggle
-- Recursively indexes .md, .jsonl, .json files from the Claude Code folder
+- Recursively indexes .md, .markdown, .jsonl, .json, .yaml, and .yml files from the Claude Code folder
 - Auto-rescan when integration setting changes
 
 ### Navigation
 - Quick Switcher (Ctrl+P) — fuzzy file finder with recent files, keyboard navigation
 - Outline Panel — third tab in right pane, heading hierarchy (H1-H6), click-to-navigate, active heading highlight
 - Recent files tracking (last 10 opened files, persisted in config)
+- Back/forward navigation — browser-style history with Alt+Left/Alt+Right and mouse side buttons (Button 4/5)
 
 ### Search
-- Global search across all project files (Ctrl+Shift+F)
+- Global search across enabled file formats (Ctrl+Shift+F, configurable in Settings > Projects)
 - Navigate to search results
 - Find & Replace in editor (Ctrl+F / Ctrl+H) — undo-safe, scroll-to-match, Shift+Enter for previous
 
@@ -244,8 +278,17 @@ Content here...
 - Open after export checkbox — launches exported file with system default app
 - Default output path: same directory as source file, matching extension
 
+### Theme & Appearance
+- Dark and Light themes, switchable in Settings > Editor > Theme
+- All colors defined in `Theme.qml` singleton via `isDark` ternary expressions
+- `ConfigManager.themeMode` persists choice (`"dark"` / `"light"`) in `config.json`
+- `ConfigManager.editorFontFamily` — configurable monospace font (default: Consolas)
+- `SyntaxHighlighter.isDarkTheme` — swaps all format colors and rehighlights on change
+- Preview HTML (`index.html`) uses `.light` CSS class toggled via `setTheme()` JS function
+- Mermaid diagrams re-initialize with matching theme
+
 ### UI & Polish
-- Dark theme (Fusion style) with centralized Theme singleton
+- Dark and Light themes with centralized Theme singleton
 - Forced English UI locale (QLocale::setDefault) — consistent button labels
 - 3-pane SplitView layout with custom draggable handles (6px transparent + 2px visual line) and persisted splitter widths
 - Startup splash overlay with app logo, spinner, and status text (fades out after scan)
@@ -260,6 +303,7 @@ Content here...
   - Ctrl+B (bold), Ctrl+I (italic), Ctrl+Shift+K (inline code)
   - Ctrl+D (duplicate line), Tab/Shift+Tab (indent/outdent)
   - Ctrl+P (quick switcher)
+  - Alt+Left / Alt+Right (back/forward navigation), mouse side buttons
   - Ctrl+W (close file), Ctrl+Q (quit), Ctrl+=/Ctrl+- (zoom), Ctrl+0 (reset zoom)
 - Window geometry persistence
 - Splitter width persistence (left nav + right pane)

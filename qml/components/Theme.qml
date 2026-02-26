@@ -3,67 +3,71 @@ import QtQuick
 import BlockSmith
 
 QtObject {
+    readonly property bool isDark: AppController.configManager.themeMode === "dark"
+
     // Backgrounds
-    readonly property color bg:          "#1e1e1e"
-    readonly property color bgPanel:     "#2b2b2b"
-    readonly property color bgHeader:    "#333333"
-    readonly property color bgGutter:    "#1a1a1a"
-    readonly property color bgButton:    "#3a3a3a"
-    readonly property color bgButtonHov: "#555"
-    readonly property color bgButtonPrs: "#666"
-    readonly property color bgCard:      "#2f2f2f"
-    readonly property color bgCardHov:   "#383838"
-    readonly property color bgSelection: "#264f78"
-    readonly property color bgActive:    "#3d6a99"
-    readonly property color bgFooter:    "#252525"
+    readonly property color bg:          isDark ? "#1e1e1e" : "#f5f5f5"
+    readonly property color bgPanel:     isDark ? "#2b2b2b" : "#e8e8e8"
+    readonly property color bgHeader:    isDark ? "#333333" : "#e0e0e0"
+    readonly property color bgGutter:    isDark ? "#1a1a1a" : "#ebebeb"
+    readonly property color bgButton:    isDark ? "#3a3a3a" : "#d5d5d5"
+    readonly property color bgButtonHov: isDark ? "#555" : "#c0c0c0"
+    readonly property color bgButtonPrs: isDark ? "#666" : "#b0b0b0"
+    readonly property color bgCard:      isDark ? "#2f2f2f" : "#ffffff"
+    readonly property color bgCardHov:   isDark ? "#383838" : "#f0f0f0"
+    readonly property color bgSelection: isDark ? "#264f78" : "#add6ff"
+    readonly property color bgActive:    isDark ? "#3d6a99" : "#0078d4"
+    readonly property color bgFooter:    isDark ? "#252525" : "#e5e5e5"
 
     // Borders & Separators
-    readonly property color border:      "#444"
-    readonly property color borderHover: "#555"
-    readonly property color borderFocus: "#6c9bd2"
+    readonly property color border:      isDark ? "#444" : "#ccc"
+    readonly property color borderHover: isDark ? "#555" : "#aaa"
+    readonly property color borderFocus: isDark ? "#6c9bd2" : "#0078d4"
 
     // Text
-    readonly property color textPrimary:   "#ddd"
-    readonly property color textSecondary: "#aaa"
-    readonly property color textMuted:     "#888"
-    readonly property color textDisabled:  "#666"
-    readonly property color textEditor:    "#d4d4d4"
-    readonly property color textWhite:     "#fff"
-    readonly property color textBright:      "#eee"
-    readonly property color textPlaceholder: "#666"
+    readonly property color textPrimary:     isDark ? "#ddd" : "#1e1e1e"
+    readonly property color textSecondary:   isDark ? "#aaa" : "#555"
+    readonly property color textMuted:       isDark ? "#888" : "#777"
+    readonly property color textDisabled:    isDark ? "#666" : "#bbb"
+    readonly property color textEditor:      isDark ? "#d4d4d4" : "#1e1e1e"
+    readonly property color textWhite:       "#fff"
+    readonly property color textBright:      isDark ? "#eee" : "#111"
+    readonly property color textPlaceholder: isDark ? "#666" : "#aaa"
 
     // Cursor
-    readonly property color cursorColor:  "#d4d4d4"
-    readonly property real  cursorWidth:  2
+    readonly property color cursorColor: isDark ? "#d4d4d4" : "#1e1e1e"
+    readonly property real  cursorWidth: 2
 
     // Accent
-    readonly property color accent:       "#6c9bd2"
-    readonly property color accentGreen:  "#4caf50"
-    readonly property color accentGreenLight: "#a5d6a7"
-    readonly property color accentGold:   "#e0c060"
-    readonly property color accentOrange: "#ff9800"
-    readonly property color accentRed:    "#e06060"
-    readonly property color accentPurple: "#8888cc"
+    readonly property color accent:           isDark ? "#6c9bd2" : "#0078d4"
+    readonly property color accentGreen:      isDark ? "#4caf50" : "#2e7d32"
+    readonly property color accentGreenLight: isDark ? "#a5d6a7" : "#66bb6a"
+    readonly property color accentGold:       isDark ? "#e0c060" : "#f9a825"
+    readonly property color accentOrange:     isDark ? "#ff9800" : "#e65100"
+    readonly property color accentRed:        isDark ? "#e06060" : "#c62828"
+    readonly property color accentPurple:     isDark ? "#8888cc" : "#6a1b9a"
 
     // Semantic: tags, diffs, categories
-    readonly property color tagBg:              "#3d5a80"
-    readonly property color highlightItemBg:    "#2a3a2a"
-    readonly property color diffRegistryBg:     "#1a2530"
-    readonly property color diffRegistryBorder: "#3d5a80"
-    readonly property color diffFileBg:         "#2a2010"
-    readonly property color diffFileBorder:     "#806020"
-    readonly property color categoryAudit:      "#5a3d3d"
-    readonly property color categoryReview:     "#3d5a3d"
-    readonly property color categoryDebug:      "#5a4d3d"
-    readonly property color categoryGenerate:   "#3d3d5a"
-    readonly property color categoryDefault:    "#4a4a4a"
+    readonly property color tagBg:              isDark ? "#3d5a80" : "#bbdefb"
+    readonly property color highlightItemBg:    isDark ? "#2a3a2a" : "#e8f5e9"
+    readonly property color diffRegistryBg:     isDark ? "#1a2530" : "#e3f2fd"
+    readonly property color diffRegistryBorder: isDark ? "#3d5a80" : "#90caf9"
+    readonly property color diffFileBg:         isDark ? "#2a2010" : "#fff8e1"
+    readonly property color diffFileBorder:     isDark ? "#806020" : "#ffcc02"
+    readonly property color diffAddedBg:        isDark ? "#1a3320" : "#c8e6c9"
+    readonly property color diffRemovedBg:      isDark ? "#3d1a1a" : "#ffcdd2"
+    readonly property color categoryAudit:      isDark ? "#5a3d3d" : "#ffcdd2"
+    readonly property color categoryReview:     isDark ? "#3d5a3d" : "#c8e6c9"
+    readonly property color categoryDebug:      isDark ? "#5a4d3d" : "#ffe0b2"
+    readonly property color categoryGenerate:   isDark ? "#3d3d5a" : "#d1c4e9"
+    readonly property color categoryDefault:    isDark ? "#4a4a4a" : "#e0e0e0"
 
     // Fonts
-    readonly property string fontMono: "Consolas"
+    readonly property string fontMono: AppController.configManager.editorFontFamily || "Consolas"
     readonly property int fontSizeS:  10
     readonly property int fontSizeM:  12
     readonly property int fontSizeL:  13
-    readonly property int fontSizeXS: 11   // header labels, descriptions
+    readonly property int fontSizeXS: 11
 
     // Zoom
     readonly property real zoomFactor: AppController.configManager.zoomLevel / 100.0
@@ -95,18 +99,18 @@ QtObject {
     // Preview CSS (shared across MdPreview, BlockEditorPopup, PromptEditorPopup)
     readonly property string previewCss:
         "<style>"
-        + "body { color: #d4d4d4; font-family: Segoe UI, sans-serif; font-size: 13px; }"
-        + "h1, h2, h3, h4 { color: #e0e0e0; margin-top: 12px; }"
-        + "code { background: #333; padding: 2px 4px; font-family: Consolas; border-radius: 3px; font-size: 12px; }"
-        + "pre { background: #2a2a2a; padding: 10px; border-radius: 4px; margin: 8px 0; }"
+        + "body { color: " + (isDark ? "#d4d4d4" : "#1e1e1e") + "; font-family: Segoe UI, sans-serif; font-size: 13px; }"
+        + "h1, h2, h3, h4 { color: " + (isDark ? "#e0e0e0" : "#1e1e1e") + "; margin-top: 12px; }"
+        + "code { background: " + (isDark ? "#333" : "#eff1f3") + "; padding: 2px 4px; font-family: " + fontMono + "; border-radius: 3px; font-size: 12px; }"
+        + "pre { background: " + (isDark ? "#2a2a2a" : "#f6f8fa") + "; padding: 10px; border-radius: 4px; margin: 8px 0; }"
         + "pre code { background: transparent; padding: 0; }"
-        + "a { color: #6c9bd2; }"
-        + "blockquote { border-left: 3px solid #555; padding-left: 8px; color: #aaa; margin: 8px 0; }"
+        + "a { color: " + (isDark ? "#6c9bd2" : "#0969da") + "; }"
+        + "blockquote { border-left: 3px solid " + (isDark ? "#555" : "#d0d7de") + "; padding-left: 8px; color: " + (isDark ? "#aaa" : "#57606a") + "; margin: 8px 0; }"
         + "table { border-collapse: collapse; margin: 8px 0; width: 100%; }"
-        + "th, td { border: 1px solid #555; padding: 6px 10px; text-align: left; }"
-        + "th { background: #333; color: #e0e0e0; font-weight: bold; }"
-        + "tr:nth-child(even) { background: #2a2a2a; }"
-        + "hr { border: none; border-top: 1px solid #555; margin: 16px 0; }"
+        + "th, td { border: 1px solid " + (isDark ? "#555" : "#d0d7de") + "; padding: 6px 10px; text-align: left; }"
+        + "th { background: " + (isDark ? "#333" : "#f6f8fa") + "; color: " + (isDark ? "#e0e0e0" : "#1e1e1e") + "; font-weight: bold; }"
+        + "tr:nth-child(even) { background: " + (isDark ? "#2a2a2a" : "#f6f8fa") + "; }"
+        + "hr { border: none; border-top: 1px solid " + (isDark ? "#555" : "#d0d7de") + "; margin: 16px 0; }"
         + "img { max-width: 100%; height: auto; border-radius: 4px; }"
         + "ul, ol { padding-left: 24px; margin: 6px 0; }"
         + "li { margin: 3px 0; }"

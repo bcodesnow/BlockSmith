@@ -117,7 +117,7 @@ void ConfigManager::setScanDepth(int depth)
 
 bool ConfigManager::editorToolbarVisible() const { return m_editorToolbarVisible; }
 
-void ConfigManager::setMarkdownToolbarVisible(bool visible)
+void ConfigManager::setEditorToolbarVisible(bool visible)
 {
     if (m_editorToolbarVisible != visible) {
         m_editorToolbarVisible = visible;
@@ -242,6 +242,76 @@ void ConfigManager::addRecentFile(const QString &filePath)
     setRecentFiles(files);
 }
 
+bool ConfigManager::searchIncludeMarkdown() const { return m_searchIncludeMarkdown; }
+
+void ConfigManager::setSearchIncludeMarkdown(bool enabled)
+{
+    if (m_searchIncludeMarkdown != enabled) {
+        m_searchIncludeMarkdown = enabled;
+        emit searchIncludeMarkdownChanged();
+    }
+}
+
+bool ConfigManager::searchIncludeJson() const { return m_searchIncludeJson; }
+
+void ConfigManager::setSearchIncludeJson(bool enabled)
+{
+    if (m_searchIncludeJson != enabled) {
+        m_searchIncludeJson = enabled;
+        emit searchIncludeJsonChanged();
+    }
+}
+
+bool ConfigManager::searchIncludeYaml() const { return m_searchIncludeYaml; }
+
+void ConfigManager::setSearchIncludeYaml(bool enabled)
+{
+    if (m_searchIncludeYaml != enabled) {
+        m_searchIncludeYaml = enabled;
+        emit searchIncludeYamlChanged();
+    }
+}
+
+bool ConfigManager::searchIncludeJsonl() const { return m_searchIncludeJsonl; }
+
+void ConfigManager::setSearchIncludeJsonl(bool enabled)
+{
+    if (m_searchIncludeJsonl != enabled) {
+        m_searchIncludeJsonl = enabled;
+        emit searchIncludeJsonlChanged();
+    }
+}
+
+QString ConfigManager::themeMode() const { return m_themeMode; }
+
+void ConfigManager::setThemeMode(const QString &mode)
+{
+    if (m_themeMode != mode) {
+        m_themeMode = mode;
+        emit themeModeChanged();
+    }
+}
+
+QString ConfigManager::editorFontFamily() const { return m_editorFontFamily; }
+
+void ConfigManager::setEditorFontFamily(const QString &family)
+{
+    if (m_editorFontFamily != family) {
+        m_editorFontFamily = family;
+        emit editorFontFamilyChanged();
+    }
+}
+
+bool ConfigManager::wordWrap() const { return m_wordWrap; }
+
+void ConfigManager::setWordWrap(bool enabled)
+{
+    if (m_wordWrap != enabled) {
+        m_wordWrap = enabled;
+        emit wordWrapChanged();
+    }
+}
+
 void ConfigManager::load()
 {
     QFile file(configFilePath());
@@ -337,6 +407,22 @@ void ConfigManager::load()
             files.append(v.toString());
         m_recentFiles = files;
     }
+
+    if (root.contains("searchIncludeMarkdown"))
+        m_searchIncludeMarkdown = root["searchIncludeMarkdown"].toBool(true);
+    if (root.contains("searchIncludeJson"))
+        m_searchIncludeJson = root["searchIncludeJson"].toBool(true);
+    if (root.contains("searchIncludeYaml"))
+        m_searchIncludeYaml = root["searchIncludeYaml"].toBool(true);
+    if (root.contains("searchIncludeJsonl"))
+        m_searchIncludeJsonl = root["searchIncludeJsonl"].toBool(false);
+
+    if (root.contains("themeMode"))
+        m_themeMode = root["themeMode"].toString("dark");
+    if (root.contains("editorFontFamily"))
+        m_editorFontFamily = root["editorFontFamily"].toString("Consolas");
+    if (root.contains("wordWrap"))
+        m_wordWrap = root["wordWrap"].toBool(true);
 }
 
 void ConfigManager::save()
@@ -389,6 +475,15 @@ void ConfigManager::save()
     for (const auto &f : m_recentFiles)
         recentArr.append(f);
     root["recentFiles"] = recentArr;
+
+    root["searchIncludeMarkdown"] = m_searchIncludeMarkdown;
+    root["searchIncludeJson"] = m_searchIncludeJson;
+    root["searchIncludeYaml"] = m_searchIncludeYaml;
+    root["searchIncludeJsonl"] = m_searchIncludeJsonl;
+
+    root["themeMode"] = m_themeMode;
+    root["editorFontFamily"] = m_editorFontFamily;
+    root["wordWrap"] = m_wordWrap;
 
     QFile file(configFilePath());
     if (!file.open(QIODevice::WriteOnly)) {

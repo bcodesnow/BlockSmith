@@ -3,16 +3,8 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import BlockSmith
 
-Dialog {
+EditorPopupBase {
     id: dialog
-
-    parent: Overlay.overlay
-    anchors.centerIn: parent
-    width: Math.min(parent.width * 0.8, 900)
-    height: Math.min(parent.height * 0.8, 650)
-
-    modal: true
-    standardButtons: Dialog.Cancel
 
     property string blockId: ""
     property bool isNew: blockId === ""
@@ -20,25 +12,29 @@ Dialog {
     property var syncStatus: []
 
     title: isNew ? "New Block" : "Edit Block"
+    metaLabel: "Tags:"
+    metaPlaceholder: "comma-separated"
+    deleteLabel: "Delete Block"
+    saveLabel: isNew ? "Create Block" : "Save && Push to All Files"
 
     function openBlock(id) {
         blockId = id
         if (id === "") {
-            nameField.text = ""
-            tagsField.text = ""
-            editorArea.text = ""
+            nameText = ""
+            metaText = ""
+            editorText = ""
             syncStatus = []
         } else {
             blockData = AppController.blockStore.getBlock(id)
             if (!blockData.id) return
-            nameField.text = blockData.name
-            tagsField.text = (blockData.tags || []).join(", ")
-            editorArea.text = blockData.content
+            nameText = blockData.name
+            metaText = (blockData.tags || []).join(", ")
+            editorText = blockData.content
             refreshSyncStatus()
         }
-        deleteBtn.confirming = false
+        resetDelete()
         dialog.open()
-        nameField.forceActiveFocus()
+        focusName()
     }
 
     function refreshSyncStatus() {
@@ -46,15 +42,21 @@ Dialog {
     }
 
     onAccepted: saveAndPush()
+    onSaveRequested: saveAndPush()
+
+    onDeleteConfirmed: {
+        AppController.blockStore.removeBlock(dialog.blockId)
+        dialog.close()
+    }
 
     function saveAndPush() {
-        let name = nameField.text.trim()
+        let name = nameText.trim()
         if (name.length === 0) return
 
-        let tags = tagsField.text.split(",").map(s => s.trim()).filter(s => s.length > 0)
+        let tags = metaText.split(",").map(s => s.trim()).filter(s => s.length > 0)
 
         if (isNew) {
-            blockId = AppController.blockStore.createBlock(name, editorArea.text, tags, "")
+            blockId = AppController.blockStore.createBlock(name, editorText, tags, "")
             dialog.close()
             return
         }
@@ -67,7 +69,7 @@ Dialog {
         for (let t of oldTags) AppController.blockStore.removeTag(blockId, t)
         for (let t of tags) AppController.blockStore.addTag(blockId, t)
 
-        AppController.blockStore.updateBlock(blockId, editorArea.text)
+        AppController.blockStore.updateBlock(blockId, editorText)
         AppController.syncEngine.pushBlock(blockId)
 
         AppController.currentDocument.reload()
@@ -78,206 +80,102 @@ Dialog {
         id: diffPopup
         onPulled: {
             let updated = AppController.blockStore.getBlock(dialog.blockId)
-            editorArea.text = updated.content
+            dialog.editorText = updated.content
             dialog.refreshSyncStatus()
         }
     }
 
-    ColumnLayout {
-        anchors.fill: parent
-        spacing: Theme.sp8
+    // Sync status footer
+    Rectangle {
+        Layout.fillWidth: true
+        Layout.preferredHeight: Math.min(syncList.contentHeight + syncHeader.height + 8, 100)
+        color: Theme.bgFooter
+        radius: Theme.radius
+        visible: dialog.syncStatus.length > 0
 
-        // Name + Tags row
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: Theme.sp8
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 4
+            spacing: 2
 
-            Label { text: "Name:"; color: Theme.textSecondary; font.pixelSize: Theme.fontSizeM }
-            TextField {
-                id: nameField
+            Label {
+                id: syncHeader
+                text: "Used in " + dialog.syncStatus.length + " file" + (dialog.syncStatus.length !== 1 ? "s" : "") + ":"
+                font.pixelSize: Theme.fontSizeXS
+                font.bold: true
+                color: Theme.textMuted
+            }
+
+            ListView {
+                id: syncList
                 Layout.fillWidth: true
-                font.pixelSize: Theme.fontSizeL
-            }
-
-            Label { text: "Tags:"; color: Theme.textSecondary; font.pixelSize: Theme.fontSizeM }
-            TextField {
-                id: tagsField
-                Layout.preferredWidth: 200
-                font.pixelSize: Theme.fontSizeL
-                placeholderText: "comma-separated"
-            }
-        }
-
-        // Split editor / preview
-        SplitView {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            orientation: Qt.Horizontal
-
-            ScrollView {
-                SplitView.fillWidth: true
-                SplitView.minimumWidth: 200
-
-                TextArea {
-                    id: editorArea
-                    font.family: Theme.fontMono
-                    font.pixelSize: Theme.fontSizeL
-                    wrapMode: TextArea.Wrap
-                    color: Theme.textEditor
-                    selectionColor: Theme.bgSelection
-                    selectedTextColor: Theme.textWhite
-                    background: Rectangle { color: Theme.bg }
-                }
-            }
-
-            ScrollView {
-                SplitView.preferredWidth: parent.width * 0.45
-                SplitView.minimumWidth: 200
-
-                background: Rectangle { color: Theme.bg }
-
-                TextEdit {
-                    padding: Theme.sp12
-                    readOnly: true
-                    textFormat: TextEdit.RichText
-                    wrapMode: TextEdit.Wrap
-                    color: Theme.textEditor
-                    text: Theme.previewCss + AppController.md4cRenderer.render(editorArea.text)
-                }
-            }
-        }
-
-        // Used-in footer with sync status
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: Math.min(syncList.contentHeight + syncHeader.height + 8, 100)
-            color: Theme.bgFooter
-            radius: Theme.radius
-            visible: dialog.syncStatus.length > 0
-
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 4
+                Layout.fillHeight: true
+                clip: true
+                model: dialog.syncStatus
                 spacing: 2
 
-                Label {
-                    id: syncHeader
-                    text: "Used in " + dialog.syncStatus.length + " file" + (dialog.syncStatus.length !== 1 ? "s" : "") + ":"
-                    font.pixelSize: Theme.fontSizeXS
-                    font.bold: true
-                    color: Theme.textMuted
-                }
+                delegate: RowLayout {
+                    width: syncList.width
+                    spacing: 6
 
-                ListView {
-                    id: syncList
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    clip: true
-                    model: dialog.syncStatus
-                    spacing: 2
+                    Label {
+                        text: "\u25CF"
+                        font.pixelSize: 8
+                        color: modelData.status === "synced" ? Theme.accentGreen : Theme.accentOrange
+                    }
 
-                    delegate: RowLayout {
-                        width: syncList.width
-                        spacing: 6
+                    Label {
+                        text: modelData.filePath
+                        font.pixelSize: Theme.fontSizeS
+                        color: Theme.textSecondary
+                        elide: Text.ElideMiddle
+                        Layout.fillWidth: true
+                    }
 
-                        // Sync status dot
+                    Label {
+                        text: modelData.status === "synced" ? "synced" : "diverged"
+                        font.pixelSize: Theme.fontSizeS
+                        color: modelData.status === "synced" ? Theme.accentGreen : Theme.accentOrange
+                    }
+
+                    Rectangle {
+                        width: diffLabel.implicitWidth + 10
+                        height: 18
+                        radius: Theme.radius
+                        color: diffMa.containsMouse ? Theme.bgButtonHov : Theme.bgButton
+                        visible: modelData.status === "diverged"
+
                         Label {
-                            text: "\u25CF"
-                            font.pixelSize: 8
-                            color: modelData.status === "synced" ? Theme.accentGreen : Theme.accentOrange
-                        }
-
-                        Label {
-                            text: modelData.filePath
+                            id: diffLabel
+                            anchors.centerIn: parent
+                            text: "Diff & Pull"
                             font.pixelSize: Theme.fontSizeS
-                            color: Theme.textSecondary
-                            elide: Text.ElideMiddle
-                            Layout.fillWidth: true
+                            color: Theme.accent
                         }
 
-                        Label {
-                            text: modelData.status === "synced" ? "synced" : "diverged"
-                            font.pixelSize: Theme.fontSizeS
-                            color: modelData.status === "synced" ? Theme.accentGreen : Theme.accentOrange
-                        }
-
-                        // Diff button for diverged files
-                        Rectangle {
-                            width: diffLabel.implicitWidth + 10
-                            height: 18
-                            radius: Theme.radius
-                            color: diffMa.containsMouse ? Theme.bgButtonHov : Theme.bgButton
-                            visible: modelData.status === "diverged"
-
-                            Label {
-                                id: diffLabel
-                                anchors.centerIn: parent
-                                text: "Diff & Pull"
-                                font.pixelSize: Theme.fontSizeS
-                                color: Theme.accent
-                            }
-
-                            MouseArea {
-                                id: diffMa
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    diffPopup.openDiff(
-                                        dialog.blockId,
-                                        modelData.filePath,
-                                        editorArea.text,
-                                        modelData.fileContent || "")
-                                }
+                        MouseArea {
+                            id: diffMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                diffPopup.openDiff(
+                                    dialog.blockId,
+                                    modelData.filePath,
+                                    dialog.editorText,
+                                    modelData.fileContent || "")
                             }
                         }
                     }
                 }
             }
         }
+    }
 
-        Label {
-            visible: !dialog.isNew && dialog.syncStatus.length === 0
-            text: "Not used in any scanned files."
-            font.pixelSize: Theme.fontSizeXS
-            color: Theme.textMuted
-        }
-
-        // Action buttons
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: Theme.sp8
-
-            Item { Layout.fillWidth: true }
-
-            Button {
-                id: deleteBtn
-                property bool confirming: false
-                text: confirming ? "Confirm Delete?" : "Delete Block"
-                flat: true
-                visible: !dialog.isNew
-                palette.buttonText: Theme.accentRed
-                onClicked: {
-                    if (!confirming) {
-                        confirming = true
-                        deleteResetTimer.restart()
-                    } else {
-                        AppController.blockStore.removeBlock(dialog.blockId)
-                        dialog.close()
-                    }
-                }
-                Timer {
-                    id: deleteResetTimer
-                    interval: 3000
-                    onTriggered: deleteBtn.confirming = false
-                }
-            }
-
-            Button {
-                text: dialog.isNew ? "Create Block" : "Save && Push to All Files"
-                highlighted: true
-                onClicked: dialog.saveAndPush()
-            }
-        }
+    Label {
+        visible: !dialog.isNew && dialog.syncStatus.length === 0
+        text: "Not used in any scanned files."
+        font.pixelSize: Theme.fontSizeXS
+        color: Theme.textMuted
     }
 }

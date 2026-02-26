@@ -14,9 +14,10 @@ class SyntaxHighlighter : public QSyntaxHighlighter
     Q_PROPERTY(QQuickTextDocument* document READ quickDocument WRITE setQuickDocument NOTIFY quickDocumentChanged)
     Q_PROPERTY(bool enabled READ enabled WRITE setEnabled NOTIFY enabledChanged)
     Q_PROPERTY(Mode mode READ mode WRITE setMode NOTIFY modeChanged)
+    Q_PROPERTY(bool isDarkTheme READ isDarkTheme WRITE setIsDarkTheme NOTIFY isDarkThemeChanged)
 
 public:
-    enum Mode { Markdown, Json, PlainText };
+    enum Mode { Markdown, Json, Yaml, PlainText };
     Q_ENUM(Mode)
 
     explicit SyntaxHighlighter(QObject *parent = nullptr);
@@ -30,6 +31,9 @@ public:
     Mode mode() const;
     void setMode(Mode mode);
 
+    bool isDarkTheme() const;
+    void setIsDarkTheme(bool dark);
+
 protected:
     void highlightBlock(const QString &text) override;
 
@@ -37,16 +41,20 @@ signals:
     void quickDocumentChanged();
     void enabledChanged();
     void modeChanged();
+    void isDarkThemeChanged();
 
 private:
     void setupMdFormats();
     void setupJsonFormats();
+    void setupYamlFormats();
     void highlightMarkdown(const QString &text);
     void highlightJson(const QString &text);
+    void highlightYaml(const QString &text);
 
     QQuickTextDocument *m_quickDocument = nullptr;
     bool m_enabled = true;
     Mode m_mode = Markdown;
+    bool m_isDarkTheme = true;
 
     // Markdown formats
     struct HighlightRule {
@@ -75,4 +83,11 @@ private:
     QTextCharFormat m_numberFormat;
     QTextCharFormat m_boolNullFormat;
     QTextCharFormat m_bracketFormat;
+
+    // YAML formats
+    QTextCharFormat m_yamlKeyFormat;
+    QTextCharFormat m_yamlValueFormat;
+    QTextCharFormat m_yamlCommentFormat;
+    QTextCharFormat m_yamlAnchorFormat;
+    QTextCharFormat m_yamlTagFormat;
 };

@@ -11,6 +11,22 @@ qt_policy(SET QTP0004 NEW)
 
 add_subdirectory(third_party/md4c)
 
+# yaml-cpp for YAML format/validate support
+find_package(yaml-cpp CONFIG QUIET)
+if(NOT yaml-cpp_FOUND)
+    include(FetchContent)
+    FetchContent_Declare(
+        yaml-cpp
+        GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+        GIT_TAG yaml-cpp-0.9.0
+    )
+    set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+    set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "" FORCE)
+    set(YAML_CPP_INSTALL OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(yaml-cpp)
+endif()
+
 qt_add_executable(BlockSmith
     src/main.cpp
     resources/blocksmith.rc
@@ -57,6 +73,17 @@ qt_add_qml_module(BlockSmith
         qml/components/JsonlFilterBar.qml
         qml/components/LineNumberGutter.qml
         qml/components/JsonToolbar.qml
+        qml/components/FindReplaceController.qml
+        qml/components/YamlToolbar.qml
+        qml/components/SettingsProjectsTab.qml
+        qml/components/SettingsEditorTab.qml
+        qml/components/SettingsIntegrationsTab.qml
+        qml/components/EditorPopupBase.qml
+        qml/components/EditorHeader.qml
+        qml/components/FileChangedBanner.qml
+        qml/components/EditorContextMenu.qml
+        qml/components/ImageDropZone.qml
+        qml/components/UnsavedChangesDialog.qml
     SOURCES
         src/configmanager.h src/configmanager.cpp
         src/md4crenderer.h src/md4crenderer.cpp
@@ -114,6 +141,7 @@ target_link_libraries(BlockSmith PRIVATE
     Qt6::WebChannel
     Qt6::Concurrent
     md4c
+    yaml-cpp::yaml-cpp
 )
 
 if(WIN32)

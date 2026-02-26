@@ -166,6 +166,17 @@ Rectangle {
                 model: AppController.projectTreeModel
                 clip: true
 
+                ScrollBar.vertical: ScrollBar {
+                    policy: ScrollBar.AsNeeded
+                    background: Rectangle { color: "transparent" }
+                    contentItem: Rectangle {
+                        implicitWidth: 6
+                        radius: 3
+                        color: parent.pressed ? Theme.bgButtonPrs
+                             : parent.hovered ? Theme.bgButtonHov : Theme.borderHover
+                    }
+                }
+
                 selectionModel: ItemSelectionModel {
                     model: treeView.model
                 }

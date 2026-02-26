@@ -10,7 +10,7 @@
 | Ctrl+V | Paste image from clipboard (when clipboard has image) |
 | Ctrl+F | Find in editor |
 | Ctrl+H | Find & Replace in editor |
-| Ctrl+Shift+F | Global search across all project files |
+| Ctrl+Shift+F | Global search across enabled file formats |
 | Ctrl+Shift+S | Scan projects |
 | F5 | Scan projects |
 | Ctrl+, | Open settings |
@@ -23,6 +23,9 @@
 | Enter | Auto-continue lists (in list context) |
 | Shift+Enter | Find previous match (in find bar) |
 | Ctrl+P | Quick Switcher: fuzzy file finder |
+| Alt+Left | Navigate back (previous file) |
+| Alt+Right | Navigate forward |
+| Mouse Back/Forward | Navigate back/forward (side buttons) |
 | Ctrl+Shift+E | Export document (PDF / HTML / DOCX) |
 | Ctrl+W | Close current file |
 | Ctrl+Q | Quit application |
@@ -54,6 +57,9 @@ All application data is stored at the OS config location:
 
 | Setting | Default |
 |---------|---------|
+| Theme | Dark |
+| Editor font | Consolas |
+| Word wrap | Enabled |
 | Auto-scan on startup | Enabled |
 | Syntax highlighting | Enabled |
 | Markdown toolbar | Visible |
@@ -64,6 +70,7 @@ All application data is stored at the OS config location:
 | Status bar: line count | Enabled |
 | Status bar: reading time | Enabled |
 | Include Claude Code folder | Disabled |
+| Global search formats | Markdown, JSON, YAML enabled; JSONL disabled |
 | Ignore patterns | `node_modules`, `.git`, `dist`, `build`, `__pycache__`, `.venv`, `venv`, `target`, `.build` |
 | Trigger files | `CLAUDE.md`, `claude.md`, `.claude.md`, `AGENTS.md`, `agents.md`, `.agents.md`, `.git` |
 
@@ -86,6 +93,15 @@ BlockSmith uses a 3-pane layout:
   - **Split** — editor left + WebEngine preview right (side-by-side, scroll synced)
   - **Preview** — full WebEngine preview with mermaid diagram rendering
 - **Right pane** — tabbed panel for Blocks, Prompts, and Outline
+
+## Appearance
+
+BlockSmith supports Dark and Light themes, configurable in **Settings > Editor > Appearance**.
+
+- **Theme** — switch between Dark (default) and Light. All UI panels, editor, gutter, toolbar, preview, and syntax highlighting colors update immediately.
+- **Editor font** — choose from common monospace fonts: Consolas (default), Cascadia Code, Cascadia Mono, JetBrains Mono, Fira Code, Source Code Pro, Courier New.
+- **Word wrap** — toggle word wrap on/off (default: on). When off, long lines scroll horizontally.
+- All settings persist across restarts.
 
 ## Markdown Toolbar
 
@@ -200,6 +216,16 @@ The **Outline** tab in the right pane shows the heading structure of the current
 - **Live updates** — the outline refreshes as you type (300ms debounce)
 - **Code block aware** — headings inside fenced code blocks are excluded
 
+## Back/Forward Navigation
+
+BlockSmith tracks your file navigation history, letting you jump back and forth between recently opened files — just like a web browser.
+
+- **Alt+Left** — go back to the previous file
+- **Alt+Right** — go forward
+- **Mouse side buttons** — Button 4 (back) and Button 5 (forward) work anywhere in the window
+- **Unsaved changes** — if the current file has unsaved edits, the Save/Discard/Cancel dialog appears before navigating
+- **History cap** — the last 50 visited files are tracked; navigating to a new file trims any forward history
+
 ## JSON Editor
 
 BlockSmith supports editing `.json` files directly. Click any `.json` file in the project tree to open it.
@@ -210,6 +236,18 @@ BlockSmith supports editing `.json` files directly. Click any `.json` file in th
 - **Save** — Ctrl+S works as normal; encoding and file watcher behave the same as for markdown files
 
 If the JSON is invalid, the Format button shows a toast: "Invalid JSON — cannot format".
+
+## YAML Editor
+
+BlockSmith supports editing `.yaml` and `.yml` files directly. Click any YAML file in the project tree to open it.
+
+- **Syntax highlighting** — keys (blue), values (green), numbers (orange), booleans/null (purple), comments (grey italic), anchors/aliases (cyan), tags (purple)
+- **Format YAML** — click the toolbar button to parse and re-emit YAML (supports multi-document files, validates and prettifies via yaml-cpp)
+- **Edit-only mode** — Split and Preview modes are disabled for YAML files
+- **Save** — Ctrl+S works as normal; encoding and file watcher behave the same as for other file types
+- **Supported values** — boolean keywords (`true`, `false`, `yes`, `no`, `on`, `off`), `null`, `~`, numeric values (decimal, hex, octal, `.inf`, `.nan`), anchors (`&name`), aliases (`*name`), tags (`!!type`)
+
+If the YAML is invalid, the Format button shows a toast: "Invalid YAML — cannot format".
 
 ## JSONL Transcript Viewer
 

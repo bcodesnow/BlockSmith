@@ -119,32 +119,47 @@ void AppController::openFile(const QString &path)
     if (path == m_currentDocument->filePath())
         return;
 
-    // Route .jsonl files to the JSONL viewer
-    if (path.endsWith(QStringLiteral(".jsonl"), Qt::CaseInsensitive)) {
-        if (m_currentDocument->modified()) {
-            emit unsavedChangesWarning(path);
-            return;
-        }
-        m_currentDocument->clear();
-        m_jsonlStore->load(path);
-        m_configManager->addRecentFile(path);
-        return;
-    }
-
-    // Clear JSONL state when switching to a regular file
-    if (!m_jsonlStore->filePath().isEmpty())
-        m_jsonlStore->clear();
-
     if (m_currentDocument->modified()) {
         emit unsavedChangesWarning(path);
         return;
     }
 
-    m_currentDocument->load(path);
+    m_pendingNavJump = false;
+    m_pendingNavIndex = -1;
+    navPush(path);
+    openPathNoChecks(path);
     m_configManager->addRecentFile(path);
 }
 
 void AppController::forceOpenFile(const QString &path)
+{
+    bool isPendingNavTarget = false;
+    if (m_pendingNavJump
+        && m_pendingNavIndex >= 0
+        && m_pendingNavIndex < m_navHistory.size()
+        && m_navHistory[m_pendingNavIndex] == path) {
+        isPendingNavTarget = true;
+    }
+
+    if (isPendingNavTarget) {
+        m_navigating = true;
+        if (m_navIndex != m_pendingNavIndex) {
+            m_navIndex = m_pendingNavIndex;
+            emit navHistoryChanged();
+        }
+        openPathNoChecks(path);
+        m_navigating = false;
+    } else {
+        openPathNoChecks(path);
+        navPush(path);
+    }
+
+    m_pendingNavJump = false;
+    m_pendingNavIndex = -1;
+    m_configManager->addRecentFile(path);
+}
+
+void AppController::openPathNoChecks(const QString &path)
 {
     if (path.endsWith(QStringLiteral(".jsonl"), Qt::CaseInsensitive)) {
         m_currentDocument->clear();
@@ -154,7 +169,91 @@ void AppController::forceOpenFile(const QString &path)
             m_jsonlStore->clear();
         m_currentDocument->load(path);
     }
-    m_configManager->addRecentFile(path);
+}
+
+// --- Navigation history ---
+
+void AppController::navPush(const QString &path)
+{
+    if (m_navigating)
+        return;
+
+    // Trim forward history when navigating to a new file
+    if (m_navIndex + 1 < m_navHistory.size())
+        m_navHistory = m_navHistory.mid(0, m_navIndex + 1);
+
+    // Don't push duplicates at the top
+    if (!m_navHistory.isEmpty() && m_navHistory.last() == path)
+        return;
+
+    m_navHistory.append(path);
+
+    // Cap history at 50 entries
+    if (m_navHistory.size() > 50)
+        m_navHistory.removeFirst();
+
+    m_navIndex = m_navHistory.size() - 1;
+    emit navHistoryChanged();
+}
+
+bool AppController::canGoBack() const
+{
+    return m_navIndex > 0;
+}
+
+bool AppController::canGoForward() const
+{
+    return m_navIndex >= 0 && m_navIndex < m_navHistory.size() - 1;
+}
+
+void AppController::goBack()
+{
+    if (!canGoBack())
+        return;
+
+    const int targetIndex = m_navIndex - 1;
+    const QString path = m_navHistory[targetIndex];
+
+    if (m_currentDocument->modified()) {
+        m_pendingNavJump = true;
+        m_pendingNavIndex = targetIndex;
+        emit unsavedChangesWarning(path);
+        return;
+    }
+
+    m_pendingNavJump = false;
+    m_pendingNavIndex = -1;
+    m_navigating = true;
+    m_navIndex = targetIndex;
+    emit navHistoryChanged();
+
+    openPathNoChecks(path);
+    m_navigating = false;
+}
+
+void AppController::goForward()
+{
+    if (!canGoForward())
+        return;
+
+    const int targetIndex = m_navIndex + 1;
+    const QString path = m_navHistory[targetIndex];
+
+    if (m_currentDocument->modified()) {
+        m_pendingNavJump = true;
+        m_pendingNavIndex = targetIndex;
+        emit unsavedChangesWarning(path);
+        return;
+    }
+
+    m_pendingNavJump = false;
+    m_pendingNavIndex = -1;
+    m_navigating = true;
+    m_navIndex = targetIndex;
+    emit navHistoryChanged();
+
+    openPathNoChecks(path);
+    m_navigating = false;
 }
 
 QStringList AppController::getAllFiles() const
@@ -345,7 +444,31 @@ void AppController::searchFiles(const QString &query)
     }
 
     // Gather file list on main thread (fast — just tree walk)
-    const QStringList files = m_syncEngine->allMdFiles();
+    auto includeInSearch = [this](const QString &path) {
+        if (path.endsWith(QStringLiteral(".jsonl"), Qt::CaseInsensitive))
+            return m_configManager->searchIncludeJsonl();
+        if (path.endsWith(QStringLiteral(".json"), Qt::CaseInsensitive))
+            return m_configManager->searchIncludeJson();
+        if (path.endsWith(QStringLiteral(".yaml"), Qt::CaseInsensitive)
+            || path.endsWith(QStringLiteral(".yml"), Qt::CaseInsensitive))
+            return m_configManager->searchIncludeYaml();
+        if (path.endsWith(QStringLiteral(".md"), Qt::CaseInsensitive)
+            || path.endsWith(QStringLiteral(".markdown"), Qt::CaseInsensitive))
+            return m_configManager->searchIncludeMarkdown();
+        return false;
+    };
+
+    QStringList files;
+    const QStringList allFiles = getAllFiles();
+    for (const QString &path : allFiles) {
+        if (includeInSearch(path))
+            files.append(path);
+    }
+
+    if (files.isEmpty()) {
+        emit searchResultsReady({});
+        return;
+    }
 
     // Shared cancel flag for this search run
     auto cancel = std::make_shared<std::atomic<bool>>(false);
@@ -353,7 +476,7 @@ void AppController::searchFiles(const QString &query)
 
     // Run file I/O + search on a worker thread
     QPointer<AppController> self(this);
-    QtConcurrent::run([self, query, files, cancel]() {
+    (void)QtConcurrent::run([self, query, files, cancel]() {
         QVariantList results;
 
         for (const QString &filePath : files) {
@@ -379,9 +502,7 @@ void AppController::searchFiles(const QString &query)
                 hit["text"] = line.trimmed();
                 results.append(hit);
 
-                if (results.size() >= 200) break;
             }
-            if (results.size() >= 200) break;
         }
 
         if (cancel->load() || !self) return;

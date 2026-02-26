@@ -67,7 +67,7 @@ Dialog {
                 TextField {
                     id: searchInput
                     Layout.fillWidth: true
-                    placeholderText: "Search across all project files..."
+                    placeholderText: "Search enabled file formats..."
                     placeholderTextColor: Theme.textPlaceholder
                     font.pixelSize: Theme.fontSizeL
                     color: Theme.textPrimary

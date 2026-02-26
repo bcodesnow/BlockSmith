@@ -22,12 +22,22 @@ class Document : public QObject
     Q_PROPERTY(bool modified READ modified NOTIFY modifiedChanged)
     Q_PROPERTY(QString encoding READ encoding NOTIFY encodingChanged)
     Q_PROPERTY(FileType fileType READ fileType NOTIFY filePathChanged)
+    Q_PROPERTY(QString formatId READ formatId NOTIFY filePathChanged)
+    Q_PROPERTY(SyntaxMode syntaxMode READ syntaxMode NOTIFY filePathChanged)
+    Q_PROPERTY(ToolbarKind toolbarKind READ toolbarKind NOTIFY filePathChanged)
+    Q_PROPERTY(PreviewKind previewKind READ previewKind NOTIFY filePathChanged)
     Q_PROPERTY(bool isJson READ isJson NOTIFY filePathChanged)
     Q_PROPERTY(bool supportsPreview READ supportsPreview NOTIFY filePathChanged)
 
 public:
-    enum FileType { Markdown, Json, PlainText };
+    enum FileType { Markdown, Json, Yaml, PlainText };
     Q_ENUM(FileType)
+    enum SyntaxMode { SyntaxPlainText, SyntaxMarkdown, SyntaxJson, SyntaxYaml };
+    Q_ENUM(SyntaxMode)
+    enum ToolbarKind { ToolbarNone, ToolbarMarkdown, ToolbarJson, ToolbarYaml };
+    Q_ENUM(ToolbarKind)
+    enum PreviewKind { PreviewNone, PreviewMarkdown };
+    Q_ENUM(PreviewKind)
 
     struct BlockSegment {
         QString id;
@@ -46,6 +56,10 @@ public:
 
     QString filePath() const;
     FileType fileType() const;
+    QString formatId() const;
+    SyntaxMode syntaxMode() const;
+    ToolbarKind toolbarKind() const;
+    PreviewKind previewKind() const;
     bool isJson() const;
     bool supportsPreview() const;
 
@@ -66,6 +80,7 @@ public:
     Q_INVOKABLE QVariantList findMatches(const QString &text, bool caseSensitive) const;
     Q_INVOKABLE QVariantList computeBlockRanges() const;
     Q_INVOKABLE QString prettifyJson() const;
+    Q_INVOKABLE QString prettifyYaml() const;
     void setBlockStore(BlockStore *store);
 
     void setAutoSave(bool enabled, int intervalSecs);

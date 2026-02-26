@@ -4,7 +4,6 @@ A Qt6/QML desktop application for managing reusable content blocks across CLAUDE
 
 <!-- block: Guidelines Standard [id:1d67c7] -->
 ## Guidelines
-
 - Keep MD files up to date after significant changes
 - Update dates in docs when modifying them
 - Commit changes to git with sensible messages
@@ -15,13 +14,13 @@ A Qt6/QML desktop application for managing reusable content blocks across CLAUDE
 - Do not write bloated code
 - Do not overpollute CLAUDE.md - this should just focus on orientation and guidelines
 - **After context compaction:** Do not act on assumptions from the summary. Read the summary to understand context, then ask the user what they want to do next. Present what you learned and ask for direction.
-- **Do NOT auto-build** — only build when explicitly asked or after asking permission. Do not waste tokens on speculative builds.
-- Think twice before making changes. Do not flail — understand the problem first, then make one precise fix.
+- Every design decision must be implemented in md files. After a decision is locked in - update the relevant md documenation files!
+- **Docs state facts, not history.** Don't write "Decision:", "decided on (date)", "was X, now Y", "changed from", "replaced by", or "for now" in docs. State what *is*. Git tracks what *was*.
 <!-- /block:1d67c7 -->
 
 ## Build Environment
 
-- Qt 6.10.1 with MSVC 2022 on Windows (+ WebEngine, WebChannel, Positioning)
+- Qt 6.10.1 with MSVC 2022 on Windows (+ WebEngine, WebChannel, Concurrent)
 - CMake + Ninja build system
 - Requires: Visual Studio Build Tools 2022 ("Desktop development with C++")
 - Build via `build_msvc.bat` or Developer Command Prompt:
@@ -72,3 +71,5 @@ resources/              App icon and Windows .rc file
 
 - See [docs/architecture.md](docs/architecture.md) for full architecture, project structure, features
 - See [docs/user-manual.md](docs/user-manual.md) for shortcuts, data storage, workflows
+- See [docs/ROADMAP.md](docs/ROADMAP.md) for planned phases and future features
+- See [docs/code-audit.md](docs/code-audit.md) for remaining technical debt

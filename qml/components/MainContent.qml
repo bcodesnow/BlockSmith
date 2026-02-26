@@ -10,6 +10,10 @@ Rectangle {
     enum ViewMode { Edit, Preview, Split }
     property int viewMode: MainContent.ViewMode.Edit
     property int editorCursorPosition: editor.cursorPosition
+    readonly property bool hasPreviewPane: !isJsonlActive
+        && AppController.currentDocument.previewKind !== Document.PreviewNone
+    readonly property bool hasEditorToolbar:
+        AppController.currentDocument.toolbarKind !== Document.ToolbarNone
 
     // Is a JSONL file currently loaded?
     readonly property bool isJsonlActive: AppController.jsonlStore.filePath !== ""
@@ -21,12 +25,17 @@ Rectangle {
     readonly property int currentLine: {
         if (viewMode === MainContent.ViewMode.Preview) return 0
         let pos = editor.cursorPosition
-        let content = AppController.currentDocument.rawContent
+        let content = editor.textArea.text
         if (!content || content.length === 0) return 0
         return content.substring(0, pos).split("\n").length
     }
 
     signal createPromptRequested(string content)
+
+    onHasPreviewPaneChanged: {
+        if (!hasPreviewPane && viewMode !== MainContent.ViewMode.Edit)
+            viewMode = MainContent.ViewMode.Edit
+    }
 
     function scrollToLine(lineNum) {
         if (viewMode === MainContent.ViewMode.Preview)
@@ -48,105 +57,10 @@ Rectangle {
         findReplaceBar.openReplace()
     }
 
-    // Find/replace logic
-    property var findMatches: []
-    property int findMatchIndex: -1
-
-    function performFind(text, caseSensitive, direction) {
-        if (text.length === 0) {
-            findMatches = []
-            findMatchIndex = -1
-            findReplaceBar.matchCount = 0
-            findReplaceBar.currentMatch = 0
-            return
-        }
-
-        let matches = AppController.currentDocument.findMatches(text, caseSensitive)
-        findMatches = matches
-        findReplaceBar.matchCount = matches.length
-
-        if (matches.length === 0) {
-            findMatchIndex = -1
-            findReplaceBar.currentMatch = 0
-            return
-        }
-
-        // Find the match closest to current cursor
-        let cursorPos = editor.textArea.cursorPosition
-        let bestIdx = 0
-
-        if (direction === "next") {
-            for (let i = 0; i < matches.length; i++) {
-                if (matches[i].start >= cursorPos) {
-                    bestIdx = i
-                    break
-                }
-                if (i === matches.length - 1) bestIdx = 0 // wrap
-            }
-        } else {
-            bestIdx = matches.length - 1
-            for (let i = matches.length - 1; i >= 0; i--) {
-                if (matches[i].start < cursorPos - 1) {
-                    bestIdx = i
-                    break
-                }
-                if (i === 0) bestIdx = matches.length - 1 // wrap
-            }
-        }
-
-        findMatchIndex = bestIdx
-        findReplaceBar.currentMatch = bestIdx + 1
-        selectMatch(bestIdx)
-    }
-
-    function selectMatch(idx) {
-        if (idx < 0 || idx >= findMatches.length) return
-        let match = findMatches[idx]
-        editor.textArea.select(match.start, match.end)
-        // Scroll to match
-        let rect = editor.textArea.positionToRectangle(match.start)
-        editor.ensureVisible(rect.y)
-    }
-
-    function findNext(text, caseSensitive) {
-        if (findMatches.length > 0 && findMatchIndex >= 0) {
-            findMatchIndex = (findMatchIndex + 1) % findMatches.length
-            findReplaceBar.currentMatch = findMatchIndex + 1
-            selectMatch(findMatchIndex)
-        } else {
-            performFind(text, caseSensitive, "next")
-        }
-    }
-
-    function findPrev(text, caseSensitive) {
-        if (findMatches.length > 0 && findMatchIndex >= 0) {
-            findMatchIndex = (findMatchIndex - 1 + findMatches.length) % findMatches.length
-            findReplaceBar.currentMatch = findMatchIndex + 1
-            selectMatch(findMatchIndex)
-        } else {
-            performFind(text, caseSensitive, "prev")
-        }
-    }
-
-    function replaceOne(findText, replaceText, caseSensitive) {
-        if (findMatchIndex < 0 || findMatchIndex >= findMatches.length) return
-        let match = findMatches[findMatchIndex]
-        editor.textArea.remove(match.start, match.end)
-        editor.textArea.insert(match.start, replaceText)
-        // Re-search
-        performFind(findText, caseSensitive, "next")
-    }
-
-    function replaceAll(findText, replaceText, caseSensitive) {
-        if (findText.length === 0) return
-        if (findMatches.length === 0) return
-        // Replace in reverse order to preserve positions
-        for (let i = findMatches.length - 1; i >= 0; i--) {
-            let match = findMatches[i]
-            editor.textArea.remove(match.start, match.end)
-            editor.textArea.insert(match.start, replaceText)
-        }
-        performFind(findText, caseSensitive, "next")
+    FindReplaceController {
+        id: findCtrl
+        editor: editor
+        bar: findReplaceBar
     }
 
     // Ctrl+MouseWheel zoom (on root so it doesn't interfere with ScrollView)
@@ -171,124 +85,15 @@ Rectangle {
         anchors.fill: parent
         spacing: 0
 
-        // Toolbar
-        Rectangle {
+        EditorHeader {
             Layout.fillWidth: true
             Layout.preferredHeight: Theme.headerHeight
-            color: Theme.bgHeader
-
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: 10
-                anchors.rightMargin: 10
-                spacing: 4
-
-                // File path
-                Label {
-                    text: {
-                        if (mainContent.isJsonlActive)
-                            return AppController.jsonlStore.filePath
-                        return AppController.currentDocument.filePath
-                               ? AppController.currentDocument.filePath
-                               : "No file open"
-                    }
-                    font.pixelSize: Theme.fontSizeM
-                    color: Theme.textSecondary
-                    elide: Text.ElideMiddle
-                    Layout.fillWidth: true
-                }
-
-                // Modified indicator
-                Label {
-                    visible: AppController.currentDocument.modified && !mainContent.isJsonlActive
-                    text: "\u25CF"
-                    font.pixelSize: Theme.fontSizeS
-                    color: Theme.accentGold
-                    ToolTip.text: "Unsaved changes"
-                    ToolTip.visible: modifiedMa.containsMouse
-                    MouseArea {
-                        id: modifiedMa
-                        anchors.fill: parent
-                        hoverEnabled: true
-                    }
-                }
-
-                // Edit / Split / Preview toggle (hidden for JSONL and non-previewable files)
-                Rectangle {
-                    visible: !mainContent.isJsonlActive && AppController.currentDocument.supportsPreview
-                    Layout.preferredWidth: modeRow.implicitWidth + 4
-                    Layout.preferredHeight: 24
-                    color: Theme.bgPanel
-                    radius: Theme.radius
-
-                    RowLayout {
-                        id: modeRow
-                        anchors.fill: parent
-                        spacing: 0
-
-                        component ModeBtn: Button {
-                            required property int mode
-                            flat: true
-                            font.pixelSize: Theme.fontSizeXS
-                            Layout.preferredHeight: 24
-                            palette.buttonText: mainContent.viewMode === mode ? Theme.textWhite : Theme.textSecondary
-                            background: Rectangle {
-                                color: mainContent.viewMode === mode ? Theme.bgActive : "transparent"
-                                radius: Theme.radius
-                            }
-                            onClicked: mainContent.viewMode = mode
-                        }
-
-                        ModeBtn { text: "Edit"; mode: MainContent.ViewMode.Edit }
-                        ModeBtn { text: "Split"; mode: MainContent.ViewMode.Split }
-                        ModeBtn { text: "Preview"; mode: MainContent.ViewMode.Preview }
-                    }
-                }
-
-                // Toolbar toggle
-                Rectangle {
-                    width: 26; height: 24; radius: Theme.radius
-                    color: toolbarToggleMa.containsMouse ? Theme.bgButtonHov : "transparent"
-                    visible: mainContent.editorVisible
-                    ToolTip.text: AppController.configManager.editorToolbarVisible ? "Hide toolbar" : "Show toolbar"
-                    ToolTip.visible: toolbarToggleMa.containsMouse
-                    ToolTip.delay: 400
-
-                    Label {
-                        anchors.centerIn: parent
-                        text: "\u2261"
-                        font.pixelSize: 16
-                        color: AppController.configManager.editorToolbarVisible ? Theme.textPrimary : Theme.textMuted
-                    }
-                    MouseArea {
-                        id: toolbarToggleMa
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            AppController.configManager.editorToolbarVisible = !AppController.configManager.editorToolbarVisible
-                        }
-                    }
-                }
-
-                // Save button
-                Button {
-                    visible: !mainContent.isJsonlActive
-                    text: "Save"
-                    flat: true
-                    font.pixelSize: Theme.fontSizeXS
-                    enabled: AppController.currentDocument.modified
-                    Layout.preferredHeight: 24
-                    palette.buttonText: enabled ? Theme.textPrimary : Theme.textMuted
-                    background: Rectangle {
-                        color: parent.hovered && parent.enabled ? Theme.bgButtonHov : Theme.bgButton
-                        radius: Theme.radius
-                        border.color: Theme.borderHover
-                        border.width: 1
-                    }
-                    onClicked: AppController.currentDocument.save()
-                }
-            }
+            viewMode: mainContent.viewMode
+            editorVisible: mainContent.editorVisible
+            hasPreviewPane: mainContent.hasPreviewPane
+            isJsonlActive: mainContent.isJsonlActive
+            editorTextArea: editor.textArea
+            onViewModeChanged: function(mode) { mainContent.viewMode = mode }
         }
 
         // Separator
@@ -305,112 +110,30 @@ Rectangle {
             Layout.preferredHeight: visible ? implicitHeight : 0
 
             onFindRequested: function(text, caseSensitive) {
-                mainContent.performFind(text, caseSensitive, "next")
+                findCtrl.performFind(text, caseSensitive, "next")
             }
             onFindNext: function(text, caseSensitive) {
-                mainContent.findNext(text, caseSensitive)
+                findCtrl.findNext(text, caseSensitive)
             }
             onFindPrev: function(text, caseSensitive) {
-                mainContent.findPrev(text, caseSensitive)
+                findCtrl.findPrev(text, caseSensitive)
             }
             onReplaceOne: function(findText, replaceText, caseSensitive) {
-                mainContent.replaceOne(findText, replaceText, caseSensitive)
+                findCtrl.replaceOne(findText, replaceText, caseSensitive)
             }
             onReplaceAll: function(findText, replaceText, caseSensitive) {
-                mainContent.replaceAll(findText, replaceText, caseSensitive)
+                findCtrl.replaceAll(findText, replaceText, caseSensitive)
             }
-            onClosed: {
-                mainContent.findMatches = []
-                mainContent.findMatchIndex = -1
-            }
+            onClosed: findCtrl.clear()
         }
 
-        // File changed externally banner
-        Rectangle {
+        FileChangedBanner {
             id: fileChangedBanner
             Layout.fillWidth: true
             Layout.preferredHeight: visible ? 32 : 0
-            visible: false
-            color: "#3d3520"
-            property bool isDeleted: false
-
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: 10
-                anchors.rightMargin: 10
-                spacing: 8
-
-                Label {
-                    text: fileChangedBanner.isDeleted
-                          ? "File was deleted from disk."
-                          : "File changed on disk."
-                    font.pixelSize: Theme.fontSizeS
-                    color: Theme.accentGold
-                    Layout.fillWidth: true
-                }
-
-                Button {
-                    text: fileChangedBanner.isDeleted ? "Close" : "Reload"
-                    flat: true
-                    font.pixelSize: Theme.fontSizeXS
-                    Layout.preferredHeight: 22
-                    palette.buttonText: Theme.textPrimary
-                    background: Rectangle {
-                        color: parent.hovered ? Theme.bgButtonHov : Theme.bgButton
-                        radius: Theme.radius
-                        border.color: Theme.borderHover
-                        border.width: 1
-                    }
-                    onClicked: {
-                        if (fileChangedBanner.isDeleted)
-                            AppController.currentDocument.clear()
-                        else
-                            AppController.currentDocument.reload()
-                        fileChangedBanner.visible = false
-                    }
-                }
-
-                Button {
-                    visible: !fileChangedBanner.isDeleted
-                    text: "Ignore"
-                    flat: true
-                    font.pixelSize: Theme.fontSizeXS
-                    Layout.preferredHeight: 22
-                    palette.buttonText: Theme.textSecondary
-                    background: Rectangle {
-                        color: parent.hovered ? Theme.bgButtonHov : "transparent"
-                        radius: Theme.radius
-                    }
-                    onClicked: fileChangedBanner.visible = false
-                }
-            }
-        }
-
-        Connections {
-            target: AppController.currentDocument
-            function onFileChangedExternally() {
-                fileChangedBanner.isDeleted = false
-                fileChangedBanner.visible = true
-            }
-            function onFileDeletedExternally() {
-                fileChangedBanner.isDeleted = true
-                fileChangedBanner.visible = true
-            }
-            function onFilePathChanged() {
-                console.log("[QML] onFilePathChanged, path:", AppController.currentDocument.filePath,
-                            "splitView.visible:", editorSplitView.visible,
-                            "editor.text.length:", editor.textArea.text.length)
-                fileChangedBanner.visible = false
-                // Non-previewable files (JSON, plain text): force Edit-only view
-                if (!AppController.currentDocument.supportsPreview)
+            onFilePathChanged: {
+                if (!mainContent.hasPreviewPane)
                     mainContent.viewMode = MainContent.ViewMode.Edit
-            }
-            function onRawContentChanged() {
-                console.log("[QML] onRawContentChanged, rawContent.length:",
-                            AppController.currentDocument.rawContent.length,
-                            "editor.text.length:", editor.textArea.text.length,
-                            "editor.visible:", editor.visible,
-                            "splitView.visible:", editorSplitView.visible)
             }
         }
 
@@ -464,15 +187,10 @@ Rectangle {
                     SplitView.minimumWidth: 200
                     text: AppController.currentDocument.rawContent
                     readOnly: false
-                    toolbarVisible: mainContent.editorVisible && AppController.configManager.editorToolbarVisible
+                    toolbarVisible: mainContent.editorVisible && mainContent.hasEditorToolbar
+                                    && AppController.configManager.editorToolbarVisible
 
                     textArea.onTextChanged: {
-                        console.log("[QML] onTextChanged, textArea.text.length:", textArea.text.length,
-                                    "rawContent.length:", AppController.currentDocument.rawContent.length)
-                        // Guard: don't let an empty TextArea (initializing during layout)
-                        // clobber model content that was just loaded
-                        if (textArea.text.length === 0 && AppController.currentDocument.rawContent.length > 0)
-                            return
                         if (textArea.text !== AppController.currentDocument.rawContent)
                             AppController.currentDocument.rawContent = textArea.text
                     }
@@ -490,37 +208,33 @@ Rectangle {
                 MdPreviewWeb {
                     id: mdPreview
                     visible: mainContent.viewMode !== MainContent.ViewMode.Edit
+                             && mainContent.hasPreviewPane
                     SplitView.fillWidth: true
                     SplitView.minimumWidth: 200
-                    markdown: AppController.currentDocument.rawContent
+                    markdown: editor.textArea.text
                 }
             }
 
             // --- Scroll sync infrastructure ---
 
-            // Anti-feedback-loop guard: prevents infinite scroll loops
-            // between editor and preview in bidirectional sync
             QtObject {
                 id: scrollSyncGuard
                 property bool syncing: false
             }
 
-            // Releases the sync guard after scroll animation settles
             Timer {
                 id: scrollSyncTimer
                 interval: 120
                 onTriggered: scrollSyncGuard.syncing = false
             }
 
-            // Debounced editor-to-preview scroll sync (line-based)
             Timer {
                 id: editorScrollSyncTimer
                 interval: 150
                 onTriggered: {
-                    if (scrollSyncGuard.syncing) return
+                    if (scrollSyncGuard.syncing || !mainContent.hasPreviewPane) return
                     scrollSyncGuard.syncing = true
 
-                    // Calculate which source line is at the top of the visible area
                     let pos = editor.textArea.positionAt(0, editor.scrollFlickable.contentY)
                     let content = editor.textArea.text
                     let lineNum = content.substring(0, pos).split("\n").length
@@ -530,19 +244,19 @@ Rectangle {
                 }
             }
 
-            // Editor scroll -> preview (debounced)
             Connections {
                 target: editor.scrollFlickable
                 enabled: mainContent.viewMode === MainContent.ViewMode.Split
+                         && mainContent.hasPreviewPane
                 function onContentYChanged() {
                     editorScrollSyncTimer.restart()
                 }
             }
 
-            // Preview scroll -> editor (via WebChannel bridge)
             Connections {
                 target: mdPreview.scrollBridge
                 enabled: mainContent.viewMode === MainContent.ViewMode.Split
+                         && mainContent.hasPreviewPane
                 function onPreviewScrolled(percent) {
                     if (scrollSyncGuard.syncing) return
                     scrollSyncGuard.syncing = true
@@ -554,21 +268,18 @@ Rectangle {
                 }
             }
 
-            // Heading click in preview -> scroll editor to heading
             Connections {
                 target: mdPreview.scrollBridge
+                enabled: mainContent.hasPreviewPane
                 function onHeadingClicked(sourceLine, text) {
-                    // If we have data-source-line, use it directly
                     if (sourceLine > 0) {
                         scrollEditorToLine(sourceLine)
                         return
                     }
 
-                    // Fallback: text-search for the heading in the editor
                     let content = editor.textArea.text
                     let lines = content.split("\n")
                     for (let i = 0; i < lines.length; i++) {
-                        // Match markdown heading lines: # text, ## text, etc.
                         let stripped = lines[i].replace(/^#+\s*/, "").trim()
                         if (stripped === text) {
                             scrollEditorToLine(i + 1)
@@ -583,27 +294,20 @@ Rectangle {
                 let lines = content.split("\n")
                 if (lineNum < 1 || lineNum > lines.length) return
 
-                // Calculate character offset of the target line start
                 let offset = 0
                 for (let i = 0; i < lineNum - 1; i++) {
-                    offset += lines[i].length + 1 // +1 for \n
+                    offset += lines[i].length + 1
                 }
 
-                // Temporarily set guard to prevent cursor change from syncing back
                 scrollSyncGuard.syncing = true
-
-                // Move cursor to that line
                 editor.textArea.cursorPosition = offset
-
-                // Scroll the editor to make that line visible
                 let rect = editor.textArea.positionToRectangle(offset)
                 editor.ensureVisible(rect.y)
-
                 scrollSyncTimer.restart()
             }
         }
 
-        // Status bar (markdown files only)
+        // Status bar
         EditorStatusBar {
             visible: AppController.currentDocument.filePath !== "" && !mainContent.isJsonlActive
             viewMode: mainContent.viewMode

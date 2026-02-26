@@ -84,50 +84,9 @@ ApplicationWindow {
         id: quickSwitcher
     }
 
-    // Unsaved changes dialog
-    Dialog {
+    UnsavedChangesDialog {
         id: unsavedDialog
-        parent: Overlay.overlay
-        anchors.centerIn: parent
-        width: 400
-        modal: true
-        title: "Unsaved Changes"
-
-        property string pendingPath: ""
-
-        Label {
-            text: "Current file has unsaved changes.\nSave before switching?"
-            wrapMode: Text.Wrap
-            width: parent.width
-            color: Theme.textPrimary
-        }
-
-        footer: DialogButtonBox {
-            Button { text: "Save"; DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole }
-            Button { text: "Discard"; DialogButtonBox.buttonRole: DialogButtonBox.DestructiveRole }
-            Button { text: "Cancel"; DialogButtonBox.buttonRole: DialogButtonBox.RejectRole }
-        }
-
-        onAccepted: {
-            let target = pendingPath
-            // One-shot: switch file only after save succeeds
-            let cSaved = function() {
-                AppController.currentDocument.saved.disconnect(cSaved)
-                AppController.currentDocument.saveFailed.disconnect(cFailed)
-                AppController.forceOpenFile(target)
-            }
-            let cFailed = function(error) {
-                AppController.currentDocument.saved.disconnect(cSaved)
-                AppController.currentDocument.saveFailed.disconnect(cFailed)
-                toast.show("Save failed — file not switched")
-            }
-            AppController.currentDocument.saved.connect(cSaved)
-            AppController.currentDocument.saveFailed.connect(cFailed)
-            AppController.currentDocument.save()
-        }
-        onDiscarded: {
-            AppController.forceOpenFile(pendingPath)
-        }
+        onSaveFailed: function(message) { toast.show(message) }
     }
 
     Connections {
@@ -310,6 +269,18 @@ ApplicationWindow {
         onActivated: quickSwitcher.openSwitcher()
     }
 
+    // Back/forward navigation
+    Shortcut {
+        sequence: "Alt+Left"
+        enabled: AppController.canGoBack
+        onActivated: AppController.goBack()
+    }
+    Shortcut {
+        sequence: "Alt+Right"
+        enabled: AppController.canGoForward
+        onActivated: AppController.goForward()
+    }
+
     SplitView {
         id: mainLayout
         anchors.fill: parent
@@ -372,6 +343,18 @@ ApplicationWindow {
             onHeadingScrollRequested: function(lineNumber) {
                 mainContentArea.scrollToLine(lineNumber)
             }
+        }
+    }
+
+    // Mouse side buttons (back/forward) — behind splash, accepts only side buttons
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.BackButton | Qt.ForwardButton
+        onClicked: function(mouse) {
+            if (mouse.button === Qt.BackButton)
+                AppController.goBack()
+            else if (mouse.button === Qt.ForwardButton)
+                AppController.goForward()
         }
     }
 

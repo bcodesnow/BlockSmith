@@ -44,6 +44,13 @@ public:
     // Returns true if any file containing this block has diverged content
     Q_INVOKABLE bool isBlockDiverged(const QString &blockId) const;
 
+    // Compute line-level diff between two texts (reusable, pure function)
+    // Returns list of {type: "context"|"added"|"removed", text, lineA, lineB}
+    Q_INVOKABLE QVariantList computeLineDiff(const QString &textA, const QString &textB) const;
+    Q_INVOKABLE void computeLineDiffAsync(const QString &requestId,
+                                          const QString &textA,
+                                          const QString &textB);
+
     // Get all .md file paths from the project tree
     QStringList allMdFiles() const;
 
@@ -54,6 +61,7 @@ signals:
     void blockPushed(const QString &blockId, int fileCount);
     void blockPulled(const QString &blockId, const QString &filePath);
     void indexReady();
+    void lineDiffReady(const QString &requestId, const QVariantList &diff);
 
 private:
     QString extractBlockContent(const QString &fileContent, const QString &blockId) const;
