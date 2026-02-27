@@ -160,6 +160,8 @@ Document::FileType Document::fileType() const
     if (m_filePath.endsWith(QLatin1String(".md"), Qt::CaseInsensitive)
         || m_filePath.endsWith(QLatin1String(".markdown"), Qt::CaseInsensitive))
         return Markdown;
+    if (m_filePath.endsWith(QLatin1String(".txt"), Qt::CaseInsensitive))
+        return PlainText;
     return PlainText;
 }
 

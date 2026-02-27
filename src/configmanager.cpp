@@ -282,6 +282,16 @@ void ConfigManager::setSearchIncludeJsonl(bool enabled)
     }
 }
 
+bool ConfigManager::searchIncludePlaintext() const { return m_searchIncludePlaintext; }
+
+void ConfigManager::setSearchIncludePlaintext(bool enabled)
+{
+    if (m_searchIncludePlaintext != enabled) {
+        m_searchIncludePlaintext = enabled;
+        emit searchIncludePlaintextChanged();
+    }
+}
+
 QString ConfigManager::themeMode() const { return m_themeMode; }
 
 void ConfigManager::setThemeMode(const QString &mode)
@@ -416,6 +426,8 @@ void ConfigManager::load()
         m_searchIncludeYaml = root["searchIncludeYaml"].toBool(true);
     if (root.contains("searchIncludeJsonl"))
         m_searchIncludeJsonl = root["searchIncludeJsonl"].toBool(false);
+    if (root.contains("searchIncludePlaintext"))
+        m_searchIncludePlaintext = root["searchIncludePlaintext"].toBool(true);
 
     if (root.contains("themeMode"))
         m_themeMode = root["themeMode"].toString("dark");
@@ -480,6 +492,7 @@ void ConfigManager::save()
     root["searchIncludeJson"] = m_searchIncludeJson;
     root["searchIncludeYaml"] = m_searchIncludeYaml;
     root["searchIncludeJsonl"] = m_searchIncludeJsonl;
+    root["searchIncludePlaintext"] = m_searchIncludePlaintext;
 
     root["themeMode"] = m_themeMode;
     root["editorFontFamily"] = m_editorFontFamily;

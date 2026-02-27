@@ -154,12 +154,12 @@ Content here...
 - **Name** (`code-style`): human-readable label
 - **ID** (`a3f8b2`): 6-char hex, generated on creation, never changes
 
-## Features (Complete)
+## Capabilities
 
 ### Project Discovery & Navigation
 - Configurable search paths with ignore patterns and scan depth
 - Trigger file detection (CLAUDE.md, AGENTS.md, .git, etc.)
-- Indexes .md, .markdown, .jsonl, .json, .yaml, and .yml files within discovered projects
+- Indexes .md, .markdown, .jsonl, .json, .yaml, .yml, and .txt files within discovered projects
 - Tree view with expand/collapse all, project/directory/file icons
 - Block usage highlighting in tree (files containing blocks are marked)
 - File management context menu: New File, New Folder, Rename, Duplicate, Cut, Paste, Delete
@@ -243,7 +243,7 @@ Content here...
 
 ### Claude Code Integration
 - Optional `~/.claude` folder added to project tree via Settings > Integrations toggle
-- Recursively indexes .md, .markdown, .jsonl, .json, .yaml, and .yml files from the Claude Code folder
+- Recursively indexes .md, .markdown, .jsonl, .json, .yaml, .yml, and .txt files from the Claude Code folder
 - Auto-rescan when integration setting changes
 
 ### Navigation

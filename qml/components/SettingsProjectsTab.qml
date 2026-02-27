@@ -22,6 +22,7 @@ ColumnLayout {
         searchJsonCheck.checked = AppController.configManager.searchIncludeJson
         searchYamlCheck.checked = AppController.configManager.searchIncludeYaml
         searchJsonlCheck.checked = AppController.configManager.searchIncludeJsonl
+        searchTxtCheck.checked = AppController.configManager.searchIncludePlaintext
     }
 
     function saveToConfig() {
@@ -37,6 +38,7 @@ ColumnLayout {
         AppController.configManager.searchIncludeJson = searchJsonCheck.checked
         AppController.configManager.searchIncludeYaml = searchYamlCheck.checked
         AppController.configManager.searchIncludeJsonl = searchJsonlCheck.checked
+        AppController.configManager.searchIncludePlaintext = searchTxtCheck.checked
     }
 
     Label {
@@ -192,6 +194,12 @@ ColumnLayout {
             id: searchJsonlCheck
             text: "JSONL (.jsonl)"
             checked: false
+        }
+
+        CheckBox {
+            id: searchTxtCheck
+            text: "Plain Text (.txt)"
+            checked: true
         }
     }
 

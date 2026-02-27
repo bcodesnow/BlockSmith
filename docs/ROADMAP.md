@@ -1,37 +1,67 @@
 # BlockSmith Roadmap
 
-**Updated:** 2026-02-26
 **Baseline:** Phases 1-12 complete. Fully functional markdown/JSON/YAML/JSONL editor with block sync, prompt library, export, navigation, file management, dark/light themes, font selection, word wrap toggle, and undo/redo toolbar.
 
 ---
 
-## Phase 12 — Code Quality
+## Current Format Support
 
-Address remaining findings from code audit (see [code-audit.md](code-audit.md)).
+| Format | Support | Edit | Preview | Toolbar | Blocks | Sync |
+|--------|---------|------|---------|---------|--------|------|
+| Markdown | Full | Yes | Yes | Yes | Yes | Yes |
+| JSON | Full | Yes | — | Yes | — | — |
+| YAML | Full | Yes | — | Yes | — | — |
+| JSONL | Special | Viewer | — | — | — | — |
+| PlainText (.txt) | Full | Yes | — | — | — | — |
 
-### 12.1 QML Refactoring — Complete
-- Extracted `EditorPopupBase.qml` shared component (BlockEditorPopup + PromptEditorPopup)
-- Split SettingsDialog.qml into SettingsProjectsTab, SettingsEditorTab, SettingsIntegrationsTab
-- Split MainContent.qml — extracted EditorHeader, FileChangedBanner
-- Split Editor.qml — extracted EditorContextMenu, ImageDropZone
-- Split Main.qml — extracted UnsavedChangesDialog
+---
 
-### 12.2 Move Logic to C++ — Complete
-- Fuzzy matching already in C++ (`AppController::fuzzyFilterFiles`) — no work needed
-- Block range parsing already in C++ (`Document::computeBlockRanges`) — no work needed
-- Find/replace properly split: FindReplaceController.qml + Document::findMatches in C++. Replace ops stay in QML to preserve TextArea undo stack.
+## Planned Formats
 
-### 12.3 Architecture — Complete
-- Extracted NavigationManager (browser-style nav history + file opening) from AppController
-- Extracted SearchManager (async file search + fuzzy filtering) from AppController
-- AppController reduced to thin facade with forwarding calls (~260 LOC, down from ~515)
-- `Result<T>` pattern deferred — low priority, current error handling adequate
+### ~~TXT (Text Files)~~ — Implemented
+
+`.txt` files are discovered during project scans, editable in PlainText mode, and included in global search (toggleable in Settings > Projects).
+
+### PDF (Read-Only Viewer) — MEDIUM-HIGH priority, ~2-3h
+
+Display PDFs in preview pane using the existing WebEngine (Chromium has built-in PDF.js viewer — zoom, page nav, search, thumbnail sidebar for free).
+
+**C++ (Document):**
+- Add `FileType::Pdf` enum, `.pdf` extension check
+- Add `PreviewKind::PreviewPdf`
+- Binary file — don't treat as text, don't parse blocks
+
+**QML:**
+- Load PDF as `file://` URL in WebEngineView (reuse MdPreviewWeb pattern)
+- MainContent.qml: +10 LOC preview routing
+
+**Dependencies:** None — WebEngine already bundled
+
+### DOCX (Read-Only) — MEDIUM priority, ~2-3h
+
+Render Word documents as formatted preview via pandoc.
+
+**C++ (Document):**
+- Add `FileType::Docx` enum, `.docx` extension check
+- Add `PreviewKind::PreviewDocx`
+- Use **pandoc** CLI (already optional dependency for export): `pandoc input.docx -t html`
+- Binary file — set `m_rawContent` to placeholder message
+
+**QML:**
+- New `MdPreviewDocx.qml` (~30 LOC) reusing WebEngine preview pattern
+- MainContent.qml: +5 LOC routing
+
+**Dependencies:** pandoc (already optional), QProcess (already used)
+
+**Path to full DOCX editing (future):** Use docx C++ library → parse content.xml + styles.xml → map to markdown → rezip on save. Effort: 2-3 weeks.
 
 ---
 
 ## Phase 13 — Multi-Tab Editor
 
 Open multiple files simultaneously in a tab bar.
+
+**Effort:** 1-2 weeks, ~250 LOC
 
 ### 13.1 Tab Bar
 - TabBar above the editor area with closable tabs
@@ -50,7 +80,25 @@ Open multiple files simultaneously in a tab bar.
 - Quick Switcher (Ctrl+P) switches to existing tab if file is already open
 - Nav tree click switches to existing tab or opens new one
 - Close tab shows Save/Discard/Cancel if dirty
-- Ctrl+W closes current tab (already exists for single file)
+- Ctrl+W closes current tab
+
+### Technical Breakdown
+
+**C++ (Document):**
+- Currently singleton-like via `AppController.currentDocument`
+- Change: support multiple Document instances
+- Add Document factory or pool in AppController
+
+**C++ (AppController/NavigationManager):**
+- Track open tabs: `QMap<QString, Document*> m_openTabs`
+- New `TabManager` class: owns tabs, handles switching, closing, dirty state
+- Emit `currentTabChanged(QString filePath)` signal
+
+**QML:**
+- New `TabBar.qml` (~100 LOC): filename + dirty dot + close button
+- Editor.qml: reparent TextArea to current tab's state, preserve per-tab state
+
+**New files:** `src/tabmanager.h/.cpp` (~150 LOC), `qml/components/TabBar.qml` (~100 LOC)
 
 ---
 
@@ -58,22 +106,29 @@ Open multiple files simultaneously in a tab bar.
 
 Quality-of-life improvements for daily editing.
 
-### 14.1 Markdown Table Editor
+### 14.1 Markdown Table Editor — ~1 week, ~140 LOC
 - Detect cursor inside markdown table
 - Tab to next cell, Shift+Tab to previous
 - Toolbar buttons: add row, add column, delete row, delete column
 - Auto-align pipe characters on edit
 
-### 14.2 Spell Checking
+**C++:** `Document::isInTable(cursorPos)`, `getTableBounds()`, table rebuild methods (+80 LOC)
+**QML:** Editor.qml table key handler + toolbar buttons (+60 LOC)
+
+### 14.2 Spell Checking — ~2 weeks, ~280 LOC
 - Integrate Hunspell or Windows spell check API
 - Red squiggly underlines on misspelled words
 - Right-click suggestions
 - ConfigManager: `spellCheckEnabled`, `spellCheckLanguage`
 
-### 14.3 Minimap
+**New files:** `src/spellchecker.h/.cpp` (~200 LOC), `qml/components/SpellCheckMenu.qml` (~50 LOC), Editor.qml +30 LOC
+
+### 14.3 Minimap — ~3-4 days, ~140 LOC
 - VS Code-style minimap scrollbar (scaled-down document view)
 - Click/drag to navigate
 - Toggle on/off in Settings
+
+**New file:** `qml/components/Minimap.qml` (~120 LOC), Editor.qml +20 LOC
 
 ---
 
@@ -98,7 +153,7 @@ Make blocks more powerful and visible.
 
 ### 15.4 Block Dependency Graph
 - Visualize which files use which blocks
-- Clickable graph (files → blocks relationships)
+- Clickable graph (files to blocks relationships)
 - Could use mermaid rendering (already bundled)
 
 ---
@@ -107,20 +162,27 @@ Make blocks more powerful and visible.
 
 Source control awareness within the app.
 
-### 16.1 Tree Status Indicators
+### 16.1 Tree Status Indicators — ~1 week, ~150 LOC
 - Show git status icons in project tree (modified, untracked, staged)
 - Run `git status --porcelain` on scan and refresh
 - Color-coded: green=added, orange=modified, red=deleted, grey=untracked
 
-### 16.2 Diff View
+**New file:** `src/projecttreegit.h/.cpp` (~100 LOC)
+**Changes:** ProjectTreeModel +30 LOC, NavPanel.qml +20 LOC
+
+### 16.2 Diff View — ~2 weeks, ~320 LOC
 - Side-by-side or inline diff for modified files
 - Gutter diff markers (green/red strips for added/removed lines)
 - Compare with HEAD or staged version
 
-### 16.3 Basic Git Operations
+**New files:** `src/diffengine.h/.cpp` (~120 LOC), `qml/components/DiffView.qml` (~200 LOC)
+
+### 16.3 Basic Git Operations — ~1 week, ~230 LOC
 - Commit from within the app (message input + file selection)
 - Stage/unstage files from context menu
 - Branch display in status bar
+
+**New files:** `src/gitmanager.h/.cpp` (~150 LOC), `qml/components/CommitDialog.qml` (~80 LOC)
 
 ---
 
@@ -185,17 +247,87 @@ Ship it.
 
 ---
 
-## Summary
+## AI Features (Future)
 
-| Phase | Name | Effort | Priority |
-|-------|------|--------|----------|
-| **12** | Code Quality | Medium | High — technical debt |
-| **13** | Multi-Tab Editor | Large | High — major UX upgrade |
-| **14** | Editor Enhancements | Medium | Medium |
-| **15** | Block System Enhancements | Medium | Medium |
-| **16** | Git Integration | Medium-Large | Medium |
-| **17** | Advanced Features | Large | Low-Medium |
-| **18** | Distribution & Platform | Medium | Low (when ready to ship) |
-| **19** | Extensibility | Large | Future |
+### Local LLM Integration — ~2 weeks, ~300 LOC
 
-Phases 12-13 are the natural next steps. The rest can be tackled in any order based on interest.
+**C++ (new LlmManager):**
+- Connect to Ollama (localhost:11434) or llama.cpp local server
+- Methods: `rephrase(text)`, `rewrite(text, style)`, `generateFromComments(code)`
+- Use `QNetworkAccessManager` + JSON for API calls
+
+**QML:**
+- New button group in editor toolbar: Rephrase, Rewrite, Generate
+- Loading spinner during LLM inference, replace selection with result or show diff
+
+**New files:** `src/llmmanager.h/.cpp` (~200 LOC), `qml/components/LlmDialog.qml` (~100 LOC)
+
+**Dependencies:** Ollama or llama.cpp running locally (user must install)
+
+### Semantic Search
+- Search blocks by meaning, not just text
+- Requires embedding model (local or API)
+
+### Code Generation
+- Generate boilerplate from comments
+- Template-aware generation
+
+---
+
+## Wishlist (Unscheduled Ideas)
+
+Items not yet assigned to a phase:
+
+- **Excel/CSV viewer** — table viewer with filtering
+- **Extended thinking display** — collapse/expand Claude thinking blocks
+- **Fuzzy outline** — search headings by name in real-time
+- **Breadcrumb navigation** — show current heading path
+- **Jump to definition** — click block name to open in registry
+- **Persistent search history** — remember past searches
+- **Project favorites** — pin frequently-used projects
+- **Session restore** — remember open files between restarts
+- **Command palette** (Ctrl+Shift+P) — quick actions
+- **Incremental block indexing** — faster scans on large projects
+- **Incremental search** — results appear as-you-type
+- **Memory-mapped files** — handle 100MB+ files efficiently
+
+---
+
+## Adding New Formats
+
+Architecture principles for extending format support:
+
+1. **Extend Document.h enums:** Add to `FileType`, `SyntaxMode` (if editable), `ToolbarKind` (if toolbar needed), `PreviewKind` (if preview needed)
+2. **Extend Document.cpp detection:** Add extension check in `fileType()`, add cases in `syntaxMode()`, `toolbarKind()`, `previewKind()`. Handle non-text formats (PDF, DOCX) — don't parse as text.
+3. **Extend SyntaxHighlighter (if editable):** Add `Mode` enum value, add rules in `highlightBlock()`
+4. **Create QML preview component (if previewable):** Follow existing pattern from `MdPreviewWeb.qml`
+5. **Route in MainContent.qml:** Add case in preview Loader
+
+No format exceeds 1256 LOC (the max file size) because responsibilities are split: format detection (Document), syntax highlighting (SyntaxHighlighter), preview (separate QML), toolbars (separate QML).
+
+---
+
+## Effort Summary
+
+| Feature | Phase | Effort | LOC |
+|---------|-------|--------|-----|
+| ~~TXT Support~~ | — | Done | — |
+| PDF Viewer | — | 2-3h | 80 |
+| DOCX Read-Only | — | 2-3h | 80 |
+| Multi-Tab Editor | 13 | 1-2w | 250 |
+| Table Editor | 14.1 | 1w | 140 |
+| Spell Checking | 14.2 | 2w | 280 |
+| Minimap | 14.3 | 3-4d | 140 |
+| Git Tree Status | 16.1 | 1w | 150 |
+| Diff View | 16.2 | 2w | 320 |
+| Git Ops | 16.3 | 1w | 230 |
+| Local LLM | Future | 2w | 300 |
+
+---
+
+## Recommended Next Steps
+
+1. **Immediate:** Add TXT support (10 min)
+2. **Soon:** PDF viewer (3-4h), start Phase 13
+3. **Medium-term:** DOCX read-only, table editor, spell check
+4. **Long-term:** Git integration, local LLM, block versioning

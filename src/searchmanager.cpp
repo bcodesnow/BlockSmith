@@ -22,7 +22,7 @@ QStringList SearchManager::getAllFiles() const
     QStringList files;
     std::function<void(TreeNode*)> collect = [&](TreeNode *node) {
         if (!node) return;
-        if (node->nodeType() == TreeNode::MdFile) {
+        if (node->nodeType() == TreeNode::FileNode) {
             files.append(node->path());
             return;
         }
@@ -141,6 +141,8 @@ void SearchManager::searchFiles(const QString &query)
         if (path.endsWith(QStringLiteral(".md"), Qt::CaseInsensitive)
             || path.endsWith(QStringLiteral(".markdown"), Qt::CaseInsensitive))
             return m_configManager->searchIncludeMarkdown();
+        if (path.endsWith(QStringLiteral(".txt"), Qt::CaseInsensitive))
+            return m_configManager->searchIncludePlaintext();
         return false;
     };
 
