@@ -34,15 +34,16 @@ Rectangle {
         }
     }
 
-    // Tab list
+    // Tab list — fixed anchors with conditional margins to avoid binding loops
     ListView {
         id: tabListView
         anchors.left: parent.left
-        anchors.right: overflowBtn.left
+        anchors.right: parent.right
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         anchors.leftMargin: scrollLeftBtn.visible ? scrollLeftBtn.width : 0
-        anchors.rightMargin: scrollRightBtn.visible ? scrollRightBtn.width : 0
+        anchors.rightMargin: overflowBtn.width
+            + (scrollRightBtn.visible ? scrollRightBtn.width : 0)
         orientation: ListView.Horizontal
         clip: true
         model: AppController.tabModel
@@ -174,7 +175,8 @@ Rectangle {
     Rectangle {
         id: scrollRightBtn
         width: 20; height: parent.height
-        anchors.right: overflowBtn.left
+        anchors.right: parent.right
+        anchors.rightMargin: overflowBtn.width
         color: scrollRightMa.containsMouse ? Theme.bgButtonHov : "transparent"
         visible: tabListView.contentX < tabListView.contentWidth - tabListView.width - 1
         z: 2

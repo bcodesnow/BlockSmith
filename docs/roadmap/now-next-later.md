@@ -4,21 +4,17 @@ This roadmap is organized into Now, Next, and Later tracks.
 
 ## Now
 
-- Multi-tab behavior hardening
-  - close-flow consistency for dirty tabs
-  - safer app-close behavior for unsaved edits
-  - clearer active-context handling between tabs and JSONL viewer
-- Documentation and information architecture cleanup
 - Ongoing UI polish and reliability fixes
-
-## Next
-
 - Markdown table editing workflow
   - cell navigation
   - row/column operations
   - alignment helpers
+
+## Next
+
 - Spell checking integration
 - Minimap-style document navigation
+- Command palette
 
 ## Later
 

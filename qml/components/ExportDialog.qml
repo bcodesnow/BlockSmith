@@ -268,6 +268,7 @@ Dialog {
 
                     let doc = AppController.currentDocument
                     if (!doc) return
+
                     dialog.exporting = true
                     let md = doc.rawContent
                     let docDir = AppController.imageHandler.getDocumentDir(doc.filePath)
