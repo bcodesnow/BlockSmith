@@ -30,13 +30,13 @@ class Document : public QObject
     Q_PROPERTY(bool supportsPreview READ supportsPreview NOTIFY filePathChanged)
 
 public:
-    enum FileType { Markdown, Json, Yaml, PlainText, Pdf };
+    enum FileType { Markdown, Json, Yaml, PlainText, Pdf, Docx };
     Q_ENUM(FileType)
     enum SyntaxMode { SyntaxPlainText, SyntaxMarkdown, SyntaxJson, SyntaxYaml };
     Q_ENUM(SyntaxMode)
     enum ToolbarKind { ToolbarNone, ToolbarMarkdown, ToolbarJson, ToolbarYaml };
     Q_ENUM(ToolbarKind)
-    enum PreviewKind { PreviewNone, PreviewMarkdown, PreviewPdf };
+    enum PreviewKind { PreviewNone, PreviewMarkdown, PreviewPdf, PreviewDocx };
     Q_ENUM(PreviewKind)
 
     struct BlockSegment {

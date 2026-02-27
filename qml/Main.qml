@@ -14,10 +14,15 @@ ApplicationWindow {
     visible: false
     color: Theme.bg
     title: {
-        let path = AppController.currentDocument.filePath
-        let mod = AppController.currentDocument.modified ? " *" : ""
-        return path ? "BlockSmith — " + path + mod : "BlockSmith"
+        if (mainContentArea.isJsonlActive)
+            return "BlockSmith — " + AppController.jsonlStore.filePath
+        let doc = AppController.currentDocument
+        if (!doc || doc.filePath === "") return "BlockSmith"
+        let mod = doc.modified ? " *" : ""
+        return "BlockSmith — " + doc.filePath + mod
     }
+
+    property bool _quitAfterSave: false
 
     // Deferred startup — C++ handles showing the window (DWM cloaked).
     // Timer lets the first frame render before the blocking scan runs.
@@ -37,13 +42,24 @@ ApplicationWindow {
         }
     }
 
-    onClosing: {
+    onClosing: function(close) {
+        if (AppController.tabModel.hasModifiedTabs && !root._quitAfterSave) {
+            close.accepted = false
+            quitConfirmDialog.dirtyPaths = AppController.tabModel.dirtyTabPaths()
+            quitConfirmDialog.open()
+            return
+        }
+
         AppController.configManager.windowGeometry = {
             "x": root.x, "y": root.y,
             "w": root.width, "h": root.height
         }
         AppController.configManager.splitLeftWidth = navPanel.SplitView.preferredWidth
         AppController.configManager.splitRightWidth = rightPane.SplitView.preferredWidth
+
+        mainContentArea.saveTabState()
+        AppController.saveSession()
+
         AppController.configManager.save()
     }
 
@@ -90,6 +106,18 @@ ApplicationWindow {
         onSaveFailed: function(message) { toast.show(message) }
     }
 
+    QuitConfirmDialog {
+        id: quitConfirmDialog
+        onSaveAllAndQuit: {
+            AppController.tabModel.saveAllDirtyTabs()
+        }
+        onDiscardAllAndQuit: {
+            AppController.tabModel.forceCloseAllDirtyTabs()
+            root._quitAfterSave = true
+            root.close()
+        }
+    }
+
     Connections {
         target: AppController.promptStore
         function onCopied(name) {
@@ -130,10 +158,6 @@ ApplicationWindow {
             splashOverlay.dismiss()
             toast.show("Scan complete — " + count + " project" + (count !== 1 ? "s" : "") + " found")
         }
-        function onUnsavedChangesWarning(pendingPath) {
-            unsavedDialog.pendingPath = pendingPath
-            unsavedDialog.open()
-        }
     }
 
     Connections {
@@ -146,22 +170,55 @@ ApplicationWindow {
         }
     }
 
+    // Document signals — reconnect when active tab changes
+    property var _oldDoc: null
+    property var _connFuncs: []
+    function reconnectDocSignals() {
+        if (_oldDoc) {
+            for (let entry of _connFuncs)
+                _oldDoc[entry.sig].disconnect(entry.fn)
+        }
+        _connFuncs = []
+        let doc = AppController.currentDocument
+        _oldDoc = doc
+        if (!doc) return
+
+        let f1 = function() { toast.show("Saved") }
+        let f2 = function(e) { toast.show(e) }
+        let f3 = function(e) { toast.show(e) }
+        doc.saved.connect(f1)
+        doc.loadFailed.connect(f2)
+        doc.saveFailed.connect(f3)
+        _connFuncs.push({ sig: "saved", fn: f1 })
+        _connFuncs.push({ sig: "loadFailed", fn: f2 })
+        _connFuncs.push({ sig: "saveFailed", fn: f3 })
+    }
+
     Connections {
-        target: AppController.currentDocument
-        function onSaved() {
-            toast.show("Saved")
+        target: AppController
+        function onCurrentDocumentChanged() {
+            root.reconnectDocSignals()
         }
-        function onLoadFailed(error) {
-            toast.show(error)
+    }
+
+    // Tab close blocked (dirty file) — show save dialog
+    Connections {
+        target: AppController.tabModel
+        function onTabCloseBlocked(index) {
+            unsavedDialog.pendingTabIndex = index
+            unsavedDialog.pendingPath = AppController.tabModel.tabFilePath(index)
+            unsavedDialog.open()
         }
-        function onSaveFailed(error) {
-            toast.show(error)
+        function onAllDirtyTabsSaved() {
+            root._quitAfterSave = true
+            root.close()
         }
     }
 
     // Insert block into current file
     function insertBlockIntoFile(blockId) {
-        if (AppController.currentDocument.filePath === "") {
+        let doc = AppController.currentDocument
+        if (!doc || doc.filePath === "") {
             toast.show("Open a file first")
             return
         }
@@ -169,8 +226,8 @@ ApplicationWindow {
         if (!block.id) return
 
         let pos = mainContentArea.editorVisible ? mainContentArea.editorCursorPosition : -1
-        AppController.currentDocument.insertBlock(pos, block.id, block.name, block.content)
-        AppController.currentDocument.save()
+        doc.insertBlock(pos, block.id, block.name, block.content)
+        doc.save()
         mainContentArea.viewMode = MainContent.ViewMode.Edit
         toast.show("Inserted '" + block.name + "'")
     }
@@ -179,8 +236,8 @@ ApplicationWindow {
     Shortcut {
         sequence: "Ctrl+S"
         onActivated: {
-            if (AppController.currentDocument.modified)
-                AppController.currentDocument.save()
+            let doc = AppController.currentDocument
+            if (doc && doc.modified) doc.save()
         }
     }
     Shortcut {
@@ -190,7 +247,8 @@ ApplicationWindow {
     Shortcut {
         sequence: "Ctrl+E"
         onActivated: {
-            if (AppController.currentDocument.filePath !== "")
+            let doc = AppController.currentDocument
+            if (doc && doc.filePath !== "")
                 mainContentArea.cycleViewMode()
         }
     }
@@ -205,8 +263,8 @@ ApplicationWindow {
     Shortcut {
         sequence: "Ctrl+R"
         onActivated: {
-            if (AppController.currentDocument.filePath !== "")
-                AppController.currentDocument.reload()
+            let doc = AppController.currentDocument
+            if (doc && doc.filePath !== "") doc.reload()
         }
     }
     Shortcut {
@@ -232,7 +290,8 @@ ApplicationWindow {
     Shortcut {
         sequence: "Ctrl+Shift+E"
         onActivated: {
-            if (AppController.currentDocument.filePath !== "")
+            let doc = AppController.currentDocument
+            if (doc && doc.filePath !== "")
                 exportDialog.openDialog()
         }
     }
@@ -256,10 +315,38 @@ ApplicationWindow {
         sequence: "Ctrl+0"
         onActivated: AppController.configManager.zoomLevel = 100
     }
+
+    // Tab shortcuts
     Shortcut {
         sequence: "Ctrl+W"
-        onActivated: AppController.currentDocument.clear()
+        onActivated: {
+            if (mainContentArea.isJsonlActive)
+                AppController.jsonlStore.clear()
+            else if (AppController.tabModel.count > 0)
+                AppController.tabModel.closeTab(AppController.tabModel.activeIndex)
+        }
     }
+    Shortcut {
+        sequence: "Ctrl+Tab"
+        onActivated: {
+            let next = AppController.tabModel.activeIndex + 1
+            if (next >= AppController.tabModel.count) next = 0
+            AppController.tabModel.setActiveIndex(next)
+        }
+    }
+    Shortcut {
+        sequence: "Ctrl+Shift+Tab"
+        onActivated: {
+            let prev = AppController.tabModel.activeIndex - 1
+            if (prev < 0) prev = AppController.tabModel.count - 1
+            if (prev >= 0) AppController.tabModel.setActiveIndex(prev)
+        }
+    }
+    Shortcut {
+        sequence: "Ctrl+Shift+T"
+        onActivated: AppController.tabModel.reopenClosedTab()
+    }
+
     Shortcut {
         sequence: "Ctrl+Q"
         onActivated: root.close()
@@ -365,7 +452,11 @@ ApplicationWindow {
     SplashOverlay {
         id: splashOverlay
         anchors.fill: parent
-        onDismissed: mainFadeIn.start()
+        onDismissed: {
+            mainFadeIn.start()
+            // Session restore: reopen tabs from previous session
+            AppController.restoreSession()
+        }
     }
 
     NumberAnimation {

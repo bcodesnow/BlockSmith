@@ -26,12 +26,15 @@ Dialog {
         if (name.length === 0) return
 
         let tags = tagsField.text.split(",").map(s => s.trim()).filter(s => s.length > 0)
-        let sourceFile = AppController.currentDocument.filePath
+        let doc = AppController.currentDocument
+        let sourceFile = doc ? doc.filePath : ""
 
         let blockId = AppController.blockStore.createBlock(name, dialog.selectedText, tags, sourceFile)
-        AppController.currentDocument.wrapSelectionAsBlock(
-            dialog.selectionStart, dialog.selectionEnd, blockId, name)
-        AppController.currentDocument.save()
+        if (doc) {
+            doc.wrapSelectionAsBlock(
+                dialog.selectionStart, dialog.selectionEnd, blockId, name)
+            doc.save()
+        }
 
         blockCreated(blockId)
     }

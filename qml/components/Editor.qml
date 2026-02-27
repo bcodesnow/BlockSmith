@@ -21,7 +21,8 @@ Item {
     // --- Image paste/drop helpers ---
 
     function pasteImage() {
-        let docPath = AppController.currentDocument.filePath
+        let doc = AppController.currentDocument
+        let docPath = doc ? doc.filePath : ""
         if (!docPath) { imageErrorOccurred("Open a file first"); return }
 
         let docDir = AppController.imageHandler.getDocumentDir(docPath)
@@ -41,7 +42,8 @@ Item {
 
     function dropImage(fileUrl) {
         let sourcePath = decodeURIComponent(fileUrl.toString().replace("file:///", ""))
-        let docPath = AppController.currentDocument.filePath
+        let doc = AppController.currentDocument
+        let docPath = doc ? doc.filePath : ""
         if (!docPath) { imageErrorOccurred("Open a file first"); return }
 
         let docDir = AppController.imageHandler.getDocumentDir(docPath)
@@ -180,7 +182,9 @@ Item {
         enabled: AppController.configManager.syntaxHighlightEnabled
         isDarkTheme: AppController.configManager.themeMode === "dark"
         mode: {
-            switch (AppController.currentDocument.syntaxMode) {
+            let doc = AppController.currentDocument
+            if (!doc) return SyntaxHighlighter.PlainText
+            switch (doc.syntaxMode) {
             case Document.SyntaxMarkdown: return SyntaxHighlighter.Markdown
             case Document.SyntaxJson:     return SyntaxHighlighter.Json
             case Document.SyntaxYaml:     return SyntaxHighlighter.Yaml
@@ -243,7 +247,10 @@ Item {
     Timer {
         id: blockRangesTimer
         interval: 100
-        onTriggered: editorRoot.blockRanges = AppController.currentDocument.computeBlockRanges()
+        onTriggered: {
+            let doc = AppController.currentDocument
+            editorRoot.blockRanges = doc ? doc.computeBlockRanges() : []
+        }
     }
 
     onBlockStoreRevisionChanged: blockRangesTimer.restart()
@@ -262,7 +269,9 @@ Item {
         anchors.top: parent.top
         active: editorRoot.toolbarVisible
         sourceComponent: {
-            switch (AppController.currentDocument.toolbarKind) {
+            let doc = AppController.currentDocument
+            if (!doc) return null
+            switch (doc.toolbarKind) {
             case Document.ToolbarMarkdown: return mdToolbarComponent
             case Document.ToolbarJson:     return jsonToolbarComponent
             case Document.ToolbarYaml:     return yamlToolbarComponent
@@ -374,7 +383,8 @@ Item {
             }
 
             Keys.onPressed: function(event) {
-                let isMd = AppController.currentDocument.syntaxMode === Document.SyntaxMarkdown
+                let doc = AppController.currentDocument
+                let isMd = doc && doc.syntaxMode === Document.SyntaxMarkdown
 
                 if (event.key === Qt.Key_V && (event.modifiers & Qt.ControlModifier)) {
                     if (AppController.imageHandler.clipboardHasImage()) {

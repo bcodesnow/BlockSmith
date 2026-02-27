@@ -10,20 +10,28 @@ Rectangle {
     enum ViewMode { Edit, Split, Preview }
     property int viewMode: MainContent.ViewMode.Edit
     property int editorCursorPosition: editor.cursorPosition
-    readonly property bool hasPreviewPane: !isJsonlActive && !isPdfActive
-        && AppController.currentDocument.previewKind === Document.PreviewMarkdown
-    readonly property bool hasEditorToolbar:
-        AppController.currentDocument.toolbarKind !== Document.ToolbarNone
+
+    // Null-safe document access
+    readonly property var currentDoc: AppController.currentDocument
+    readonly property bool hasDoc: currentDoc !== null && currentDoc.filePath !== ""
+
+    readonly property bool hasPreviewPane: hasDoc && !isJsonlActive && !isPdfActive && !isDocxActive
+        && currentDoc.previewKind === Document.PreviewMarkdown
+    readonly property bool hasEditorToolbar: hasDoc
+        && currentDoc.toolbarKind !== Document.ToolbarNone
 
     // Is a JSONL file currently loaded?
     readonly property bool isJsonlActive: AppController.jsonlStore.filePath !== ""
 
     // Is a PDF file currently loaded?
-    readonly property bool isPdfActive: AppController.currentDocument.previewKind === Document.PreviewPdf
+    readonly property bool isPdfActive: hasDoc && currentDoc.previewKind === Document.PreviewPdf
 
-    // Convenience: editor is visible in Edit or Split mode (and not JSONL/PDF)
+    // Is a DOCX file currently loaded?
+    readonly property bool isDocxActive: hasDoc && currentDoc.previewKind === Document.PreviewDocx
+
+    // Convenience: editor is visible in Edit or Split mode (and not JSONL/PDF/DOCX)
     readonly property bool editorVisible: viewMode !== MainContent.ViewMode.Preview
-        && !isJsonlActive && !isPdfActive
+        && !isJsonlActive && !isPdfActive && !isDocxActive
 
     // Current editor line (1-based), used by outline panel
     readonly property int currentLine: {
@@ -42,6 +50,46 @@ Rectangle {
             viewMode = MainContent.ViewMode.Edit
     }
 
+    // --- Tab state save/restore ---
+
+    // Save editor state before tab switch
+    function saveTabState() {
+        AppController.tabModel.saveEditorState(
+            editor.cursorPosition,
+            editor.scrollFlickable ? editor.scrollFlickable.contentY : 0,
+            editor.textArea.selectionStart,
+            editor.textArea.selectionEnd,
+            mainContent.viewMode
+        )
+    }
+
+    // Restore editor state after tab switch
+    function restoreTabState() {
+        let state = AppController.tabModel.editorState()
+        if (!state) return
+        mainContent.viewMode = state.viewMode || 0
+        // Defer cursor/scroll restore to after text binding updates
+        Qt.callLater(function() {
+            if (state.cursorPosition > 0 && state.cursorPosition <= editor.textArea.text.length)
+                editor.textArea.cursorPosition = state.cursorPosition
+            if (state.scrollY > 0 && editor.scrollFlickable)
+                editor.scrollFlickable.contentY = state.scrollY
+        })
+    }
+
+    Connections {
+        target: AppController.tabModel
+        function onAboutToSwitchTab(oldIndex, newIndex) {
+            if (oldIndex >= 0)
+                mainContent.saveTabState()
+        }
+        function onActiveDocumentChanged() {
+            Qt.callLater(function() {
+                mainContent.restoreTabState()
+            })
+        }
+    }
+
     function scrollToLine(lineNum) {
         if (viewMode === MainContent.ViewMode.Preview)
             viewMode = MainContent.ViewMode.Edit
@@ -49,14 +97,14 @@ Rectangle {
     }
 
     function openFind() {
-        if (AppController.currentDocument.filePath === "") return
+        if (!hasDoc) return
         if (viewMode === MainContent.ViewMode.Preview)
             viewMode = MainContent.ViewMode.Edit
         findReplaceBar.openFind()
     }
 
     function openReplace() {
-        if (AppController.currentDocument.filePath === "") return
+        if (!hasDoc) return
         if (viewMode === MainContent.ViewMode.Preview)
             viewMode = MainContent.ViewMode.Edit
         findReplaceBar.openReplace()
@@ -102,6 +150,15 @@ Rectangle {
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
+
+        // Tab bar
+        TabBar {
+            id: editorTabBar
+            Layout.fillWidth: true
+            onTabCloseRequested: function(index) {
+                AppController.tabModel.closeTab(index)
+            }
+        }
 
         EditorHeader {
             Layout.fillWidth: true
@@ -164,7 +221,7 @@ Rectangle {
             // Empty state
             Label {
                 anchors.centerIn: parent
-                visible: AppController.currentDocument.filePath === "" && !mainContent.isJsonlActive
+                visible: !mainContent.hasDoc && !mainContent.isJsonlActive
                 text: "Select a file from the project tree"
                 font.pixelSize: 14
                 color: Theme.textMuted
@@ -182,12 +239,19 @@ Rectangle {
                 visible: mainContent.isPdfActive
             }
 
+            // DOCX viewer (replaces editor when .docx is open)
+            DocxViewer {
+                anchors.fill: parent
+                visible: mainContent.isDocxActive
+            }
+
             SplitView {
                 id: editorSplitView
                 anchors.fill: parent
                 orientation: Qt.Horizontal
-                visible: AppController.currentDocument.filePath !== ""
+                visible: mainContent.hasDoc
                     && !mainContent.isJsonlActive && !mainContent.isPdfActive
+                    && !mainContent.isDocxActive
 
                 handle: Rectangle {
                     implicitWidth: 6
@@ -210,14 +274,15 @@ Rectangle {
                     SplitView.fillWidth: mainContent.viewMode === MainContent.ViewMode.Edit
                     SplitView.preferredWidth: editorSplitView.width / 2
                     SplitView.minimumWidth: 200
-                    text: AppController.currentDocument.rawContent
+                    text: mainContent.hasDoc ? mainContent.currentDoc.rawContent : ""
                     readOnly: false
                     toolbarVisible: mainContent.editorVisible && mainContent.hasEditorToolbar
                                     && AppController.configManager.editorToolbarVisible
 
                     textArea.onTextChanged: {
-                        if (textArea.text !== AppController.currentDocument.rawContent)
-                            AppController.currentDocument.rawContent = textArea.text
+                        if (mainContent.hasDoc
+                            && textArea.text !== mainContent.currentDoc.rawContent)
+                            mainContent.currentDoc.rawContent = textArea.text
                     }
                     onAddBlockRequested: function(selectedText, selStart, selEnd) {
                         addBlockDialog.selectedText = selectedText
@@ -348,8 +413,9 @@ Rectangle {
 
         // Status bar
         EditorStatusBar {
-            visible: AppController.currentDocument.filePath !== ""
+            visible: mainContent.hasDoc
                 && !mainContent.isJsonlActive && !mainContent.isPdfActive
+                && !mainContent.isDocxActive
             viewMode: mainContent.viewMode
             editorCursorPosition: editor.cursorPosition
         }

@@ -84,7 +84,10 @@ qt_add_qml_module(BlockSmith
         qml/components/EditorContextMenu.qml
         qml/components/ImageDropZone.qml
         qml/components/UnsavedChangesDialog.qml
+        qml/components/QuitConfirmDialog.qml
         qml/components/PdfViewer.qml
+        qml/components/DocxViewer.qml
+        qml/components/TabBar.qml
     SOURCES
         src/configmanager.h src/configmanager.cpp
         src/md4crenderer.h src/md4crenderer.cpp
@@ -103,6 +106,7 @@ qt_add_qml_module(BlockSmith
         src/scrollbridge.h src/scrollbridge.cpp
         src/navigationmanager.h src/navigationmanager.cpp
         src/searchmanager.h src/searchmanager.cpp
+        src/tabmodel.h src/tabmodel.cpp
         src/utils.h src/utils.cpp
 )
 

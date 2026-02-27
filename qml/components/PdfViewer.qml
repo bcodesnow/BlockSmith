@@ -15,8 +15,8 @@ WebEngineView {
     settings.focusOnNavigationEnabled: false
 
     Connections {
-        target: AppController.currentDocument
-        function onFilePathChanged() {
+        target: AppController
+        function onCurrentDocumentChanged() {
             pdfView.loadPdf()
         }
     }
@@ -24,8 +24,10 @@ WebEngineView {
     Component.onCompleted: loadPdf()
 
     function loadPdf() {
-        let fp = AppController.currentDocument.filePath
-        if (fp && AppController.currentDocument.fileType === Document.Pdf) {
+        let doc = AppController.currentDocument
+        if (!doc) return
+        let fp = doc.filePath
+        if (fp && doc.fileType === Document.Pdf) {
             let fileUrl = "file:///" + fp.replace(/\\/g, "/")
             url = fileUrl
         }

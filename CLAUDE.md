@@ -43,7 +43,7 @@ cmake --build build
 
 - **3-pane SplitView layout**: NavPanel (left), MainContent (center), RightPane (right)
 - **QML module**: `BlockSmith`, loaded via `loadFromModule("BlockSmith", "Main")`
-- **C++ backend**: AppController singleton exposes ConfigManager, ProjectTreeModel, ProjectScanner, Document, BlockStore, PromptStore, SyncEngine, SyntaxHighlighter
+- **C++ backend**: AppController singleton exposes TabModel, ConfigManager, ProjectTreeModel, ProjectScanner, SearchManager, NavigationManager, FileManager, Document, BlockStore, PromptStore, SyncEngine, JsonlStore, ExportManager, SyntaxHighlighter
 - **Config**: `QStandardPaths::AppConfigLocation` (Windows: `AppData/Local/BlockSmith`)
 - **Block format**: `<!-- block: name [id:hexid] -->\ncontent\n<!-- /block:hexid -->`
 
@@ -69,7 +69,8 @@ resources/              App icon and Windows .rc file
 
 ## Docs
 
-- See [docs/architecture.md](docs/architecture.md) for full architecture, project structure, features
-- See [docs/user-manual.md](docs/user-manual.md) for shortcuts, data storage, workflows
-- See [docs/ROADMAP.md](docs/ROADMAP.md) for planned phases and future features
+- See [docs/README.md](docs/README.md) for the documentation index
+- See [docs/architecture/overview.md](docs/architecture/overview.md) for system architecture
+- See [docs/user/quickstart.md](docs/user/quickstart.md) for user-facing workflows
+- See [docs/roadmap/now-next-later.md](docs/roadmap/now-next-later.md) for roadmap priorities
 - See the roadmap and open issues for remaining technical debt

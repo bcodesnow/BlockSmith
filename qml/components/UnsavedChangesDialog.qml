@@ -12,11 +12,12 @@ Dialog {
     title: "Unsaved Changes"
 
     property string pendingPath: ""
+    property int pendingTabIndex: -1
 
     signal saveFailed(string message)
 
     Label {
-        text: "Current file has unsaved changes.\nSave before switching?"
+        text: "Current file has unsaved changes.\nSave before closing?"
         wrapMode: Text.Wrap
         width: parent.width
         color: Theme.textPrimary
@@ -29,22 +30,39 @@ Dialog {
     }
 
     onAccepted: {
-        let target = pendingPath
+        let tabIdx = pendingTabIndex
+        let doc = tabIdx >= 0 ? AppController.tabModel.tabDocument(tabIdx)
+                              : AppController.currentDocument
+        if (!doc) return
+
+        // Save, then force-close the tab
         let cSaved = function() {
-            AppController.currentDocument.saved.disconnect(cSaved)
-            AppController.currentDocument.saveFailed.disconnect(cFailed)
-            AppController.forceOpenFile(target)
+            doc.saved.disconnect(cSaved)
+            doc.saveFailed.disconnect(cFailed)
+            if (tabIdx >= 0)
+                AppController.tabModel.closeTab(tabIdx)
+            else if (pendingPath)
+                AppController.forceOpenFile(pendingPath)
         }
         let cFailed = function(error) {
-            AppController.currentDocument.saved.disconnect(cSaved)
-            AppController.currentDocument.saveFailed.disconnect(cFailed)
-            unsavedDialog.saveFailed("Save failed — file not switched")
+            doc.saved.disconnect(cSaved)
+            doc.saveFailed.disconnect(cFailed)
+            unsavedDialog.saveFailed("Save failed — tab not closed")
         }
-        AppController.currentDocument.saved.connect(cSaved)
-        AppController.currentDocument.saveFailed.connect(cFailed)
-        AppController.currentDocument.save()
+        doc.saved.connect(cSaved)
+        doc.saveFailed.connect(cFailed)
+        doc.save()
     }
     onDiscarded: {
-        AppController.forceOpenFile(pendingPath)
+        let tabIdx = pendingTabIndex
+        if (tabIdx >= 0) {
+            AppController.tabModel.forceCloseTab(tabIdx)
+        } else if (pendingPath) {
+            AppController.forceOpenFile(pendingPath)
+        }
+    }
+    onRejected: {
+        pendingTabIndex = -1
+        pendingPath = ""
     }
 }

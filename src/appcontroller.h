@@ -18,6 +18,7 @@
 #include "exportmanager.h"
 #include "navigationmanager.h"
 #include "searchmanager.h"
+#include "tabmodel.h"
 
 class AppController : public QObject
 {
@@ -29,7 +30,7 @@ class AppController : public QObject
     Q_PROPERTY(Md4cRenderer* md4cRenderer READ md4cRenderer CONSTANT)
     Q_PROPERTY(ProjectTreeModel* projectTreeModel READ projectTreeModel CONSTANT)
     Q_PROPERTY(ProjectScanner* projectScanner READ projectScanner CONSTANT)
-    Q_PROPERTY(Document* currentDocument READ currentDocument CONSTANT)
+    Q_PROPERTY(Document* currentDocument READ currentDocument NOTIFY currentDocumentChanged)
     Q_PROPERTY(BlockStore* blockStore READ blockStore CONSTANT)
     Q_PROPERTY(PromptStore* promptStore READ promptStore CONSTANT)
     Q_PROPERTY(SyncEngine* syncEngine READ syncEngine CONSTANT)
@@ -37,6 +38,7 @@ class AppController : public QObject
     Q_PROPERTY(ImageHandler* imageHandler READ imageHandler CONSTANT)
     Q_PROPERTY(JsonlStore* jsonlStore READ jsonlStore CONSTANT)
     Q_PROPERTY(ExportManager* exportManager READ exportManager CONSTANT)
+    Q_PROPERTY(TabModel* tabModel READ tabModel CONSTANT)
     Q_PROPERTY(QStringList highlightedFiles READ highlightedFiles NOTIFY highlightedFilesChanged)
     Q_PROPERTY(bool canGoBack READ canGoBack NOTIFY navHistoryChanged)
     Q_PROPERTY(bool canGoForward READ canGoForward NOTIFY navHistoryChanged)
@@ -58,6 +60,7 @@ public:
     ImageHandler *imageHandler() const;
     JsonlStore *jsonlStore() const;
     ExportManager *exportManager() const;
+    TabModel *tabModel() const;
     QStringList highlightedFiles() const;
 
     Q_INVOKABLE void searchFiles(const QString &query);
@@ -72,16 +75,20 @@ public:
     Q_INVOKABLE void goForward();
     bool canGoBack() const;
     bool canGoForward() const;
+    Q_INVOKABLE bool fileExists(const QString &path) const;
     Q_INVOKABLE QStringList getAllFiles() const;
     Q_INVOKABLE QVariantList fuzzyFilterFiles(const QString &query) const;
+
+    Q_INVOKABLE void saveSession();
+    Q_INVOKABLE void restoreSession();
 
 signals:
     void scanComplete(int projectCount);
     void highlightedFilesChanged();
-    void unsavedChangesWarning(const QString &pendingPath);
     void searchResultsReady(const QVariantList &results);
     void navHistoryChanged();
     void navigateToLineRequested(int lineNumber);
+    void currentDocumentChanged();
 
 public slots:
     void scan();
@@ -89,11 +96,13 @@ public slots:
     void highlightBlock(const QString &blockId);
 
 private:
+    void connectActiveDocument(Document *doc);
+    void disconnectActiveDocument(Document *doc);
+
     ConfigManager *m_configManager = nullptr;
     Md4cRenderer *m_md4cRenderer = nullptr;
     ProjectTreeModel *m_projectTreeModel = nullptr;
     ProjectScanner *m_projectScanner = nullptr;
-    Document *m_currentDocument = nullptr;
     BlockStore *m_blockStore = nullptr;
     PromptStore *m_promptStore = nullptr;
     SyncEngine *m_syncEngine = nullptr;
@@ -101,9 +110,14 @@ private:
     ImageHandler *m_imageHandler = nullptr;
     JsonlStore *m_jsonlStore = nullptr;
     ExportManager *m_exportManager = nullptr;
+    TabModel *m_tabModel = nullptr;
     NavigationManager *m_navigationManager = nullptr;
     SearchManager *m_searchManager = nullptr;
     QStringList m_highlightedFiles;
     QString m_pendingLinePath;
     int m_pendingLineNumber = -1;
+
+    // Track currently connected document for signal management
+    Document *m_connectedDocument = nullptr;
+    QList<QMetaObject::Connection> m_docConnections;
 };

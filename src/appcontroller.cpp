@@ -1,4 +1,5 @@
 #include "appcontroller.h"
+#include "utils.h"
 
 #include <QFile>
 #include <QTextStream>
@@ -10,26 +11,19 @@
 #include <QGuiApplication>
 #include <QClipboard>
 #include <QProcess>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+
+using Utils::normalizePath;
+using Utils::samePath;
 
 namespace {
 
-Qt::CaseSensitivity pathCaseSensitivity()
+QString sessionFilePath()
 {
-#ifdef Q_OS_WIN
-    return Qt::CaseInsensitive;
-#else
-    return Qt::CaseSensitive;
-#endif
-}
-
-QString normalizePath(const QString &path)
-{
-    return QDir::cleanPath(path).replace(QLatin1Char('\\'), QLatin1Char('/'));
-}
-
-bool samePath(const QString &a, const QString &b)
-{
-    return normalizePath(a).compare(normalizePath(b), pathCaseSensitivity()) == 0;
+    return QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation)
+           + QStringLiteral("/session.json");
 }
 
 } // namespace
@@ -40,20 +34,21 @@ AppController::AppController(QObject *parent)
     , m_md4cRenderer(new Md4cRenderer(this))
     , m_projectTreeModel(new ProjectTreeModel(this))
     , m_projectScanner(new ProjectScanner(m_configManager, m_projectTreeModel, this))
-    , m_currentDocument(new Document(this))
     , m_blockStore(new BlockStore(
         QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + "/blocks.db.json", this))
     , m_promptStore(new PromptStore(
         QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + "/prompts.db.json", this))
     , m_syncEngine(new SyncEngine(m_blockStore, m_projectTreeModel, this))
-    , m_fileManager(new FileManager(m_currentDocument, m_configManager, this))
     , m_imageHandler(new ImageHandler(this))
     , m_jsonlStore(new JsonlStore(this))
     , m_exportManager(new ExportManager(m_md4cRenderer, this))
-    , m_navigationManager(new NavigationManager(m_currentDocument, m_jsonlStore, m_configManager, this))
+    , m_tabModel(new TabModel(m_blockStore, m_configManager, this))
     , m_searchManager(new SearchManager(m_projectTreeModel, m_configManager, this))
 {
-    m_currentDocument->setBlockStore(m_blockStore);
+    m_fileManager = new FileManager(m_configManager, this);
+    m_fileManager->setTabModel(m_tabModel);
+
+    m_navigationManager = new NavigationManager(this);
 
     // Post-scan: rebuild block index
     connect(m_projectScanner, &ProjectScanner::scanComplete,
@@ -61,10 +56,6 @@ AppController::AppController(QObject *parent)
                 m_syncEngine->rebuildIndex();
                 emit scanComplete(count);
             });
-
-    // Rebuild block index after document save
-    connect(m_currentDocument, &Document::saved,
-            m_syncEngine, &SyncEngine::rebuildIndex);
 
     // After file operations: clean up JSONL viewer if file gone, then rescan
     connect(m_fileManager, &FileManager::fileOperationComplete,
@@ -76,58 +67,101 @@ AppController::AppController(QObject *parent)
                 scan();
             });
 
-    // Auto-save: apply initial config and react to changes
-    auto applyAutoSave = [this]() {
-        m_currentDocument->setAutoSave(m_configManager->autoSaveEnabled(),
-                                       m_configManager->autoSaveInterval());
-    };
-    connect(m_configManager, &ConfigManager::autoSaveEnabledChanged, this, applyAutoSave);
-    connect(m_configManager, &ConfigManager::autoSaveIntervalChanged, this, applyAutoSave);
-    applyAutoSave();
-
-    // Save on focus loss if auto-save is enabled
-    connect(qApp, &QGuiApplication::applicationStateChanged,
-            this, [this](Qt::ApplicationState state) {
-                if (state == Qt::ApplicationInactive
-                    && m_configManager->autoSaveEnabled()
-                    && m_currentDocument->modified()) {
-                    m_currentDocument->save();
-                    if (!m_currentDocument->modified())
-                        emit m_currentDocument->autoSaved();
-                }
-            });
-
     // Forward NavigationManager signals
-    connect(m_navigationManager, &NavigationManager::unsavedChangesWarning,
-            this, &AppController::unsavedChangesWarning);
     connect(m_navigationManager, &NavigationManager::navHistoryChanged,
             this, &AppController::navHistoryChanged);
+
+    // Back/forward navigates to the path via openFile
+    connect(m_navigationManager, &NavigationManager::navigateToPath,
+            this, &AppController::openFile);
 
     // Forward SearchManager signals
     connect(m_searchManager, &SearchManager::searchResultsReady,
             this, &AppController::searchResultsReady);
 
-    // Deferred line navigation (e.g. from global search results).
-    connect(m_currentDocument, &Document::filePathChanged, this, [this]() {
-        if (m_pendingLineNumber <= 0 || m_pendingLinePath.isEmpty())
-            return;
+    // When active tab changes, reconnect signals and update dependent managers
+    connect(m_tabModel, &TabModel::activeDocumentChanged, this, [this]() {
+        Document *doc = m_tabModel->activeDocument();
 
-        const QString docPath = m_currentDocument->filePath();
-        if (docPath.isEmpty())
-            return;
-
-        if (samePath(docPath, m_pendingLinePath)) {
-            const int line = m_pendingLineNumber;
-            m_pendingLinePath.clear();
-            m_pendingLineNumber = -1;
-            emit navigateToLineRequested(line);
-            return;
+        // Disconnect old document signals
+        if (m_connectedDocument) {
+            disconnectActiveDocument(m_connectedDocument);
+            m_connectedDocument = nullptr;
         }
 
-        // A different file opened, so this pending jump is stale.
-        m_pendingLinePath.clear();
-        m_pendingLineNumber = -1;
+        // Connect new document signals
+        if (doc)
+            connectActiveDocument(doc);
+
+        m_connectedDocument = doc;
+
+        emit currentDocumentChanged();
     });
+
+    // Auto-save config changes apply to all open tabs
+    auto applyAutoSave = [this]() {
+        bool enabled = m_configManager->autoSaveEnabled();
+        int interval = m_configManager->autoSaveInterval();
+        for (int i = 0; i < m_tabModel->count(); ++i) {
+            Document *doc = m_tabModel->tabDocument(i);
+            if (doc)
+                doc->setAutoSave(enabled, interval);
+        }
+    };
+    connect(m_configManager, &ConfigManager::autoSaveEnabledChanged, this, applyAutoSave);
+    connect(m_configManager, &ConfigManager::autoSaveIntervalChanged, this, applyAutoSave);
+
+    // Save on focus loss if auto-save is enabled
+    connect(qApp, &QGuiApplication::applicationStateChanged,
+            this, [this](Qt::ApplicationState state) {
+                if (state != Qt::ApplicationInactive || !m_configManager->autoSaveEnabled())
+                    return;
+                Document *doc = currentDocument();
+                if (doc && doc->modified()) {
+                    doc->save();
+                    if (!doc->modified())
+                        emit doc->autoSaved();
+                }
+            });
+}
+
+void AppController::connectActiveDocument(Document *doc)
+{
+    // Rebuild block index after document save
+    m_docConnections.append(
+        connect(doc, &Document::saved, m_syncEngine, &SyncEngine::rebuildIndex));
+
+    // Deferred line navigation
+    m_docConnections.append(
+        connect(doc, &Document::filePathChanged, this, [this]() {
+            if (m_pendingLineNumber <= 0 || m_pendingLinePath.isEmpty())
+                return;
+
+            Document *d = currentDocument();
+            if (!d) return;
+            const QString docPath = d->filePath();
+            if (docPath.isEmpty())
+                return;
+
+            if (samePath(docPath, m_pendingLinePath)) {
+                const int line = m_pendingLineNumber;
+                m_pendingLinePath.clear();
+                m_pendingLineNumber = -1;
+                emit navigateToLineRequested(line);
+                return;
+            }
+
+            m_pendingLinePath.clear();
+            m_pendingLineNumber = -1;
+        }));
+}
+
+void AppController::disconnectActiveDocument(Document *doc)
+{
+    Q_UNUSED(doc)
+    for (auto &conn : m_docConnections)
+        disconnect(conn);
+    m_docConnections.clear();
 }
 
 AppController *AppController::create(QQmlEngine *engine, QJSEngine *scriptEngine)
@@ -146,7 +180,12 @@ ConfigManager *AppController::configManager() const { return m_configManager; }
 Md4cRenderer *AppController::md4cRenderer() const { return m_md4cRenderer; }
 ProjectTreeModel *AppController::projectTreeModel() const { return m_projectTreeModel; }
 ProjectScanner *AppController::projectScanner() const { return m_projectScanner; }
-Document *AppController::currentDocument() const { return m_currentDocument; }
+
+Document *AppController::currentDocument() const
+{
+    return m_tabModel->activeDocument();
+}
+
 BlockStore *AppController::blockStore() const { return m_blockStore; }
 PromptStore *AppController::promptStore() const { return m_promptStore; }
 SyncEngine *AppController::syncEngine() const { return m_syncEngine; }
@@ -154,6 +193,7 @@ FileManager *AppController::fileManager() const { return m_fileManager; }
 ImageHandler *AppController::imageHandler() const { return m_imageHandler; }
 JsonlStore *AppController::jsonlStore() const { return m_jsonlStore; }
 ExportManager *AppController::exportManager() const { return m_exportManager; }
+TabModel *AppController::tabModel() const { return m_tabModel; }
 QStringList AppController::highlightedFiles() const { return m_highlightedFiles; }
 
 // --- Block highlighting ---
@@ -177,10 +217,34 @@ void AppController::scan()
     m_projectScanner->scan();
 }
 
-// --- Navigation forwarding ---
+// --- File opening (now via TabModel) ---
 
-void AppController::openFile(const QString &path) { m_navigationManager->openFile(path); }
-void AppController::forceOpenFile(const QString &path) { m_navigationManager->forceOpenFile(path); }
+void AppController::openFile(const QString &path)
+{
+    if (path.isEmpty())
+        return;
+
+    // JSONL files use special viewer — clear tabs' active document display
+    if (path.endsWith(QStringLiteral(".jsonl"), Qt::CaseInsensitive)) {
+        m_jsonlStore->load(path);
+        m_configManager->addRecentFile(path);
+        m_navigationManager->navPushPublic(path);
+        return;
+    }
+
+    // Clear JSONL if switching to a non-JSONL file
+    if (!m_jsonlStore->filePath().isEmpty())
+        m_jsonlStore->clear();
+
+    m_tabModel->openTab(path);
+    m_navigationManager->navPushPublic(path);
+}
+
+void AppController::forceOpenFile(const QString &path)
+{
+    openFile(path);
+}
+
 void AppController::openFileAtLine(const QString &path, int lineNumber)
 {
     if (path.isEmpty())
@@ -191,7 +255,8 @@ void AppController::openFileAtLine(const QString &path, int lineNumber)
         return;
     }
 
-    if (samePath(path, m_currentDocument->filePath())) {
+    Document *doc = currentDocument();
+    if (doc && samePath(path, doc->filePath())) {
         emit navigateToLineRequested(lineNumber);
         return;
     }
@@ -200,6 +265,7 @@ void AppController::openFileAtLine(const QString &path, int lineNumber)
     m_pendingLineNumber = lineNumber;
     openFile(path);
 }
+
 void AppController::goBack() { m_navigationManager->goBack(); }
 void AppController::goForward() { m_navigationManager->goForward(); }
 bool AppController::canGoBack() const { return m_navigationManager->canGoBack(); }
@@ -208,8 +274,51 @@ bool AppController::canGoForward() const { return m_navigationManager->canGoForw
 // --- Search forwarding ---
 
 void AppController::searchFiles(const QString &query) { m_searchManager->searchFiles(query); }
+bool AppController::fileExists(const QString &path) const { return QFileInfo::exists(path); }
 QStringList AppController::getAllFiles() const { return m_searchManager->getAllFiles(); }
 QVariantList AppController::fuzzyFilterFiles(const QString &query) const { return m_searchManager->fuzzyFilterFiles(query); }
+
+// --- Session save/restore ---
+
+void AppController::saveSession()
+{
+    QJsonObject root;
+    root[QStringLiteral("tabs")] = m_tabModel->saveSession();
+    root[QStringLiteral("activeIndex")] = m_tabModel->activeIndex();
+
+    // Also save JSONL path if active
+    if (!m_jsonlStore->filePath().isEmpty())
+        root[QStringLiteral("jsonlPath")] = m_jsonlStore->filePath();
+
+    QDir().mkpath(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation));
+    QFile file(sessionFilePath());
+    if (file.open(QIODevice::WriteOnly)) {
+        file.write(QJsonDocument(root).toJson(QJsonDocument::Compact));
+    }
+}
+
+void AppController::restoreSession()
+{
+    QFile file(sessionFilePath());
+    if (!file.open(QIODevice::ReadOnly))
+        return;
+
+    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+    if (doc.isNull())
+        return;
+
+    QJsonObject root = doc.object();
+    QJsonArray tabs = root[QStringLiteral("tabs")].toArray();
+    int activeIdx = root[QStringLiteral("activeIndex")].toInt(-1);
+
+    if (!tabs.isEmpty())
+        m_tabModel->restoreSession(tabs, activeIdx);
+
+    // Restore JSONL if it was open (overlays tab area when active)
+    QString jsonlPath = root[QStringLiteral("jsonlPath")].toString();
+    if (!jsonlPath.isEmpty() && QFileInfo::exists(jsonlPath))
+        m_jsonlStore->load(jsonlPath);
+}
 
 // --- Utility methods ---
 

@@ -72,7 +72,8 @@ EditorPopupBase {
         AppController.blockStore.updateBlock(blockId, editorText)
         AppController.syncEngine.pushBlock(blockId)
 
-        AppController.currentDocument.reload()
+        let doc = AppController.currentDocument
+        if (doc) doc.reload()
         dialog.close()
     }
 

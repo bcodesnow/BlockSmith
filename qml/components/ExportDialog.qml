@@ -24,7 +24,8 @@ Dialog {
     signal notify(string message)
 
     function openDialog() {
-        if (!AppController.currentDocument.filePath) return
+        let doc = AppController.currentDocument
+        if (!doc || !doc.filePath) return
 
         pandocAvailable = AppController.exportManager.isPandocAvailable()
         selectedFormat = "pdf"
@@ -35,9 +36,11 @@ Dialog {
     }
 
     function updateOutputPath() {
+        let doc = AppController.currentDocument
+        if (!doc) return
         let ext = selectedFormat
         outputField.text = AppController.exportManager.defaultExportPath(
-            AppController.currentDocument.filePath, ext)
+            doc.filePath, ext)
     }
 
     // Connect export signals
@@ -262,11 +265,12 @@ Dialog {
                 enabled: !dialog.exporting && outputField.text.length > 0
                 onClicked: {
                     errorLabel.text = ""
-                    dialog.exporting = true
 
-                    let md = AppController.currentDocument.rawContent
-                    let docDir = AppController.imageHandler.getDocumentDir(
-                        AppController.currentDocument.filePath)
+                    let doc = AppController.currentDocument
+                    if (!doc) return
+                    dialog.exporting = true
+                    let md = doc.rawContent
+                    let docDir = AppController.imageHandler.getDocumentDir(doc.filePath)
                     let out = outputField.text
 
                     let fs = fontSizeCombo.currentText.toLowerCase()
@@ -276,8 +280,7 @@ Dialog {
                     } else if (selectedFormat === "html") {
                         AppController.exportManager.exportHtml(md, out, docDir, lightBgCheck.checked, fs)
                     } else if (selectedFormat === "docx") {
-                        AppController.exportManager.exportDocx(
-                            AppController.currentDocument.filePath, out)
+                        AppController.exportManager.exportDocx(doc.filePath, out)
                     }
                 }
             }

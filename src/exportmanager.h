@@ -28,6 +28,9 @@ public:
                                const QString &fontSize = QStringLiteral("medium"));
     Q_INVOKABLE void exportDocx(const QString &mdFilePath, const QString &outputPath);
 
+    // Convert a .docx file to HTML for read-only viewing
+    Q_INVOKABLE void convertDocxToHtml(const QString &docxPath);
+
     // Check if pandoc is installed
     Q_INVOKABLE bool isPandocAvailable() const;
 
@@ -38,6 +41,8 @@ public:
 signals:
     void exportComplete(const QString &outputPath);
     void exportError(const QString &message);
+    void docxHtmlReady(const QString &html);
+    void docxConvertError(const QString &message);
 
 private:
     QString buildStandaloneHtml(const QString &markdown, const QString &docDir,

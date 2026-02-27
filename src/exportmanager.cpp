@@ -225,6 +225,38 @@ void ExportManager::exportDocx(const QString &mdFilePath, const QString &outputP
                  QStringLiteral("--to=docx")});
 }
 
+void ExportManager::convertDocxToHtml(const QString &docxPath)
+{
+    QString pandoc = findPandoc();
+    if (pandoc.isEmpty()) {
+        emit docxConvertError(QStringLiteral("Pandoc is not installed. "
+                                             "Install from https://pandoc.org/installing.html"));
+        return;
+    }
+
+    auto *proc = new QProcess(this);
+
+    connect(proc, &QProcess::finished, this,
+            [this, proc](int exitCode, QProcess::ExitStatus status) {
+                if (status == QProcess::NormalExit && exitCode == 0) {
+                    QString html = QString::fromUtf8(proc->readAllStandardOutput());
+                    emit docxHtmlReady(html);
+                } else {
+                    QString err = QString::fromUtf8(proc->readAllStandardError()).trimmed();
+                    if (err.isEmpty())
+                        err = QStringLiteral("Pandoc exited with code %1").arg(exitCode);
+                    emit docxConvertError(err);
+                }
+                proc->deleteLater();
+            });
+
+    proc->start(pandoc,
+                {docxPath,
+                 QStringLiteral("--to=html"),
+                 QStringLiteral("--embed-resources"),
+                 QStringLiteral("--standalone")});
+}
+
 bool ExportManager::isPandocAvailable() const
 {
     return !findPandoc().isEmpty();

@@ -77,7 +77,8 @@ WebEngineView {
         let html = AppController.md4cRenderer.renderWithLineMap(markdown)
 
         // Resolve relative image paths to absolute file:// URLs
-        let docPath = AppController.currentDocument.filePath
+        let doc = AppController.currentDocument
+        let docPath = doc ? doc.filePath : ""
         if (docPath) {
             let dir = AppController.imageHandler.getDocumentDir(docPath)
             let fileUrl = "file:///" + dir.replace(/\\/g, "/") + "/"

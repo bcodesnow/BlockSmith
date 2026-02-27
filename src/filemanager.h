@@ -5,6 +5,7 @@
 
 class Document;
 class ConfigManager;
+class TabModel;
 
 class FileManager : public QObject
 {
@@ -13,8 +14,9 @@ class FileManager : public QObject
     QML_UNCREATABLE("Use via AppController.fileManager")
 
 public:
-    explicit FileManager(Document *document, ConfigManager *config,
-                         QObject *parent = nullptr);
+    explicit FileManager(ConfigManager *config, QObject *parent = nullptr);
+
+    void setTabModel(TabModel *model);
 
     Q_INVOKABLE QString createFile(const QString &parentDir, const QString &fileName);
     Q_INVOKABLE QString createFolder(const QString &parentDir, const QString &folderName);
@@ -31,9 +33,9 @@ private:
     bool isSamePath(const QString &a, const QString &b) const;
     bool isPathInside(const QString &path, const QString &directoryPath) const;
     QString remapPathPrefix(const QString &path, const QString &oldPrefix, const QString &newPrefix) const;
-    void repointOpenDocument(const QString &oldPath, const QString &newPath, bool sourceIsDirectory);
-    void clearOpenDocumentForDeletedPath(const QString &deletedPath, bool isDirectory);
+    void repointOpenDocuments(const QString &oldPath, const QString &newPath, bool sourceIsDirectory);
+    void clearOpenDocumentsForDeletedPath(const QString &deletedPath, bool isDirectory);
 
-    Document *m_document = nullptr;
     ConfigManager *m_config = nullptr;
+    TabModel *m_tabModel = nullptr;
 };

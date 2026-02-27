@@ -22,7 +22,8 @@ Rectangle {
     }
 
     function parseHeadings() {
-        let content = AppController.currentDocument.rawContent
+        let doc = AppController.currentDocument
+        let content = doc ? doc.rawContent : ""
         if (!content || content.length === 0) {
             headings = []
             return
@@ -58,11 +59,33 @@ Rectangle {
         onTriggered: outlinePanel.parseHeadings()
     }
 
-    Connections {
-        target: AppController.currentDocument
-        function onRawContentChanged() { parseTimer.restart() }
-        function onFilePathChanged() { outlinePanel.parseHeadings() }
+    // Dynamic document signal connections
+    property var _oldDoc: null
+    property var _connFuncs: []
+    function reconnectDocSignals() {
+        if (_oldDoc) {
+            for (let entry of _connFuncs)
+                _oldDoc[entry.sig].disconnect(entry.fn)
+        }
+        _connFuncs = []
+        let doc = AppController.currentDocument
+        _oldDoc = doc
+        if (!doc) return
+        let f1 = function() { parseTimer.restart() }
+        let f2 = function() { outlinePanel.parseHeadings() }
+        doc.rawContentChanged.connect(f1)
+        doc.filePathChanged.connect(f2)
+        _connFuncs.push({ sig: "rawContentChanged", fn: f1 })
+        _connFuncs.push({ sig: "filePathChanged", fn: f2 })
     }
+    Connections {
+        target: AppController
+        function onCurrentDocumentChanged() {
+            outlinePanel.reconnectDocSignals()
+            outlinePanel.parseHeadings()
+        }
+    }
+    Component.onCompleted: reconnectDocSignals()
 
     ColumnLayout {
         anchors.fill: parent
@@ -156,9 +179,12 @@ Rectangle {
             Label {
                 anchors.centerIn: parent
                 visible: headingList.count === 0
-                text: AppController.currentDocument.filePath === ""
-                      ? "Open a file to see\nits outline."
-                      : "No headings found."
+                text: {
+                    let doc = AppController.currentDocument
+                    return (!doc || doc.filePath === "")
+                          ? "Open a file to see\nits outline."
+                          : "No headings found."
+                }
                 horizontalAlignment: Text.AlignHCenter
                 font.pixelSize: Theme.fontSizeXS
                 color: Theme.textMuted

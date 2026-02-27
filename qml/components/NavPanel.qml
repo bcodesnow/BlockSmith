@@ -109,7 +109,10 @@ Rectangle {
                     height: 24
                     radius: Theme.radius
                     color: exportMa.containsMouse ? Theme.bgButtonHov : "transparent"
-                    visible: AppController.currentDocument.filePath !== ""
+                    visible: {
+                        let doc = AppController.currentDocument
+                        return doc ? doc.filePath !== "" : false
+                    }
                     ToolTip.text: "Export (Ctrl+Shift+E)"
                     ToolTip.visible: exportMa.containsMouse
                     ToolTip.delay: 400

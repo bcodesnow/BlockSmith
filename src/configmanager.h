@@ -32,12 +32,14 @@ class ConfigManager : public QObject
     Q_PROPERTY(bool autoSaveEnabled READ autoSaveEnabled WRITE setAutoSaveEnabled NOTIFY autoSaveEnabledChanged)
     Q_PROPERTY(int autoSaveInterval READ autoSaveInterval WRITE setAutoSaveInterval NOTIFY autoSaveIntervalChanged)
     Q_PROPERTY(QStringList recentFiles READ recentFiles WRITE setRecentFiles NOTIFY recentFilesChanged)
+    Q_PROPERTY(QString lastOpenFile READ lastOpenFile WRITE setLastOpenFile NOTIFY lastOpenFileChanged)
     Q_PROPERTY(bool searchIncludeMarkdown READ searchIncludeMarkdown WRITE setSearchIncludeMarkdown NOTIFY searchIncludeMarkdownChanged)
     Q_PROPERTY(bool searchIncludeJson READ searchIncludeJson WRITE setSearchIncludeJson NOTIFY searchIncludeJsonChanged)
     Q_PROPERTY(bool searchIncludeYaml READ searchIncludeYaml WRITE setSearchIncludeYaml NOTIFY searchIncludeYamlChanged)
     Q_PROPERTY(bool searchIncludeJsonl READ searchIncludeJsonl WRITE setSearchIncludeJsonl NOTIFY searchIncludeJsonlChanged)
     Q_PROPERTY(bool searchIncludePlaintext READ searchIncludePlaintext WRITE setSearchIncludePlaintext NOTIFY searchIncludePlaintextChanged)
     Q_PROPERTY(bool searchIncludePdf READ searchIncludePdf WRITE setSearchIncludePdf NOTIFY searchIncludePdfChanged)
+    Q_PROPERTY(bool searchIncludeDocx READ searchIncludeDocx WRITE setSearchIncludeDocx NOTIFY searchIncludeDocxChanged)
     Q_PROPERTY(QString themeMode READ themeMode WRITE setThemeMode NOTIFY themeModeChanged)
     Q_PROPERTY(QString editorFontFamily READ editorFontFamily WRITE setEditorFontFamily NOTIFY editorFontFamilyChanged)
     Q_PROPERTY(bool wordWrap READ wordWrap WRITE setWordWrap NOTIFY wordWrapChanged)
@@ -105,6 +107,9 @@ public:
     void setRecentFiles(const QStringList &files);
     Q_INVOKABLE void addRecentFile(const QString &filePath);
 
+    QString lastOpenFile() const;
+    void setLastOpenFile(const QString &filePath);
+
     bool searchIncludeMarkdown() const;
     void setSearchIncludeMarkdown(bool enabled);
 
@@ -122,6 +127,9 @@ public:
 
     bool searchIncludePdf() const;
     void setSearchIncludePdf(bool enabled);
+
+    bool searchIncludeDocx() const;
+    void setSearchIncludeDocx(bool enabled);
 
     QString themeMode() const;
     void setThemeMode(const QString &mode);
@@ -157,12 +165,14 @@ signals:
     void autoSaveEnabledChanged();
     void autoSaveIntervalChanged();
     void recentFilesChanged();
+    void lastOpenFileChanged();
     void searchIncludeMarkdownChanged();
     void searchIncludeJsonChanged();
     void searchIncludeYamlChanged();
     void searchIncludeJsonlChanged();
     void searchIncludePlaintextChanged();
     void searchIncludePdfChanged();
+    void searchIncludeDocxChanged();
     void themeModeChanged();
     void editorFontFamilyChanged();
     void wordWrapChanged();
@@ -193,12 +203,14 @@ private:
     bool m_autoSaveEnabled = false;
     int m_autoSaveInterval = 30;
     QStringList m_recentFiles;
+    QString m_lastOpenFile;
     bool m_searchIncludeMarkdown = true;
     bool m_searchIncludeJson = true;
     bool m_searchIncludeYaml = true;
     bool m_searchIncludeJsonl = false;
     bool m_searchIncludePlaintext = true;
     bool m_searchIncludePdf = false;
+    bool m_searchIncludeDocx = false;
     QString m_themeMode = QStringLiteral("dark");
     QString m_editorFontFamily = QStringLiteral("Consolas");
     bool m_wordWrap = true;

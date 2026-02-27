@@ -27,9 +27,11 @@ Rectangle {
                 border.width: 1
             }
             onClicked: {
-                let result = AppController.currentDocument.prettifyYaml()
+                let doc = AppController.currentDocument
+                if (!doc) return
+                let result = doc.prettifyYaml()
                 if (result.length > 0) {
-                    AppController.currentDocument.rawContent = result
+                    doc.rawContent = result
                 } else {
                     root.notify("Invalid YAML — cannot format")
                 }

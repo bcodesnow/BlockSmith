@@ -76,7 +76,7 @@ void collectAllFiles(const QString &dirPath, TreeNode *parentNode,
             delete dirNode;
     }
 
-    const auto files = dir.entryInfoList({"*.md", "*.markdown", "*.jsonl", "*.json", "*.yaml", "*.yml", "*.txt", "*.pdf"},
+    const auto files = dir.entryInfoList({"*.md", "*.markdown", "*.jsonl", "*.json", "*.yaml", "*.yml", "*.txt", "*.pdf", "*.docx"},
                                          QDir::Files, QDir::Name);
     for (const QFileInfo &file : files) {
         if (cancel->load())
@@ -119,7 +119,7 @@ void collectProjectFiles(const QString &dirPath, TreeNode *parentNode,
             delete dirNode;
     }
 
-    const auto files = dir.entryInfoList({"*.md", "*.markdown", "*.jsonl", "*.json", "*.yaml", "*.yml", "*.txt", "*.pdf"},
+    const auto files = dir.entryInfoList({"*.md", "*.markdown", "*.jsonl", "*.json", "*.yaml", "*.yml", "*.txt", "*.pdf", "*.docx"},
                                          QDir::Files, QDir::Name);
     for (const QFileInfo &file : files) {
         if (cancel->load())

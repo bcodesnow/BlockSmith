@@ -26,9 +26,8 @@ Rectangle {
             text: {
                 if (header.isJsonlActive)
                     return AppController.jsonlStore.filePath
-                return AppController.currentDocument.filePath
-                       ? AppController.currentDocument.filePath
-                       : "No file open"
+                let doc = AppController.currentDocument
+                return (doc && doc.filePath) ? doc.filePath : "No file open"
             }
             font.pixelSize: Theme.fontSizeM
             color: Theme.textSecondary
@@ -38,7 +37,11 @@ Rectangle {
 
         // Modified indicator
         Label {
-            visible: AppController.currentDocument.modified && !header.isJsonlActive
+            visible: {
+                if (header.isJsonlActive) return false
+                let doc = AppController.currentDocument
+                return doc ? doc.modified : false
+            }
             text: "\u25CF"
             font.pixelSize: Theme.fontSizeS
             color: Theme.accentGold
@@ -155,7 +158,10 @@ Rectangle {
             text: "Save"
             flat: true
             font.pixelSize: Theme.fontSizeXS
-            enabled: AppController.currentDocument.modified
+            enabled: {
+                let doc = AppController.currentDocument
+                return doc ? doc.modified : false
+            }
             Layout.preferredHeight: 24
             palette.buttonText: enabled ? Theme.textPrimary : Theme.textMuted
             background: Rectangle {
@@ -164,7 +170,10 @@ Rectangle {
                 border.color: Theme.borderHover
                 border.width: 1
             }
-            onClicked: AppController.currentDocument.save()
+            onClicked: {
+                let doc = AppController.currentDocument
+                if (doc) doc.save()
+            }
         }
     }
 }

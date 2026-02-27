@@ -24,7 +24,8 @@ Document::Document(QObject *parent)
 void Document::load(const QString &filePath)
 {
     // Binary files: just track the path, skip text reading
-    if (filePath.endsWith(QLatin1String(".pdf"), Qt::CaseInsensitive)) {
+    if (filePath.endsWith(QLatin1String(".pdf"), Qt::CaseInsensitive)
+        || filePath.endsWith(QLatin1String(".docx"), Qt::CaseInsensitive)) {
         unwatchFile();
         m_filePath = filePath;
         m_rawContent.clear();
@@ -178,6 +179,8 @@ Document::FileType Document::fileType() const
         return PlainText;
     if (m_filePath.endsWith(QLatin1String(".pdf"), Qt::CaseInsensitive))
         return Pdf;
+    if (m_filePath.endsWith(QLatin1String(".docx"), Qt::CaseInsensitive))
+        return Docx;
     return PlainText;
 }
 
@@ -188,6 +191,7 @@ QString Document::formatId() const
     case Json:     return QStringLiteral("json");
     case Yaml:     return QStringLiteral("yaml");
     case Pdf:      return QStringLiteral("pdf");
+    case Docx:     return QStringLiteral("docx");
     default:       return QStringLiteral("plaintext");
     }
 }
@@ -217,6 +221,7 @@ Document::PreviewKind Document::previewKind() const
     switch (fileType()) {
     case Markdown: return PreviewMarkdown;
     case Pdf:      return PreviewPdf;
+    case Docx:     return PreviewDocx;
     default:       return PreviewNone;
     }
 }

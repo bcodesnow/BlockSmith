@@ -9,10 +9,12 @@ Rectangle {
     required property int viewMode
     required property int editorCursorPosition
 
+    readonly property var doc: AppController.currentDocument
+
     Layout.fillWidth: true
     Layout.preferredHeight: 22
     color: Theme.bgFooter
-    visible: AppController.currentDocument.filePath !== ""
+    visible: doc && doc.filePath !== ""
 
     RowLayout {
         anchors.fill: parent
@@ -24,9 +26,9 @@ Rectangle {
         Rectangle {
             id: saveDot
             width: 8; height: 8; radius: 4
-            color: AppController.currentDocument.modified ? Theme.accentGold : Theme.accentGreen
-            opacity: AppController.currentDocument.modified ? 1.0 : 0.6
-            ToolTip.text: AppController.currentDocument.modified ? "Unsaved changes" : "Saved"
+            color: statusBar.doc && statusBar.doc.modified ? Theme.accentGold : Theme.accentGreen
+            opacity: statusBar.doc && statusBar.doc.modified ? 1.0 : 0.6
+            ToolTip.text: statusBar.doc && statusBar.doc.modified ? "Unsaved changes" : "Saved"
             ToolTip.visible: saveDotMa.containsMouse
             ToolTip.delay: 400
             MouseArea {
@@ -41,18 +43,16 @@ Rectangle {
                 PauseAnimation { duration: 800 }
                 NumberAnimation { to: 0.6; duration: 300 }
             }
-            Connections {
-                target: AppController.currentDocument
-                function onSaved() { saveFlash.restart() }
-            }
         }
 
         // Cursor position
         Label {
             text: {
                 if (statusBar.viewMode === MainContent.ViewMode.Preview) return "Preview mode"
+                let doc = statusBar.doc
+                if (!doc) return ""
                 let pos = statusBar.editorCursorPosition
-                let content = AppController.currentDocument.rawContent
+                let content = doc.rawContent
                 let line = content.substring(0, pos).split("\n").length
                 let lastNl = content.lastIndexOf("\n", pos - 1)
                 let col = pos - (lastNl >= 0 ? lastNl : 0)
@@ -80,16 +80,11 @@ Rectangle {
                 PauseAnimation { duration: 1500 }
                 NumberAnimation { to: 0; duration: 500 }
             }
-
-            Connections {
-                target: AppController.currentDocument
-                function onAutoSaved() { autoSaveFlash.restart() }
-            }
         }
 
         // Encoding
         Label {
-            text: AppController.currentDocument.encoding
+            text: statusBar.doc ? statusBar.doc.encoding : ""
             font.pixelSize: Theme.fontSizeS
             color: Theme.textMuted
         }
@@ -117,7 +112,9 @@ Rectangle {
         // Configurable stats
         Label {
             text: {
-                let c = AppController.currentDocument.rawContent
+                let doc = statusBar.doc
+                if (!doc) return ""
+                let c = doc.rawContent
                 if (!c || c.length === 0) return ""
                 let cfg = AppController.configManager
                 let parts = []
@@ -132,4 +129,26 @@ Rectangle {
             color: Theme.textMuted
         }
     }
+
+    // Dynamic document signal connections
+    property var _oldDoc: null
+    property var _connFuncs: []
+    function reconnectDocSignals() {
+        if (_oldDoc) {
+            for (let entry of _connFuncs)
+                _oldDoc[entry.sig].disconnect(entry.fn)
+        }
+        _connFuncs = []
+        let d = statusBar.doc
+        _oldDoc = d
+        if (!d) return
+        let f1 = function() { saveFlash.restart() }
+        let f2 = function() { autoSaveFlash.restart() }
+        d.saved.connect(f1)
+        d.autoSaved.connect(f2)
+        _connFuncs.push({ sig: "saved", fn: f1 })
+        _connFuncs.push({ sig: "autoSaved", fn: f2 })
+    }
+    onDocChanged: reconnectDocSignals()
+    Component.onCompleted: reconnectDocSignals()
 }

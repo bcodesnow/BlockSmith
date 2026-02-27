@@ -242,6 +242,16 @@ void ConfigManager::addRecentFile(const QString &filePath)
     setRecentFiles(files);
 }
 
+QString ConfigManager::lastOpenFile() const { return m_lastOpenFile; }
+
+void ConfigManager::setLastOpenFile(const QString &filePath)
+{
+    if (m_lastOpenFile != filePath) {
+        m_lastOpenFile = filePath;
+        emit lastOpenFileChanged();
+    }
+}
+
 bool ConfigManager::searchIncludeMarkdown() const { return m_searchIncludeMarkdown; }
 
 void ConfigManager::setSearchIncludeMarkdown(bool enabled)
@@ -299,6 +309,16 @@ void ConfigManager::setSearchIncludePdf(bool enabled)
     if (m_searchIncludePdf != enabled) {
         m_searchIncludePdf = enabled;
         emit searchIncludePdfChanged();
+    }
+}
+
+bool ConfigManager::searchIncludeDocx() const { return m_searchIncludeDocx; }
+
+void ConfigManager::setSearchIncludeDocx(bool enabled)
+{
+    if (m_searchIncludeDocx != enabled) {
+        m_searchIncludeDocx = enabled;
+        emit searchIncludeDocxChanged();
     }
 }
 
@@ -428,6 +448,9 @@ void ConfigManager::load()
         m_recentFiles = files;
     }
 
+    if (root.contains("lastOpenFile"))
+        m_lastOpenFile = root["lastOpenFile"].toString();
+
     if (root.contains("searchIncludeMarkdown"))
         m_searchIncludeMarkdown = root["searchIncludeMarkdown"].toBool(true);
     if (root.contains("searchIncludeJson"))
@@ -440,6 +463,8 @@ void ConfigManager::load()
         m_searchIncludePlaintext = root["searchIncludePlaintext"].toBool(true);
     if (root.contains("searchIncludePdf"))
         m_searchIncludePdf = root["searchIncludePdf"].toBool(false);
+    if (root.contains("searchIncludeDocx"))
+        m_searchIncludeDocx = root["searchIncludeDocx"].toBool(false);
 
     if (root.contains("themeMode"))
         m_themeMode = root["themeMode"].toString("dark");
@@ -500,12 +525,15 @@ void ConfigManager::save()
         recentArr.append(f);
     root["recentFiles"] = recentArr;
 
+    root["lastOpenFile"] = m_lastOpenFile;
+
     root["searchIncludeMarkdown"] = m_searchIncludeMarkdown;
     root["searchIncludeJson"] = m_searchIncludeJson;
     root["searchIncludeYaml"] = m_searchIncludeYaml;
     root["searchIncludeJsonl"] = m_searchIncludeJsonl;
     root["searchIncludePlaintext"] = m_searchIncludePlaintext;
     root["searchIncludePdf"] = m_searchIncludePdf;
+    root["searchIncludeDocx"] = m_searchIncludeDocx;
 
     root["themeMode"] = m_themeMode;
     root["editorFontFamily"] = m_editorFontFamily;

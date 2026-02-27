@@ -27,9 +27,11 @@ Rectangle {
                 border.width: 1
             }
             onClicked: {
-                let result = AppController.currentDocument.prettifyJson()
+                let doc = AppController.currentDocument
+                if (!doc) return
+                let result = doc.prettifyJson()
                 if (result.length > 0) {
-                    AppController.currentDocument.rawContent = result
+                    doc.rawContent = result
                 } else {
                     root.notify("Invalid JSON — cannot format")
                 }

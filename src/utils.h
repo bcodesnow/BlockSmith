@@ -14,4 +14,9 @@ QString generateHexId(int bits, const QString &prefix, const std::function<bool(
 // Detect encoding from BOM. Returns Utf8 for files without a BOM.
 QStringConverter::Encoding detectBomEncoding(QFile &file, bool &hasBom);
 
+// Path comparison utilities (case-insensitive on Windows, case-sensitive elsewhere)
+Qt::CaseSensitivity pathCaseSensitivity();
+QString normalizePath(const QString &path);
+bool samePath(const QString &a, const QString &b);
+
 } // namespace Utils

@@ -1,4 +1,5 @@
 #include "utils.h"
+#include <QDir>
 #include <QRandomGenerator>
 
 namespace Utils {
@@ -42,6 +43,25 @@ QStringConverter::Encoding detectBomEncoding(QFile &file, bool &hasBom)
         return QStringConverter::Utf16BE;
     }
     return QStringConverter::Utf8;
+}
+
+Qt::CaseSensitivity pathCaseSensitivity()
+{
+#ifdef Q_OS_WIN
+    return Qt::CaseInsensitive;
+#else
+    return Qt::CaseSensitive;
+#endif
+}
+
+QString normalizePath(const QString &path)
+{
+    return QDir::cleanPath(path).replace(QLatin1Char('\\'), QLatin1Char('/'));
+}
+
+bool samePath(const QString &a, const QString &b)
+{
+    return normalizePath(a).compare(normalizePath(b), pathCaseSensitivity()) == 0;
 }
 
 } // namespace Utils

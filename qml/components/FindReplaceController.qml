@@ -19,7 +19,9 @@ QtObject {
             return
         }
 
-        let found = AppController.currentDocument.findMatches(text, caseSensitive)
+        let doc = AppController.currentDocument
+        if (!doc) return
+        let found = doc.findMatches(text, caseSensitive)
         matches = found
         bar.matchCount = found.length
 

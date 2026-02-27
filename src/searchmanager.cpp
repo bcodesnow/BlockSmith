@@ -145,6 +145,8 @@ void SearchManager::searchFiles(const QString &query)
             return m_configManager->searchIncludePlaintext();
         if (path.endsWith(QStringLiteral(".pdf"), Qt::CaseInsensitive))
             return m_configManager->searchIncludePdf();
+        if (path.endsWith(QStringLiteral(".docx"), Qt::CaseInsensitive))
+            return m_configManager->searchIncludeDocx();
         return false;
     };
 

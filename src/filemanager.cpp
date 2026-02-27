@@ -1,36 +1,26 @@
 #include "filemanager.h"
 #include "document.h"
 #include "configmanager.h"
+#include "tabmodel.h"
+#include "utils.h"
 
 #include <QFile>
 #include <QDir>
 #include <QFileInfo>
 #include <QTextStream>
 
-namespace {
+using Utils::normalizePath;
+using Utils::pathCaseSensitivity;
 
-Qt::CaseSensitivity pathCaseSensitivity()
-{
-#ifdef Q_OS_WIN
-    return Qt::CaseInsensitive;
-#else
-    return Qt::CaseSensitive;
-#endif
-}
-
-QString normalizePath(const QString &path)
-{
-    return QDir::cleanPath(path).replace(QLatin1Char('\\'), QLatin1Char('/'));
-}
-
-} // namespace
-
-FileManager::FileManager(Document *document, ConfigManager *config,
-                         QObject *parent)
+FileManager::FileManager(ConfigManager *config, QObject *parent)
     : QObject(parent)
-    , m_document(document)
     , m_config(config)
 {
+}
+
+void FileManager::setTabModel(TabModel *model)
+{
+    m_tabModel = model;
 }
 
 QString FileManager::createFile(const QString &parentDir, const QString &fileName)
@@ -113,7 +103,7 @@ QString FileManager::renameItem(const QString &oldPath, const QString &newName)
     if (!ok)
         return QStringLiteral("Rename failed");
 
-    repointOpenDocument(oldPath, newPath, fi.isDir());
+    repointOpenDocuments(oldPath, newPath, fi.isDir());
 
     emit fileOperationComplete();
     return {};
@@ -144,7 +134,7 @@ QString FileManager::moveItem(const QString &sourcePath, const QString &destDir)
     if (!ok)
         return QStringLiteral("Move failed");
 
-    repointOpenDocument(sourcePath, newPath, srcInfo.isDir());
+    repointOpenDocuments(sourcePath, newPath, srcInfo.isDir());
 
     emit fileOperationComplete();
     return {};
@@ -170,7 +160,7 @@ QString FileManager::deleteItem(const QString &path)
     if (!ok)
         return QStringLiteral("Delete failed");
 
-    clearOpenDocumentForDeletedPath(path, fi.isDir());
+    clearOpenDocumentsForDeletedPath(path, fi.isDir());
 
     emit fileOperationComplete();
     return {};
@@ -209,7 +199,6 @@ QString FileManager::duplicateFile(const QString &sourcePath)
 
 bool FileManager::isProjectRoot(const QString &path) const
 {
-    // A project root is a directory that directly contains a trigger file
     QFileInfo fi(path);
     if (!fi.isDir())
         return false;
@@ -270,45 +259,60 @@ QString FileManager::remapPathPrefix(const QString &path, const QString &oldPref
     return QDir::toNativeSeparators(normalizedNew + suffix);
 }
 
-void FileManager::repointOpenDocument(const QString &oldPath, const QString &newPath,
-                                      bool sourceIsDirectory)
+void FileManager::repointOpenDocuments(const QString &oldPath, const QString &newPath,
+                                       bool sourceIsDirectory)
 {
-    const QString docPath = m_document->filePath();
-    if (docPath.isEmpty())
+    if (!m_tabModel)
         return;
 
-    QString targetPath;
-    if (sourceIsDirectory) {
-        if (!isPathInside(docPath, oldPath))
-            return;
-        targetPath = remapPathPrefix(docPath, oldPath, newPath);
-    } else {
-        if (!isSamePath(docPath, oldPath))
-            return;
-        targetPath = newPath;
+    for (int i = 0; i < m_tabModel->count(); ++i) {
+        QString tabPath = m_tabModel->tabFilePath(i);
+        if (tabPath.isEmpty())
+            continue;
+
+        QString targetPath;
+        if (sourceIsDirectory) {
+            if (!isPathInside(tabPath, oldPath))
+                continue;
+            targetPath = remapPathPrefix(tabPath, oldPath, newPath);
+        } else {
+            if (!isSamePath(tabPath, oldPath))
+                continue;
+            targetPath = newPath;
+        }
+
+        if (targetPath.isEmpty() || isSamePath(tabPath, targetPath))
+            continue;
+
+        // Repoint this tab's document to the new path
+        Document *doc = m_tabModel->tabDocument(i);
+        if (doc) {
+            if (doc->modified())
+                doc->saveTo(targetPath);
+            else
+                doc->load(targetPath);
+        }
     }
-
-    if (targetPath.isEmpty() || isSamePath(docPath, targetPath))
-        return;
-
-    if (m_document->modified())
-        m_document->saveTo(targetPath);
-    else
-        m_document->load(targetPath);
 }
 
-void FileManager::clearOpenDocumentForDeletedPath(const QString &deletedPath, bool isDirectory)
+void FileManager::clearOpenDocumentsForDeletedPath(const QString &deletedPath, bool isDirectory)
 {
-    const QString docPath = m_document->filePath();
-    if (docPath.isEmpty())
+    if (!m_tabModel)
         return;
 
-    if (isDirectory) {
-        if (isPathInside(docPath, deletedPath))
-            m_document->clear();
-        return;
+    // Close affected tabs in reverse order
+    for (int i = m_tabModel->count() - 1; i >= 0; --i) {
+        QString tabPath = m_tabModel->tabFilePath(i);
+        if (tabPath.isEmpty())
+            continue;
+
+        bool affected = false;
+        if (isDirectory)
+            affected = isPathInside(tabPath, deletedPath);
+        else
+            affected = isSamePath(tabPath, deletedPath);
+
+        if (affected)
+            m_tabModel->forceCloseTab(i);
     }
-
-    if (isSamePath(docPath, deletedPath))
-        m_document->clear();
 }

@@ -37,10 +37,13 @@ Rectangle {
                 border.width: 1
             }
             onClicked: {
-                if (banner.isDeleted)
-                    AppController.currentDocument.clear()
-                else
-                    AppController.currentDocument.reload()
+                let doc = AppController.currentDocument
+                if (doc) {
+                    if (banner.isDeleted)
+                        doc.clear()
+                    else
+                        doc.reload()
+                }
                 banner.visible = false
             }
         }
@@ -62,19 +65,40 @@ Rectangle {
 
     signal filePathChanged()
 
-    Connections {
-        target: AppController.currentDocument
-        function onFileChangedExternally() {
+    // Dynamic document signal connections
+    property var _oldDoc: null
+    property var _connFuncs: []
+    function reconnectDocSignals() {
+        if (_oldDoc) {
+            for (let entry of _connFuncs)
+                _oldDoc[entry.sig].disconnect(entry.fn)
+        }
+        _connFuncs = []
+        let doc = AppController.currentDocument
+        _oldDoc = doc
+        if (!doc) return
+        let f1 = function() {
             banner.isDeleted = false
             banner.visible = true
         }
-        function onFileDeletedExternally() {
+        let f2 = function() {
             banner.isDeleted = true
             banner.visible = true
         }
-        function onFilePathChanged() {
+        let f3 = function() {
             banner.visible = false
             banner.filePathChanged()
         }
+        doc.fileChangedExternally.connect(f1)
+        doc.fileDeletedExternally.connect(f2)
+        doc.filePathChanged.connect(f3)
+        _connFuncs.push({ sig: "fileChangedExternally", fn: f1 })
+        _connFuncs.push({ sig: "fileDeletedExternally", fn: f2 })
+        _connFuncs.push({ sig: "filePathChanged", fn: f3 })
     }
+    Connections {
+        target: AppController
+        function onCurrentDocumentChanged() { banner.reconnectDocSignals() }
+    }
+    Component.onCompleted: reconnectDocSignals()
 }
