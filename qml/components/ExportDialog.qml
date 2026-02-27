@@ -21,6 +21,7 @@ Dialog {
     property bool exporting: false
     property string selectedFormat: "pdf"
     property bool pandocAvailable: false
+    signal notify(string message)
 
     function openDialog() {
         if (!AppController.currentDocument.filePath) return
@@ -45,7 +46,7 @@ Dialog {
         function onExportComplete(outputPath) {
             dialog.exporting = false
             dialog.close()
-            toast.show("Exported to " + outputPath)
+            dialog.notify("Exported to " + outputPath)
             if (openAfterCheck.checked)
                 Qt.openUrlExternally("file:///" + outputPath.replace(/\\/g, "/"))
         }

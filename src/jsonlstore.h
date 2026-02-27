@@ -4,6 +4,8 @@
 #include <QJsonObject>
 #include <QThread>
 #include <QtQml/qqmlregistration.h>
+#include <atomic>
+#include <memory>
 
 struct JsonlEntry {
     int lineNumber;
@@ -19,6 +21,7 @@ class JsonlWorker : public QObject
     Q_OBJECT
 public:
     explicit JsonlWorker(const QString &filePath, quint64 generation,
+                         const std::shared_ptr<std::atomic<bool>> &cancelFlag,
                          QObject *parent = nullptr);
 
     quint64 generation() const { return m_generation; }
@@ -35,6 +38,7 @@ signals:
 private:
     QString m_filePath;
     quint64 m_generation;
+    std::shared_ptr<std::atomic<bool>> m_cancelFlag;
 };
 
 class JsonlStore : public QAbstractListModel
@@ -126,5 +130,6 @@ private:
     bool m_toolUseOnly = false;
 
     QThread *m_workerThread = nullptr;
+    std::shared_ptr<std::atomic<bool>> m_workerCancel;
     quint64 m_generation = 0;
 };

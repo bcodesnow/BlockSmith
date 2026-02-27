@@ -43,10 +43,10 @@ Project tree     |  Markdown editor/preview|  Blocks / Prompts tabs
 
 | Enum | Values | Purpose |
 |------|--------|---------|
-| `FileType` | `Markdown`, `Json`, `Yaml`, `PlainText` | Core format identification |
+| `FileType` | `Markdown`, `Json`, `Yaml`, `PlainText`, `Pdf` | Core format identification |
 | `SyntaxMode` | `SyntaxPlainText`, `SyntaxMarkdown`, `SyntaxJson`, `SyntaxYaml` | Drives `SyntaxHighlighter.mode` |
 | `ToolbarKind` | `ToolbarNone`, `ToolbarMarkdown`, `ToolbarJson`, `ToolbarYaml` | Drives toolbar Loader in Editor.qml |
-| `PreviewKind` | `PreviewNone`, `PreviewMarkdown` | Determines whether preview pane is available |
+| `PreviewKind` | `PreviewNone`, `PreviewMarkdown`, `PreviewPdf` | Determines whether preview pane is available |
 
 To add a new format: add extension check in `fileType()`, add enum values, add highlighter mode in `SyntaxHighlighter`, add toolbar/preview Components as needed.
 
@@ -93,6 +93,7 @@ qml/
     YamlToolbar.qml            # YAML format toolbar
     MdPreview.qml              # Lightweight HTML preview (popups)
     MdPreviewWeb.qml           # WebEngine preview with mermaid support
+    PdfViewer.qml              # WebEngine PDF viewer (read-only, Chromium PDFium)
     RightPane.qml              # TabBar: Blocks / Prompts / Outline
     BlockListPanel.qml         # Block list with search + tag filter
     BlockCard.qml              # Block card with insert button
@@ -159,7 +160,7 @@ Content here...
 ### Project Discovery & Navigation
 - Configurable search paths with ignore patterns and scan depth
 - Trigger file detection (CLAUDE.md, AGENTS.md, .git, etc.)
-- Indexes .md, .markdown, .jsonl, .json, .yaml, .yml, and .txt files within discovered projects
+- Indexes .md, .markdown, .jsonl, .json, .yaml, .yml, .txt, and .pdf files within discovered projects
 - Tree view with expand/collapse all, project/directory/file icons
 - Block usage highlighting in tree (files containing blocks are marked)
 - File management context menu: New File, New Folder, Rename, Duplicate, Cut, Paste, Delete
@@ -243,7 +244,7 @@ Content here...
 
 ### Claude Code Integration
 - Optional `~/.claude` folder added to project tree via Settings > Integrations toggle
-- Recursively indexes .md, .markdown, .jsonl, .json, .yaml, .yml, and .txt files from the Claude Code folder
+- Recursively indexes .md, .markdown, .jsonl, .json, .yaml, .yml, .txt, and .pdf files from the Claude Code folder
 - Auto-rescan when integration setting changes
 
 ### Navigation

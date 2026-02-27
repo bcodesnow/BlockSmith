@@ -70,7 +70,7 @@ All application data is stored at the OS config location:
 | Status bar: line count | Enabled |
 | Status bar: reading time | Enabled |
 | Include Claude Code folder | Disabled |
-| Global search formats | Markdown, JSON, YAML, Plain Text enabled; JSONL disabled |
+| Global search formats | Markdown, JSON, YAML, Plain Text enabled; JSONL, PDF disabled |
 | Ignore patterns | `node_modules`, `.git`, `dist`, `build`, `__pycache__`, `.venv`, `venv`, `target`, `.build` |
 | Trigger files | `CLAUDE.md`, `claude.md`, `.claude.md`, `AGENTS.md`, `agents.md`, `.agents.md`, `.git` |
 

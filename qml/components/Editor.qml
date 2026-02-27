@@ -16,6 +16,7 @@ Item {
     signal createPromptRequested(string selectedText)
     signal imageInserted(string name)
     signal imageErrorOccurred(string error)
+    signal notify(string message)
 
     // --- Image paste/drop helpers ---
 
@@ -277,12 +278,16 @@ Item {
 
     Component {
         id: jsonToolbarComponent
-        JsonToolbar { }
+        JsonToolbar {
+            onNotify: function(message) { editorRoot.notify(message) }
+        }
     }
 
     Component {
         id: yamlToolbarComponent
-        YamlToolbar { }
+        YamlToolbar {
+            onNotify: function(message) { editorRoot.notify(message) }
+        }
     }
 
     property Item activeToolbar: toolbarLoader.item

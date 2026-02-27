@@ -28,6 +28,11 @@ signals:
 
 private:
     bool isProjectRoot(const QString &path) const;
+    bool isSamePath(const QString &a, const QString &b) const;
+    bool isPathInside(const QString &path, const QString &directoryPath) const;
+    QString remapPathPrefix(const QString &path, const QString &oldPrefix, const QString &newPrefix) const;
+    void repointOpenDocument(const QString &oldPath, const QString &newPath, bool sourceIsDirectory);
+    void clearOpenDocumentForDeletedPath(const QString &deletedPath, bool isDirectory);
 
     Document *m_document = nullptr;
     ConfigManager *m_config = nullptr;

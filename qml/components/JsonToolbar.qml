@@ -6,6 +6,7 @@ Rectangle {
     id: root
     height: 32
     color: Theme.bgHeader
+    signal notify(string message)
 
     Row {
         anchors.verticalCenter: parent.verticalCenter
@@ -30,7 +31,7 @@ Rectangle {
                 if (result.length > 0) {
                     AppController.currentDocument.rawContent = result
                 } else {
-                    toast.show("Invalid JSON — cannot format")
+                    root.notify("Invalid JSON — cannot format")
                 }
             }
         }
@@ -43,3 +44,4 @@ Rectangle {
         color: Theme.border
     }
 }
+

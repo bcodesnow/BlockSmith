@@ -25,7 +25,8 @@ Dialog {
 
     function acceptCurrent() {
         if (selectedIndex >= 0 && selectedIndex < results.length) {
-            AppController.openFile(results[selectedIndex].filePath)
+            AppController.openFileAtLine(results[selectedIndex].filePath,
+                                         results[selectedIndex].line)
             searchDialog.close()
         }
     }
@@ -140,7 +141,7 @@ Dialog {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        AppController.openFile(modelData.filePath)
+                        AppController.openFileAtLine(modelData.filePath, modelData.line)
                         searchDialog.close()
                     }
                 }

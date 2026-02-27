@@ -272,7 +272,7 @@ void ProjectTreeModel::syncChildren(TreeNode *liveParent, TreeNode *newParent)
             }
 
             // Recurse into children for directories/project roots
-            if (liveChild->nodeType() != TreeNode::MdFile) {
+            if (liveChild->nodeType() != TreeNode::FileNode) {
                 syncChildren(liveChild, newChild);
             }
         }

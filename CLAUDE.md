@@ -72,4 +72,4 @@ resources/              App icon and Windows .rc file
 - See [docs/architecture.md](docs/architecture.md) for full architecture, project structure, features
 - See [docs/user-manual.md](docs/user-manual.md) for shortcuts, data storage, workflows
 - See [docs/ROADMAP.md](docs/ROADMAP.md) for planned phases and future features
-- See [docs/code-audit.md](docs/code-audit.md) for remaining technical debt
+- See the roadmap and open issues for remaining technical debt

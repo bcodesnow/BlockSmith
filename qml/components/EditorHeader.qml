@@ -13,7 +13,7 @@ Rectangle {
     required property bool isJsonlActive
     required property var editorTextArea   // TextArea ref for undo/redo
 
-    signal viewModeChanged(int mode)
+    signal viewModeSelected(int mode)
 
     RowLayout {
         anchors.fill: parent
@@ -74,12 +74,12 @@ Rectangle {
                         color: header.viewMode === mode ? Theme.bgActive : "transparent"
                         radius: Theme.radius
                     }
-                    onClicked: header.viewModeChanged(mode)
+                    onClicked: header.viewModeSelected(mode)
                 }
 
-                ModeBtn { text: "Edit"; mode: 0 }
-                ModeBtn { text: "Split"; mode: 1 }
-                ModeBtn { text: "Preview"; mode: 2 }
+                ModeBtn { text: "Edit"; mode: MainContent.ViewMode.Edit }
+                ModeBtn { text: "Split"; mode: MainContent.ViewMode.Split }
+                ModeBtn { text: "Preview"; mode: MainContent.ViewMode.Preview }
             }
         }
 

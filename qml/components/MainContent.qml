@@ -7,19 +7,23 @@ Rectangle {
     id: mainContent
     color: Theme.bg
 
-    enum ViewMode { Edit, Preview, Split }
+    enum ViewMode { Edit, Split, Preview }
     property int viewMode: MainContent.ViewMode.Edit
     property int editorCursorPosition: editor.cursorPosition
-    readonly property bool hasPreviewPane: !isJsonlActive
-        && AppController.currentDocument.previewKind !== Document.PreviewNone
+    readonly property bool hasPreviewPane: !isJsonlActive && !isPdfActive
+        && AppController.currentDocument.previewKind === Document.PreviewMarkdown
     readonly property bool hasEditorToolbar:
         AppController.currentDocument.toolbarKind !== Document.ToolbarNone
 
     // Is a JSONL file currently loaded?
     readonly property bool isJsonlActive: AppController.jsonlStore.filePath !== ""
 
-    // Convenience: editor is visible in Edit or Split mode (and not JSONL)
-    readonly property bool editorVisible: viewMode !== MainContent.ViewMode.Preview && !isJsonlActive
+    // Is a PDF file currently loaded?
+    readonly property bool isPdfActive: AppController.currentDocument.previewKind === Document.PreviewPdf
+
+    // Convenience: editor is visible in Edit or Split mode (and not JSONL/PDF)
+    readonly property bool editorVisible: viewMode !== MainContent.ViewMode.Preview
+        && !isJsonlActive && !isPdfActive
 
     // Current editor line (1-based), used by outline panel
     readonly property int currentLine: {
@@ -31,6 +35,7 @@ Rectangle {
     }
 
     signal createPromptRequested(string content)
+    signal notifyRequested(string message)
 
     onHasPreviewPaneChanged: {
         if (!hasPreviewPane && viewMode !== MainContent.ViewMode.Edit)
@@ -55,6 +60,19 @@ Rectangle {
         if (viewMode === MainContent.ViewMode.Preview)
             viewMode = MainContent.ViewMode.Edit
         findReplaceBar.openReplace()
+    }
+
+    function cycleViewMode() {
+        if (!hasPreviewPane) {
+            viewMode = MainContent.ViewMode.Edit
+            return
+        }
+        if (viewMode === MainContent.ViewMode.Edit)
+            viewMode = MainContent.ViewMode.Split
+        else if (viewMode === MainContent.ViewMode.Split)
+            viewMode = MainContent.ViewMode.Preview
+        else
+            viewMode = MainContent.ViewMode.Edit
     }
 
     FindReplaceController {
@@ -93,7 +111,7 @@ Rectangle {
             hasPreviewPane: mainContent.hasPreviewPane
             isJsonlActive: mainContent.isJsonlActive
             editorTextArea: editor.textArea
-            onViewModeChanged: function(mode) { mainContent.viewMode = mode }
+            onViewModeSelected: function(mode) { mainContent.viewMode = mode }
         }
 
         // Separator
@@ -158,11 +176,18 @@ Rectangle {
                 visible: mainContent.isJsonlActive
             }
 
+            // PDF viewer (replaces editor when .pdf is open)
+            PdfViewer {
+                anchors.fill: parent
+                visible: mainContent.isPdfActive
+            }
+
             SplitView {
                 id: editorSplitView
                 anchors.fill: parent
                 orientation: Qt.Horizontal
-                visible: AppController.currentDocument.filePath !== "" && !mainContent.isJsonlActive
+                visible: AppController.currentDocument.filePath !== ""
+                    && !mainContent.isJsonlActive && !mainContent.isPdfActive
 
                 handle: Rectangle {
                     implicitWidth: 6
@@ -202,6 +227,9 @@ Rectangle {
                     }
                     onCreatePromptRequested: function(selectedText) {
                         mainContent.createPromptRequested(selectedText)
+                    }
+                    onNotify: function(message) {
+                        mainContent.notifyRequested(message)
                     }
                 }
 
@@ -289,6 +317,17 @@ Rectangle {
                 }
             }
 
+            Connections {
+                target: AppController
+                function onNavigateToLineRequested(lineNumber) {
+                    if (!mainContent.isJsonlActive && lineNumber > 0) {
+                        Qt.callLater(function() {
+                            mainContent.scrollToLine(lineNumber)
+                        })
+                    }
+                }
+            }
+
             function scrollEditorToLine(lineNum) {
                 let content = editor.textArea.text
                 let lines = content.split("\n")
@@ -309,7 +348,8 @@ Rectangle {
 
         // Status bar
         EditorStatusBar {
-            visible: AppController.currentDocument.filePath !== "" && !mainContent.isJsonlActive
+            visible: AppController.currentDocument.filePath !== ""
+                && !mainContent.isJsonlActive && !mainContent.isPdfActive
             viewMode: mainContent.viewMode
             editorCursorPosition: editor.cursorPosition
         }

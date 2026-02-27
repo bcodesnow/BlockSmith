@@ -292,6 +292,16 @@ void ConfigManager::setSearchIncludePlaintext(bool enabled)
     }
 }
 
+bool ConfigManager::searchIncludePdf() const { return m_searchIncludePdf; }
+
+void ConfigManager::setSearchIncludePdf(bool enabled)
+{
+    if (m_searchIncludePdf != enabled) {
+        m_searchIncludePdf = enabled;
+        emit searchIncludePdfChanged();
+    }
+}
+
 QString ConfigManager::themeMode() const { return m_themeMode; }
 
 void ConfigManager::setThemeMode(const QString &mode)
@@ -428,6 +438,8 @@ void ConfigManager::load()
         m_searchIncludeJsonl = root["searchIncludeJsonl"].toBool(false);
     if (root.contains("searchIncludePlaintext"))
         m_searchIncludePlaintext = root["searchIncludePlaintext"].toBool(true);
+    if (root.contains("searchIncludePdf"))
+        m_searchIncludePdf = root["searchIncludePdf"].toBool(false);
 
     if (root.contains("themeMode"))
         m_themeMode = root["themeMode"].toString("dark");
@@ -493,6 +505,7 @@ void ConfigManager::save()
     root["searchIncludeYaml"] = m_searchIncludeYaml;
     root["searchIncludeJsonl"] = m_searchIncludeJsonl;
     root["searchIncludePlaintext"] = m_searchIncludePlaintext;
+    root["searchIncludePdf"] = m_searchIncludePdf;
 
     root["themeMode"] = m_themeMode;
     root["editorFontFamily"] = m_editorFontFamily;

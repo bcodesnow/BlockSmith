@@ -37,6 +37,7 @@ class ConfigManager : public QObject
     Q_PROPERTY(bool searchIncludeYaml READ searchIncludeYaml WRITE setSearchIncludeYaml NOTIFY searchIncludeYamlChanged)
     Q_PROPERTY(bool searchIncludeJsonl READ searchIncludeJsonl WRITE setSearchIncludeJsonl NOTIFY searchIncludeJsonlChanged)
     Q_PROPERTY(bool searchIncludePlaintext READ searchIncludePlaintext WRITE setSearchIncludePlaintext NOTIFY searchIncludePlaintextChanged)
+    Q_PROPERTY(bool searchIncludePdf READ searchIncludePdf WRITE setSearchIncludePdf NOTIFY searchIncludePdfChanged)
     Q_PROPERTY(QString themeMode READ themeMode WRITE setThemeMode NOTIFY themeModeChanged)
     Q_PROPERTY(QString editorFontFamily READ editorFontFamily WRITE setEditorFontFamily NOTIFY editorFontFamilyChanged)
     Q_PROPERTY(bool wordWrap READ wordWrap WRITE setWordWrap NOTIFY wordWrapChanged)
@@ -119,6 +120,9 @@ public:
     bool searchIncludePlaintext() const;
     void setSearchIncludePlaintext(bool enabled);
 
+    bool searchIncludePdf() const;
+    void setSearchIncludePdf(bool enabled);
+
     QString themeMode() const;
     void setThemeMode(const QString &mode);
 
@@ -158,6 +162,7 @@ signals:
     void searchIncludeYamlChanged();
     void searchIncludeJsonlChanged();
     void searchIncludePlaintextChanged();
+    void searchIncludePdfChanged();
     void themeModeChanged();
     void editorFontFamilyChanged();
     void wordWrapChanged();
@@ -193,6 +198,7 @@ private:
     bool m_searchIncludeYaml = true;
     bool m_searchIncludeJsonl = false;
     bool m_searchIncludePlaintext = true;
+    bool m_searchIncludePdf = false;
     QString m_themeMode = QStringLiteral("dark");
     QString m_editorFontFamily = QStringLiteral("Consolas");
     bool m_wordWrap = true;

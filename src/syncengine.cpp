@@ -379,7 +379,7 @@ void SyncEngine::collectAllMdFiles(TreeNode *node, QStringList &files) const
 {
     if (!node) return;
 
-    if (node->nodeType() == TreeNode::MdFile) {
+    if (node->nodeType() == TreeNode::FileNode) {
         const QString path = node->path();
         // Tree nodes may include .json/.jsonl entries (e.g. ~/.claude integration).
         // Block indexing and markdown search should only touch real markdown files.

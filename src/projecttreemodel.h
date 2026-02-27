@@ -9,7 +9,7 @@
 class TreeNode
 {
 public:
-    enum NodeType { ProjectRoot, Directory, MdFile };
+    enum NodeType { ProjectRoot, Directory, FileNode };
 
     TreeNode(const QString &name, const QString &path, NodeType type,
              bool isTriggerFile = false, TreeNode *parent = nullptr);

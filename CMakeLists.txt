@@ -84,6 +84,7 @@ qt_add_qml_module(BlockSmith
         qml/components/EditorContextMenu.qml
         qml/components/ImageDropZone.qml
         qml/components/UnsavedChangesDialog.qml
+        qml/components/PdfViewer.qml
     SOURCES
         src/configmanager.h src/configmanager.cpp
         src/md4crenderer.h src/md4crenderer.cpp

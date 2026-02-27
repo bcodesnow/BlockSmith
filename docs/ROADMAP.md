@@ -13,6 +13,7 @@
 | YAML | Full | Yes | — | Yes | — | — |
 | JSONL | Special | Viewer | — | — | — | — |
 | PlainText (.txt) | Full | Yes | — | — | — | — |
+| PDF (.pdf) | Read-only | — | WebEngine | — | — | — |
 
 ---
 
@@ -22,20 +23,9 @@
 
 `.txt` files are discovered during project scans, editable in PlainText mode, and included in global search (toggleable in Settings > Projects).
 
-### PDF (Read-Only Viewer) — MEDIUM-HIGH priority, ~2-3h
+### ~~PDF (Read-Only Viewer)~~ — Implemented
 
-Display PDFs in preview pane using the existing WebEngine (Chromium has built-in PDF.js viewer — zoom, page nav, search, thumbnail sidebar for free).
-
-**C++ (Document):**
-- Add `FileType::Pdf` enum, `.pdf` extension check
-- Add `PreviewKind::PreviewPdf`
-- Binary file — don't treat as text, don't parse blocks
-
-**QML:**
-- Load PDF as `file://` URL in WebEngineView (reuse MdPreviewWeb pattern)
-- MainContent.qml: +10 LOC preview routing
-
-**Dependencies:** None — WebEngine already bundled
+`.pdf` files are discovered during project scans and displayed read-only via Chromium's built-in PDFium renderer (WebEngineView). Zoom, page navigation, search, and thumbnails provided by the browser engine. Search toggle in Settings > Projects (default off — PDFs are binary).
 
 ### DOCX (Read-Only) — MEDIUM priority, ~2-3h
 
@@ -312,7 +302,7 @@ No format exceeds 1256 LOC (the max file size) because responsibilities are spli
 | Feature | Phase | Effort | LOC |
 |---------|-------|--------|-----|
 | ~~TXT Support~~ | — | Done | — |
-| PDF Viewer | — | 2-3h | 80 |
+| ~~PDF Viewer~~ | — | Done | — |
 | DOCX Read-Only | — | 2-3h | 80 |
 | Multi-Tab Editor | 13 | 1-2w | 250 |
 | Table Editor | 14.1 | 1w | 140 |

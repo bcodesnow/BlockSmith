@@ -143,6 +143,8 @@ void SearchManager::searchFiles(const QString &query)
             return m_configManager->searchIncludeMarkdown();
         if (path.endsWith(QStringLiteral(".txt"), Qt::CaseInsensitive))
             return m_configManager->searchIncludePlaintext();
+        if (path.endsWith(QStringLiteral(".pdf"), Qt::CaseInsensitive))
+            return m_configManager->searchIncludePdf();
         return false;
     };
 

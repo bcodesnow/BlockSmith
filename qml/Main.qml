@@ -78,6 +78,7 @@ ApplicationWindow {
 
     ExportDialog {
         id: exportDialog
+        onNotify: function(message) { toast.show(message) }
     }
 
     QuickSwitcher {
@@ -190,7 +191,7 @@ ApplicationWindow {
         sequence: "Ctrl+E"
         onActivated: {
             if (AppController.currentDocument.filePath !== "")
-                mainContentArea.viewMode = (mainContentArea.viewMode + 1) % 3
+                mainContentArea.cycleViewMode()
         }
     }
     Shortcut {
@@ -322,6 +323,9 @@ ApplicationWindow {
             SplitView.minimumWidth: 300
             onCreatePromptRequested: function(content) {
                 promptEditorPopup.openNewWithContent(content)
+            }
+            onNotifyRequested: function(message) {
+                toast.show(message)
             }
         }
 

@@ -63,7 +63,7 @@ Built with **C++17 + Qt 6** (zero Electron, zero web bloat). Runs on Windows, Li
 ### Project Discovery & Navigation
 - **Configurable search paths** with ignore patterns and scan depth
 - **Trigger file detection** (CLAUDE.md, AGENTS.md, .git, custom)
-- **Auto-index** .md, .markdown, .json, .yaml, .yml, .jsonl, .txt files
+- **Auto-index** .md, .markdown, .json, .yaml, .yml, .jsonl, .txt, .pdf files
 - **Project tree** with expand/collapse all, project/directory/file icons
 - **File management** — New File, New Folder, Rename, Duplicate, Delete, Move, Reveal in Explorer
 - **Delete confirmation** dialogs
@@ -152,7 +152,7 @@ Built with **C++17 + Qt 6** (zero Electron, zero web bloat). Runs on Windows, Li
 
 ### Claude Code Integration
 - **Optional ~/.claude folder** — add to project tree via Settings > Integrations
-- **Recursively indexes** .md, .markdown, .jsonl, .json, .yaml, .yml, .txt from Claude Code
+- **Recursively indexes** .md, .markdown, .jsonl, .json, .yaml, .yml, .txt, .pdf from Claude Code
 - **Auto-rescan** when integration setting changes
 
 ---
@@ -166,6 +166,7 @@ Built with **C++17 + Qt 6** (zero Electron, zero web bloat). Runs on Windows, Li
 | YAML (.yaml, .yml) | ✓ | — | — | ✓ (Format) |
 | JSONL (.jsonl) | Special viewer | — | — | — |
 | Plaintext (.txt) | ✓ | — | — | — |
+| PDF (.pdf) | Read-only | ✓ (WebEngine) | — | — |
 
 ---
 
@@ -299,6 +300,6 @@ File an issue on [GitHub Issues](https://github.com/bcodesnow/BlockSmith/issues)
 - **Multi-tab editor** — open multiple files simultaneously
 - **Git integration** — status icons, diff view, commit from the app
 - **Spell checking** — Hunspell or system API with red squiggles
-- **PDF & DOCX viewers** — read-only preview for binary formats
+- **DOCX viewer** — read-only preview for Word documents
 
 See the full roadmap in [docs/ROADMAP.md](docs/ROADMAP.md).

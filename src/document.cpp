@@ -23,6 +23,20 @@ Document::Document(QObject *parent)
 
 void Document::load(const QString &filePath)
 {
+    // Binary files: just track the path, skip text reading
+    if (filePath.endsWith(QLatin1String(".pdf"), Qt::CaseInsensitive)) {
+        unwatchFile();
+        m_filePath = filePath;
+        m_rawContent.clear();
+        m_savedContent.clear();
+        m_modified = false;
+        m_blocks.clear();
+        emit rawContentChanged();
+        emit filePathChanged();
+        emit modifiedChanged();
+        return;
+    }
+
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         qWarning("Document: could not open %s", qPrintable(filePath));
@@ -162,6 +176,8 @@ Document::FileType Document::fileType() const
         return Markdown;
     if (m_filePath.endsWith(QLatin1String(".txt"), Qt::CaseInsensitive))
         return PlainText;
+    if (m_filePath.endsWith(QLatin1String(".pdf"), Qt::CaseInsensitive))
+        return Pdf;
     return PlainText;
 }
 
@@ -171,6 +187,7 @@ QString Document::formatId() const
     case Markdown: return QStringLiteral("markdown");
     case Json:     return QStringLiteral("json");
     case Yaml:     return QStringLiteral("yaml");
+    case Pdf:      return QStringLiteral("pdf");
     default:       return QStringLiteral("plaintext");
     }
 }
@@ -197,7 +214,11 @@ Document::ToolbarKind Document::toolbarKind() const
 
 Document::PreviewKind Document::previewKind() const
 {
-    return fileType() == Markdown ? PreviewMarkdown : PreviewNone;
+    switch (fileType()) {
+    case Markdown: return PreviewMarkdown;
+    case Pdf:      return PreviewPdf;
+    default:       return PreviewNone;
+    }
 }
 
 bool Document::isJson() const { return fileType() == Json; }

@@ -11,6 +11,29 @@
 #include <QClipboard>
 #include <QProcess>
 
+namespace {
+
+Qt::CaseSensitivity pathCaseSensitivity()
+{
+#ifdef Q_OS_WIN
+    return Qt::CaseInsensitive;
+#else
+    return Qt::CaseSensitive;
+#endif
+}
+
+QString normalizePath(const QString &path)
+{
+    return QDir::cleanPath(path).replace(QLatin1Char('\\'), QLatin1Char('/'));
+}
+
+bool samePath(const QString &a, const QString &b)
+{
+    return normalizePath(a).compare(normalizePath(b), pathCaseSensitivity()) == 0;
+}
+
+} // namespace
+
 AppController::AppController(QObject *parent)
     : QObject(parent)
     , m_configManager(new ConfigManager(this))
@@ -83,6 +106,28 @@ AppController::AppController(QObject *parent)
     // Forward SearchManager signals
     connect(m_searchManager, &SearchManager::searchResultsReady,
             this, &AppController::searchResultsReady);
+
+    // Deferred line navigation (e.g. from global search results).
+    connect(m_currentDocument, &Document::filePathChanged, this, [this]() {
+        if (m_pendingLineNumber <= 0 || m_pendingLinePath.isEmpty())
+            return;
+
+        const QString docPath = m_currentDocument->filePath();
+        if (docPath.isEmpty())
+            return;
+
+        if (samePath(docPath, m_pendingLinePath)) {
+            const int line = m_pendingLineNumber;
+            m_pendingLinePath.clear();
+            m_pendingLineNumber = -1;
+            emit navigateToLineRequested(line);
+            return;
+        }
+
+        // A different file opened, so this pending jump is stale.
+        m_pendingLinePath.clear();
+        m_pendingLineNumber = -1;
+    });
 }
 
 AppController *AppController::create(QQmlEngine *engine, QJSEngine *scriptEngine)
@@ -136,6 +181,25 @@ void AppController::scan()
 
 void AppController::openFile(const QString &path) { m_navigationManager->openFile(path); }
 void AppController::forceOpenFile(const QString &path) { m_navigationManager->forceOpenFile(path); }
+void AppController::openFileAtLine(const QString &path, int lineNumber)
+{
+    if (path.isEmpty())
+        return;
+
+    if (lineNumber <= 0) {
+        openFile(path);
+        return;
+    }
+
+    if (samePath(path, m_currentDocument->filePath())) {
+        emit navigateToLineRequested(lineNumber);
+        return;
+    }
+
+    m_pendingLinePath = normalizePath(path);
+    m_pendingLineNumber = lineNumber;
+    openFile(path);
+}
 void AppController::goBack() { m_navigationManager->goBack(); }
 void AppController::goForward() { m_navigationManager->goForward(); }
 bool AppController::canGoBack() const { return m_navigationManager->canGoBack(); }

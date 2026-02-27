@@ -67,6 +67,7 @@ public:
     Q_INVOKABLE QString createProject(const QString &folderPath, const QString &triggerFileName);
 
     Q_INVOKABLE void forceOpenFile(const QString &path);
+    Q_INVOKABLE void openFileAtLine(const QString &path, int lineNumber);
     Q_INVOKABLE void goBack();
     Q_INVOKABLE void goForward();
     bool canGoBack() const;
@@ -80,6 +81,7 @@ signals:
     void unsavedChangesWarning(const QString &pendingPath);
     void searchResultsReady(const QVariantList &results);
     void navHistoryChanged();
+    void navigateToLineRequested(int lineNumber);
 
 public slots:
     void scan();
@@ -102,4 +104,6 @@ private:
     NavigationManager *m_navigationManager = nullptr;
     SearchManager *m_searchManager = nullptr;
     QStringList m_highlightedFiles;
+    QString m_pendingLinePath;
+    int m_pendingLineNumber = -1;
 };

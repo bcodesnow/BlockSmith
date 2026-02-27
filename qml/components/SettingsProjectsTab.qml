@@ -23,6 +23,7 @@ ColumnLayout {
         searchYamlCheck.checked = AppController.configManager.searchIncludeYaml
         searchJsonlCheck.checked = AppController.configManager.searchIncludeJsonl
         searchTxtCheck.checked = AppController.configManager.searchIncludePlaintext
+        searchPdfCheck.checked = AppController.configManager.searchIncludePdf
     }
 
     function saveToConfig() {
@@ -39,6 +40,7 @@ ColumnLayout {
         AppController.configManager.searchIncludeYaml = searchYamlCheck.checked
         AppController.configManager.searchIncludeJsonl = searchJsonlCheck.checked
         AppController.configManager.searchIncludePlaintext = searchTxtCheck.checked
+        AppController.configManager.searchIncludePdf = searchPdfCheck.checked
     }
 
     Label {
@@ -200,6 +202,12 @@ ColumnLayout {
             id: searchTxtCheck
             text: "Plain Text (.txt)"
             checked: true
+        }
+
+        CheckBox {
+            id: searchPdfCheck
+            text: "PDF (.pdf)"
+            checked: false
         }
     }
 

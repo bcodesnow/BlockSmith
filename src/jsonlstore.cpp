@@ -10,8 +10,10 @@
 
 // ── JsonlWorker ──────────────────────────────────────────────
 
-JsonlWorker::JsonlWorker(const QString &filePath, quint64 generation, QObject *parent)
-    : QObject(parent), m_filePath(filePath), m_generation(generation)
+JsonlWorker::JsonlWorker(const QString &filePath, quint64 generation,
+                         const std::shared_ptr<std::atomic<bool>> &cancelFlag,
+                         QObject *parent)
+    : QObject(parent), m_filePath(filePath), m_generation(generation), m_cancelFlag(cancelFlag)
 {
 }
 
@@ -30,6 +32,11 @@ void JsonlWorker::process()
     constexpr int kChunkSize = 100;
 
     while (!in.atEnd()) {
+        if (m_cancelFlag && m_cancelFlag->load()) {
+            emit finished(m_generation);
+            return;
+        }
+
         QString line = in.readLine().trimmed();
         lineNum++;
 
@@ -201,6 +208,10 @@ void JsonlWorker::process()
         chunk.append(entry);
 
         if (chunk.size() >= kChunkSize) {
+            if (m_cancelFlag && m_cancelFlag->load()) {
+                emit finished(m_generation);
+                return;
+            }
             emit chunkReady(chunk, m_generation);
             emit progressChanged(lineNum, m_generation);
             chunk.clear();
@@ -306,13 +317,14 @@ void JsonlStore::load(const QString &filePath)
     clear();
 
     m_generation++;
+    m_workerCancel = std::make_shared<std::atomic<bool>>(false);
     m_filePath = filePath;
     emit filePathChanged();
 
     m_loading = true;
     emit loadingChanged();
 
-    auto *worker = new JsonlWorker(filePath, m_generation);
+    auto *worker = new JsonlWorker(filePath, m_generation, m_workerCancel);
     m_workerThread = new QThread();
     worker->moveToThread(m_workerThread);
 
@@ -434,6 +446,7 @@ void JsonlStore::onLoadFinished(quint64 generation)
     if (generation != m_generation) return;
     m_loading = false;
     m_workerThread = nullptr; // already scheduled for deleteLater
+    m_workerCancel.reset();
     emit loadingChanged();
 }
 
@@ -463,14 +476,16 @@ void JsonlStore::rebuildFiltered()
 
 void JsonlStore::stopWorker()
 {
+    if (m_workerCancel)
+        m_workerCancel->store(true);
+
     if (m_workerThread) {
         if (m_workerThread->isRunning()) {
             m_workerThread->quit();
-            if (!m_workerThread->wait(2000)) {
-                m_workerThread->terminate();
-                m_workerThread->wait();
-            }
+            m_workerThread->wait();
         }
         m_workerThread = nullptr;
     }
+
+    m_workerCancel.reset();
 }

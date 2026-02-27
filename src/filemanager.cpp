@@ -7,6 +7,24 @@
 #include <QFileInfo>
 #include <QTextStream>
 
+namespace {
+
+Qt::CaseSensitivity pathCaseSensitivity()
+{
+#ifdef Q_OS_WIN
+    return Qt::CaseInsensitive;
+#else
+    return Qt::CaseSensitive;
+#endif
+}
+
+QString normalizePath(const QString &path)
+{
+    return QDir::cleanPath(path).replace(QLatin1Char('\\'), QLatin1Char('/'));
+}
+
+} // namespace
+
 FileManager::FileManager(Document *document, ConfigManager *config,
                          QObject *parent)
     : QObject(parent)
@@ -95,13 +113,7 @@ QString FileManager::renameItem(const QString &oldPath, const QString &newName)
     if (!ok)
         return QStringLiteral("Rename failed");
 
-    // If the renamed file was currently open, re-point to new path
-    if (m_document->filePath() == oldPath) {
-        if (m_document->modified())
-            m_document->saveTo(newPath);
-        else
-            m_document->load(newPath);
-    }
+    repointOpenDocument(oldPath, newPath, fi.isDir());
 
     emit fileOperationComplete();
     return {};
@@ -132,13 +144,7 @@ QString FileManager::moveItem(const QString &sourcePath, const QString &destDir)
     if (!ok)
         return QStringLiteral("Move failed");
 
-    // If the moved file was currently open, re-point to new path
-    if (m_document->filePath() == sourcePath) {
-        if (m_document->modified())
-            m_document->saveTo(newPath);
-        else
-            m_document->load(newPath);
-    }
+    repointOpenDocument(sourcePath, newPath, srcInfo.isDir());
 
     emit fileOperationComplete();
     return {};
@@ -164,9 +170,7 @@ QString FileManager::deleteItem(const QString &path)
     if (!ok)
         return QStringLiteral("Delete failed");
 
-    // If the deleted file was currently open, clear the editor
-    if (fi.isFile() && m_document->filePath() == path)
-        m_document->clear();
+    clearOpenDocumentForDeletedPath(path, fi.isDir());
 
     emit fileOperationComplete();
     return {};
@@ -217,4 +221,94 @@ bool FileManager::isProjectRoot(const QString &path) const
             return true;
     }
     return false;
+}
+
+bool FileManager::isSamePath(const QString &a, const QString &b) const
+{
+    return normalizePath(a).compare(normalizePath(b), pathCaseSensitivity()) == 0;
+}
+
+bool FileManager::isPathInside(const QString &path, const QString &directoryPath) const
+{
+    if (path.isEmpty() || directoryPath.isEmpty())
+        return false;
+
+    const QString normalizedPath = normalizePath(path);
+    QString normalizedDir = normalizePath(directoryPath);
+
+    if (normalizedDir.isEmpty())
+        return false;
+
+    if (normalizedPath.compare(normalizedDir, pathCaseSensitivity()) == 0)
+        return true;
+
+    if (!normalizedDir.endsWith(QLatin1Char('/')))
+        normalizedDir += QLatin1Char('/');
+
+    return normalizedPath.startsWith(normalizedDir, pathCaseSensitivity());
+}
+
+QString FileManager::remapPathPrefix(const QString &path, const QString &oldPrefix,
+                                     const QString &newPrefix) const
+{
+    const QString normalizedPath = normalizePath(path);
+    QString normalizedOld = normalizePath(oldPrefix);
+    QString normalizedNew = normalizePath(newPrefix);
+
+    if (normalizedPath.compare(normalizedOld, pathCaseSensitivity()) == 0)
+        return QDir::toNativeSeparators(normalizedNew);
+
+    if (!normalizedOld.endsWith(QLatin1Char('/')))
+        normalizedOld += QLatin1Char('/');
+    if (!normalizedNew.endsWith(QLatin1Char('/')))
+        normalizedNew += QLatin1Char('/');
+
+    if (!normalizedPath.startsWith(normalizedOld, pathCaseSensitivity()))
+        return QString();
+
+    const QString suffix = normalizedPath.mid(normalizedOld.length());
+    return QDir::toNativeSeparators(normalizedNew + suffix);
+}
+
+void FileManager::repointOpenDocument(const QString &oldPath, const QString &newPath,
+                                      bool sourceIsDirectory)
+{
+    const QString docPath = m_document->filePath();
+    if (docPath.isEmpty())
+        return;
+
+    QString targetPath;
+    if (sourceIsDirectory) {
+        if (!isPathInside(docPath, oldPath))
+            return;
+        targetPath = remapPathPrefix(docPath, oldPath, newPath);
+    } else {
+        if (!isSamePath(docPath, oldPath))
+            return;
+        targetPath = newPath;
+    }
+
+    if (targetPath.isEmpty() || isSamePath(docPath, targetPath))
+        return;
+
+    if (m_document->modified())
+        m_document->saveTo(targetPath);
+    else
+        m_document->load(targetPath);
+}
+
+void FileManager::clearOpenDocumentForDeletedPath(const QString &deletedPath, bool isDirectory)
+{
+    const QString docPath = m_document->filePath();
+    if (docPath.isEmpty())
+        return;
+
+    if (isDirectory) {
+        if (isPathInside(docPath, deletedPath))
+            m_document->clear();
+        return;
+    }
+
+    if (isSamePath(docPath, deletedPath))
+        m_document->clear();
 }
