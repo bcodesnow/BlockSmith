@@ -87,7 +87,7 @@ qt_add_qml_module(BlockSmith
         qml/components/QuitConfirmDialog.qml
         qml/components/PdfViewer.qml
         qml/components/DocxViewer.qml
-        qml/components/TabBar.qml
+        qml/components/EditorTabBar.qml
     SOURCES
         src/configmanager.h src/configmanager.cpp
         src/md4crenderer.h src/md4crenderer.cpp

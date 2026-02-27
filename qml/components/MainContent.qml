@@ -152,7 +152,7 @@ Rectangle {
         spacing: 0
 
         // Tab bar
-        TabBar {
+        EditorTabBar {
             id: editorTabBar
             Layout.fillWidth: true
             onTabCloseRequested: function(index) {
