@@ -48,6 +48,8 @@ Rectangle {
         clip: true
         model: AppController.tabModel
         currentIndex: AppController.tabModel.activeIndex
+        highlightFollowsCurrentItem: false
+        highlight: null
         interactive: false // we handle scrolling ourselves
         spacing: 0
 
@@ -65,7 +67,7 @@ Rectangle {
             id: tabDelegate
             width: Math.min(220, Math.max(80, tabLabel.implicitWidth + 52))
             height: tabBar.height
-            color: model.isActive ? Theme.bg
+            color: isActive ? Theme.bg
                  : tabDelegateMa.containsMouse ? Theme.bgPanel : Theme.bgHeader
 
             required property int index
@@ -160,7 +162,7 @@ Rectangle {
                         tabContextMenu.tabFilePath = tabDelegate.filePath
                         tabContextMenu.popup()
                     } else {
-                        AppController.tabModel.setActiveIndex(tabDelegate.index)
+                        AppController.tabModel.activeIndex = (tabDelegate.index)
                     }
                 }
             }
@@ -280,7 +282,7 @@ Rectangle {
                     anchors.fill: parent
                     hoverEnabled: true
                     onClicked: {
-                        AppController.tabModel.setActiveIndex(index)
+                        AppController.tabModel.activeIndex = (index)
                         overflowMenu.close()
                     }
                 }

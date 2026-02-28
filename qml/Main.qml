@@ -331,7 +331,7 @@ ApplicationWindow {
         onActivated: {
             let next = AppController.tabModel.activeIndex + 1
             if (next >= AppController.tabModel.count) next = 0
-            AppController.tabModel.setActiveIndex(next)
+            AppController.tabModel.activeIndex = (next)
         }
     }
     Shortcut {
@@ -339,7 +339,7 @@ ApplicationWindow {
         onActivated: {
             let prev = AppController.tabModel.activeIndex - 1
             if (prev < 0) prev = AppController.tabModel.count - 1
-            if (prev >= 0) AppController.tabModel.setActiveIndex(prev)
+            if (prev >= 0) AppController.tabModel.activeIndex = (prev)
         }
     }
     Shortcut {

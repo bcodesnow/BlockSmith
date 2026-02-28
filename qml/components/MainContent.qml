@@ -274,15 +274,39 @@ Rectangle {
                     SplitView.fillWidth: mainContent.viewMode === MainContent.ViewMode.Edit
                     SplitView.preferredWidth: editorSplitView.width / 2
                     SplitView.minimumWidth: 200
-                    text: mainContent.hasDoc ? mainContent.currentDoc.rawContent : ""
                     readOnly: false
                     toolbarVisible: mainContent.editorVisible && mainContent.hasEditorToolbar
                                     && AppController.configManager.editorToolbarVisible
 
+                    // Bidirectional text sync (declarative binding breaks after imperative writes)
+                    property bool _syncing: false
+
+                    Connections {
+                        target: mainContent.currentDoc
+                        function onRawContentChanged() {
+                            if (editor._syncing) return
+                            editor._syncing = true
+                            editor.textArea.text = mainContent.currentDoc.rawContent
+                            editor._syncing = false
+                        }
+                    }
+                    Connections {
+                        target: AppController
+                        function onCurrentDocumentChanged() {
+                            editor._syncing = true
+                            editor.textArea.text = mainContent.hasDoc
+                                ? mainContent.currentDoc.rawContent : ""
+                            editor._syncing = false
+                        }
+                    }
                     textArea.onTextChanged: {
+                        if (editor._syncing) return
                         if (mainContent.hasDoc
-                            && textArea.text !== mainContent.currentDoc.rawContent)
+                            && textArea.text !== mainContent.currentDoc.rawContent) {
+                            editor._syncing = true
                             mainContent.currentDoc.rawContent = textArea.text
+                            editor._syncing = false
+                        }
                     }
                     onAddBlockRequested: function(selectedText, selStart, selEnd) {
                         addBlockDialog.selectedText = selectedText
